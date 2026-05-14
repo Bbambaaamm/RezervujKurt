@@ -1,7 +1,26 @@
+"use client";
+
+import { useMemo, useState } from 'react';
+
 import { ReservationGrid } from '@/components/reservation-grid';
 
+function formatCzechDate(date: string) {
+  const parsedDate = new Date(`${date}T00:00:00`);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return 'Neplatné datum';
+  }
+
+  return new Intl.DateTimeFormat('cs-CZ', {
+    day: 'numeric',
+    month: 'numeric',
+    year: 'numeric',
+  }).format(parsedDate);
+}
+
 export default function ReservationPage() {
-  const selectedDate = '2026-05-14';
+  const [selectedDate, setSelectedDate] = useState('2026-05-14');
+  const formattedSelectedDate = useMemo(() => formatCzechDate(selectedDate), [selectedDate]);
 
   return (
     <div className="space-y-6">
@@ -10,8 +29,20 @@ export default function ReservationPage() {
           <h1 className="text-3xl font-bold">Rezervace kurtů</h1>
           <p className="text-slate-600">Denní přehled všech 3 kurtů na jednom místě.</p>
         </div>
-        <div className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm">
-          Datum: <span className="font-semibold">14. 5. 2026</span>
+        <div className="space-y-2 rounded-md border border-slate-200 bg-white px-4 py-3 text-sm">
+          <div>
+            Datum: <span className="font-semibold">{formattedSelectedDate}</span>
+          </div>
+          <label className="flex flex-col gap-1 text-xs font-medium text-slate-600" htmlFor="reservation-day">
+            Vyberte den
+            <input
+              id="reservation-day"
+              type="date"
+              value={selectedDate}
+              onChange={(event) => setSelectedDate(event.target.value)}
+              className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            />
+          </label>
         </div>
       </div>
 
