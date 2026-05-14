@@ -131,3 +131,11 @@ Dokončit „auth-first“ do produkčnější podoby:
 1. Route guard pro stránky/akce vyžadující přihlášení.
 2. Stabilní obnovování session a jednotný auth stav v layoutu.
 3. Následně teprve navázat schvalovací workflow (admin).
+
+## 8) Stabilizace buildu po auth-first změně (ověřeno 14. 5. 2026)
+
+- `npm install` v tomto prostředí padal na `403 Forbidden` při stažení `@supabase/supabase-js` z npm registry.
+- Pro stabilizaci byl odstraněn SDK import a nahrazen minimálním auth klientem nad Supabase Auth REST endpointy (`/auth/v1/otp`) bez nové dependency.
+- Ověřeno: `npm install` i `npm run build` nyní prochází.
+- Dev server startuje přes `npm run dev` (ověřeno do stavu Ready).
+
