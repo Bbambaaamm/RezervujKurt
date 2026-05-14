@@ -8,6 +8,32 @@ Webový rezervační systém pro tenisové kurty TJ Baník Stříbro.
 - Tailwind CSS
 - Připraveno pro Supabase + Vercel
 
+## Spuštění projektu přímo z GitHubu
+
+### Varianta A (doporučeno): GitHub Codespaces
+1. Otevři repozitář na GitHubu.
+2. Klikni na **Code** → **Codespaces** → **Create codespace on main**.
+3. Po otevření terminálu v Codespaces spusť:
+
+```bash
+npm install
+npm run dev
+```
+
+4. V panelu **Ports** otevři port `3000` v prohlížeči.
+
+> Poznámka: V Codespaces není potřeba lokální instalace Node.js, běh probíhá v cloudovém vývojovém prostředí GitHubu.
+
+### Varianta B: Klon repozitáře z GitHubu do lokálního počítače
+```bash
+git clone <URL_REPOZITARE>
+cd RezervujKurt
+npm install
+npm run dev
+```
+
+Poté otevři `http://localhost:3000`.
+
 ## Spuštění projektu (lokálně)
 
 ### 1) Předpoklady
