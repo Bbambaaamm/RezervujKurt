@@ -131,9 +131,10 @@ Projekt už má solidní datový a bezpečnostní základ (schéma, migrace, RLS
 1. **Sjednotit auth typy bez nové dependency** — **SPLNĚNO**
    - zbytkový import `Session` ze SDK byl odstraněn,
    - UI používá interní typ `AuthSession` z `auth-client`.
-2. **Zprovoznit build gate** — **DALŠÍ MALÝ KROK**
-   - CI/locally vyžadovat `npm run build` jako povinný check.
-3. **Zpevnit RLS release režim**
+2. **Zprovoznit build gate** — **SPLNĚNO**
+   - přidán GitHub Actions workflow `.github/workflows/build-gate.yml`,
+   - na `pull_request` a `push` do `main` běží povinně `npm ci` + `npm run build`.
+3. **Zpevnit RLS release režim** — **DALŠÍ MALÝ KROK**
    - explicitně oddělit dev/prod policy migrace (nebo guard skript v release pipeline).
 4. **Doplnit minimální route/write guard**
    - write CTA jen pro přihlášené, redirect na login pro chráněné kroky.
