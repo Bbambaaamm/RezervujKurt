@@ -16,6 +16,7 @@ type ReservationGridProps = {
   selectedDate: string;
   courts?: Court[];
   reservations?: Reservation[];
+  onSelectionChange?: (selection: { courtId: number; timeFrom: string; timeTo: string } | null) => void;
 };
 
 type SlotKey = `${number}-${number}`;
@@ -56,7 +57,7 @@ function normalizeRange(start: number, end: number) {
   return { from: Math.min(start, end), to: Math.max(start, end) + 0.5 };
 }
 
-export function ReservationGrid({ selectedDate, courts = fallbackCourts, reservations = fallbackReservations }: ReservationGridProps) {
+export function ReservationGrid({ selectedDate, courts = fallbackCourts, reservations = fallbackReservations, onSelectionChange }: ReservationGridProps) {
   const halfHourSlots = useMemo(
     () => Array.from({ length: (openHours.end - openHours.start) * 2 }, (_, i) => openHours.start + i * 0.5),
     [],
@@ -106,6 +107,28 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
   };
 
   const handlePointerUp = () => {
+    if (dragState) {
+      const { from, to } = normalizeRange(dragState.startTime, dragState.endTime);
+      const hasBlockedSlot = halfHourSlots.some((time) => {
+        const isInRange = time >= from && time < to;
+        if (!isInRange) {
+          return false;
+        }
+
+        return getSlotStatus(dragState.courtId, time, selectedDate, reservations).type !== 'volno';
+      });
+
+      if (hasBlockedSlot) {
+        onSelectionChange?.(null);
+      } else {
+        onSelectionChange?.({
+          courtId: dragState.courtId,
+          timeFrom: formatTimeLabel(from),
+          timeTo: formatTimeLabel(to),
+        });
+      }
+    }
+
     setIsDragging(false);
   };
 
