@@ -112,3 +112,22 @@ Tento rozsah je minimální, reverzibilní a bezpečně navazuje na stávající
 - **Největší bezpečnostní riziko:** potenciální provoz dev anon read policy bez přísného oddělení od produkce; sekundárně rizikový by byl ad-hoc ruční token flow bez guardů.
 - **Je vhodné pokračovat Milestone 2?** Ne, dokud není dokončen reálný create flow Milestone 1.
 - **Milestone 2 vs auth flow?** Konzervativně doporučuji nejdřív minimální auth flow (alespoň session/token vrstva), pak dokončit create flow, teprve následně Milestone 2 (UX validace kolizí).
+
+---
+
+## 7) Stav implementace auth-first kroku (update 14. 5. 2026)
+
+**Stav:** rozpracováno (MVP auth základ hotový).
+
+Doplněno:
+- minimální přihlášení/odhlášení přes Supabase Auth (OTP e-mail),
+- načtení session tokenu v aplikaci,
+- create reservation submit používá výhradně session access token aktuálně přihlášeného uživatele,
+- odstraněna potřeba ručního zadávání tokenu ve create flow,
+- doplněné hlášky pro nepřihlášeného uživatele, úspěch, kolizi a chybu oprávnění.
+
+### Další doporučený milestone
+Dokončit „auth-first“ do produkčnější podoby:
+1. Route guard pro stránky/akce vyžadující přihlášení.
+2. Stabilní obnovování session a jednotný auth stav v layoutu.
+3. Následně teprve navázat schvalovací workflow (admin).
