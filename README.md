@@ -106,3 +106,21 @@ npm run lint
 2. Napojit autentizaci (Google, Apple, e-mail).
 3. Implementovat formulář rezervace a workflow schvalování.
 4. Přidat notifikační e-mail službu (placeholder/service vrstva).
+
+## Supabase (základ schématu)
+V repozitáři je připravená inicializační migrace a seed:
+- `supabase/migrations/20260514120000_init_reservation_schema.sql`
+- `supabase/seed.sql`
+
+Příklad spuštění přes Supabase CLI:
+
+```bash
+supabase db reset
+```
+
+Případně samostatně:
+
+```bash
+supabase migration up
+psql "$SUPABASE_DB_URL" -f supabase/seed.sql
+```
