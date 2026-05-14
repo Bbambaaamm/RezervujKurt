@@ -28,6 +28,7 @@ export default function ReservationPage() {
   const [courtId, setCourtId] = useState('1');
   const [timeFrom, setTimeFrom] = useState('09:00');
   const [timeTo, setTimeTo] = useState('10:00');
+  const [selectionReady, setSelectionReady] = useState(false);
   const [note, setNote] = useState('');
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -58,10 +59,19 @@ export default function ReservationPage() {
 
   useEffect(() => { let active = true; async function loadReservations() { try { const loadedReservations = await getReservationsReadOnly(selectedDate); if (active) setReservations(loadedReservations);} catch (error) { if (active) { setReservations(fallbackReservations.filter((reservation) => reservation.date === selectedDate)); setSourceMode('mock fallback'); } }} loadReservations(); return () => { active = false; }; }, [selectedDate]);
 
+
+  useEffect(() => {
+    setSelectionReady(false);
+  }, [selectedDate]);
   async function handleCreateReservation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitMessage(null);
     setSubmitError(null);
+
+    if (!selectionReady) {
+      setSubmitError('Nejdřív vyberte volný termín v přehledu kurtů.');
+      return;
+    }
 
     if (!sessionToken || !sessionUserId) {
       setSubmitError('Uživatel není přihlášen. Pro vytvoření rezervace se prosím přihlaste.');
@@ -88,13 +98,29 @@ export default function ReservationPage() {
 
   return <div className="space-y-6">{/* ... */}
     <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end"><div><h1 className="text-3xl font-bold">Rezervace kurtů</h1><p className="text-slate-600">Denní přehled všech 3 kurtů na jednom místě.</p></div><div className="space-y-2 rounded-md border border-slate-200 bg-white px-4 py-3 text-sm"><div>Datum: <span className="font-semibold">{formattedSelectedDate}</span></div><label className="flex flex-col gap-1 text-xs font-medium text-slate-600" htmlFor="reservation-day">Vyberte den<input id="reservation-day" type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></label></div></div>
-    <ReservationGrid selectedDate={selectedDate} courts={courts} reservations={reservations} />
+    <ReservationGrid selectedDate={selectedDate} courts={courts} reservations={reservations} onSelectionChange={(selection) => {
+      if (!selection) {
+        setSelectionReady(false);
+        return;
+      }
+
+      setCourtId(String(selection.courtId));
+      setTimeFrom(selection.timeFrom);
+      setTimeTo(selection.timeTo);
+      setSelectionReady(true);
+    }} />
     <form onSubmit={handleCreateReservation} className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 text-sm md:grid-cols-2">
-      <label className="flex flex-col gap-1">Kurt<select value={courtId} onChange={(event) => setCourtId(event.target.value)} className="rounded-md border border-slate-300 px-2 py-1.5">{courts.map((court) => <option key={court.id} value={court.id}>{court.name}</option>)}</select></label>
-      <label className="flex flex-col gap-1">Od<input type="time" value={timeFrom} onChange={(event) => setTimeFrom(event.target.value)} className="rounded-md border border-slate-300 px-2 py-1.5"/></label>
-      <label className="flex flex-col gap-1">Do<input type="time" value={timeTo} onChange={(event) => setTimeTo(event.target.value)} className="rounded-md border border-slate-300 px-2 py-1.5"/></label>
+      <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 md:col-span-2">
+        {selectionReady ? (
+          <p>
+            Vybraný termín: <span className="font-semibold">{courts.find((court) => String(court.id) === courtId)?.name ?? `Kurt ${courtId}`}</span>, {timeFrom}–{timeTo}
+          </p>
+        ) : (
+          <p className="text-slate-600">Nejdřív vyberte volná okna přímo v přehledu kurtů.</p>
+        )}
+      </div>
       <label className="flex flex-col gap-1 md:col-span-2">Poznámka<input value={note} onChange={(event) => setNote(event.target.value)} className="rounded-md border border-slate-300 px-2 py-1.5"/></label>
-      <button type="submit" className="rounded-md border border-slate-300 px-3 py-2 text-left md:col-span-2">Vytvořit rezervaci</button>
+      <button type="submit" disabled={!selectionReady} className="rounded-md border border-slate-300 px-3 py-2 text-left disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 md:col-span-2">Rezervovat vybraný termín</button>
       {!sessionToken && <p className="md:col-span-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">Uživatel není přihlášen.</p>}
       {submitMessage && <p className="md:col-span-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-800">{submitMessage}</p>}
       {submitError && <p className="md:col-span-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-rose-800">{submitError}</p>}
