@@ -15,7 +15,12 @@ yarn-error.log*
 pnpm-debug.log*
 
 # local env files
-.env*.local
+.env*
+
+# local Supabase CLI artifacts
+supabase/.branches/
+supabase/.temp/
+supabase/.cache/
 
 # OS / editor
 .DS_Store
