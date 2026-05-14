@@ -5,8 +5,6 @@ site_url = "https://reimagined-space-tribble-7vp7vq5jrp9pcr545-3000.app.github.d
 additional_redirect_urls = [
   "https://reimagined-space-tribble-7vp7vq5jrp9pcr545-3000.app.github.dev",
   "https://reimagined-space-tribble-7vp7vq5jrp9pcr545-3000.app.github.dev/rezervace",
-  "http://127.0.0.1:3000",
-  "http://127.0.0.1:3000/rezervace",
   "http://localhost:3000",
   "http://localhost:3000/rezervace"
 ]

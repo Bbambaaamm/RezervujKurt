@@ -69,9 +69,7 @@ export const supabaseAuthClient = {
       const payload = {
         email,
         create_user: true,
-        options: {
-          email_redirect_to: options?.emailRedirectTo,
-        },
+        ...(options?.emailRedirectTo ? { redirect_to: options.emailRedirectTo } : {}),
       };
 
       if (process.env.NODE_ENV === 'development') {
@@ -79,9 +77,7 @@ export const supabaseAuthClient = {
         console.info('[auth] Supabase OTP payload:', {
           email_domain: email.includes('@') ? email.split('@')[1] : null,
           create_user: payload.create_user,
-          options: {
-            email_redirect_to: payload.options.email_redirect_to,
-          },
+          redirect_to: 'redirect_to' in payload ? payload.redirect_to : null,
         });
       }
 
