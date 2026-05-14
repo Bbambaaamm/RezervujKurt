@@ -5,7 +5,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { ReservationGrid } from '@/components/reservation-grid';
 import { courts as fallbackCourts, mockReservations as fallbackReservations } from '@/lib/mockData';
 import { getCourtsReadOnly, getReservationsReadOnly } from '@/lib/services/read-only';
+import { SupabaseRequestError } from '@/lib/supabase/client';
 import type { Court, Reservation } from '@/lib/types/domain';
+
+type DataSourceMode = 'supabase' | 'mock fallback';
 
 function formatCzechDate(date: string) {
   const parsedDate = new Date(`${date}T00:00:00`);
@@ -23,9 +26,18 @@ function formatCzechDate(date: string) {
 
 export default function ReservationPage() {
   const [selectedDate, setSelectedDate] = useState('2026-05-14');
-  const [courts, setCourts] = useState<Court[]>(fallbackCourts);
-  const [reservations, setReservations] = useState<Reservation[]>(fallbackReservations);
+  const [courts, setCourts] = useState<Court[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [sourceMode, setSourceMode] = useState<DataSourceMode>('supabase');
   const formattedSelectedDate = useMemo(() => formatCzechDate(selectedDate), [selectedDate]);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') {
+      return;
+    }
+
+    console.info(`[rezervace] source: ${sourceMode}`);
+  }, [sourceMode]);
 
   useEffect(() => {
     let active = true;
@@ -38,6 +50,20 @@ export default function ReservationPage() {
           setCourts(loadedCourts);
         }
       } catch (error) {
+        if (active) {
+          setCourts(fallbackCourts);
+          setSourceMode('mock fallback');
+        }
+
+        if (error instanceof SupabaseRequestError) {
+          console.error('Načtení kurtů ze Supabase selhalo, používám fallback data.', {
+            endpoint: error.endpoint,
+            status: error.status,
+            response: error.responseBody,
+          });
+          return;
+        }
+
         console.error('Načtení kurtů ze Supabase selhalo, používám fallback data.', error);
       }
     }
@@ -60,6 +86,20 @@ export default function ReservationPage() {
           setReservations(loadedReservations);
         }
       } catch (error) {
+        if (active) {
+          setReservations(fallbackReservations.filter((reservation) => reservation.date === selectedDate));
+          setSourceMode('mock fallback');
+        }
+
+        if (error instanceof SupabaseRequestError) {
+          console.error(`Načtení rezervací pro ${selectedDate} ze Supabase selhalo, používám fallback data.`, {
+            endpoint: error.endpoint,
+            status: error.status,
+            response: error.responseBody,
+          });
+          return;
+        }
+
         console.error(`Načtení rezervací pro ${selectedDate} ze Supabase selhalo, používám fallback data.`, error);
       }
     }
@@ -96,6 +136,12 @@ export default function ReservationPage() {
       </div>
 
       <ReservationGrid selectedDate={selectedDate} courts={courts} reservations={reservations} />
+
+      {process.env.NODE_ENV === 'development' && (
+        <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+          source: <span className="font-semibold">{sourceMode}</span>
+        </div>
+      )}
 
       <section className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 text-sm md:grid-cols-3">
         <p><span className="inline-block h-3 w-3 rounded-full bg-white ring-1 ring-slate-300" /> Volný slot</p>
