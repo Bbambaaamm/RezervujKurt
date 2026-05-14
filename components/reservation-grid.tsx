@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from 'react';
 
-import { courts, mockReservations, openHours } from '@/lib/mockData';
+import { courts as fallbackCourts, mockReservations as fallbackReservations, openHours } from '@/lib/mockData';
+import type { Court, Reservation } from '@/lib/types/domain';
 
 const statusClasses: Record<string, string> = {
   volno: 'bg-white',
@@ -13,6 +14,8 @@ const statusClasses: Record<string, string> = {
 
 type ReservationGridProps = {
   selectedDate: string;
+  courts?: Court[];
+  reservations?: Reservation[];
 };
 
 type SlotKey = `${number}-${number}`;
@@ -23,8 +26,8 @@ type DragState = {
   endTime: number;
 } | null;
 
-function getSlotStatus(courtId: number, time: number, date: string) {
-  const reservation = mockReservations.find(
+function getSlotStatus(courtId: number, time: number, date: string, reservations: Reservation[]) {
+  const reservation = reservations.find(
     (item) => item.courtId === courtId && item.date === date && time >= item.fromHour && time < item.toHour,
   );
 
@@ -53,7 +56,7 @@ function normalizeRange(start: number, end: number) {
   return { from: Math.min(start, end), to: Math.max(start, end) + 0.5 };
 }
 
-export function ReservationGrid({ selectedDate }: ReservationGridProps) {
+export function ReservationGrid({ selectedDate, courts = fallbackCourts, reservations = fallbackReservations }: ReservationGridProps) {
   const halfHourSlots = useMemo(
     () => Array.from({ length: (openHours.end - openHours.start) * 2 }, (_, i) => openHours.start + i * 0.5),
     [],
@@ -76,14 +79,14 @@ export function ReservationGrid({ selectedDate }: ReservationGridProps) {
         return;
       }
 
-      const slot = getSlotStatus(dragState.courtId, time, selectedDate);
+      const slot = getSlotStatus(dragState.courtId, time, selectedDate, reservations);
       if (slot.type === 'volno') {
         slots.add(`${dragState.courtId}-${time}`);
       }
     });
 
     return slots;
-  }, [dragState, halfHourSlots, selectedDate]);
+  }, [dragState, halfHourSlots, reservations, selectedDate]);
 
   const handlePointerDown = (courtId: number, time: number, slotType: string) => {
     if (slotType !== 'volno') {
@@ -126,7 +129,7 @@ export function ReservationGrid({ selectedDate }: ReservationGridProps) {
               {formatTimeLabel(time)} - {formatTimeLabel(time + 0.5)}
             </div>
             {courts.map((court) => {
-              const slot = getSlotStatus(court.id, time, selectedDate);
+              const slot = getSlotStatus(court.id, time, selectedDate, reservations);
               const slotKey = `${court.id}-${time}` as SlotKey;
               const isSelected = selectedSlots.has(slotKey);
 
