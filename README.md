@@ -124,3 +124,21 @@ Případně samostatně:
 supabase migration up
 psql "$SUPABASE_DB_URL" -f supabase/seed.sql
 ```
+
+
+## Supabase Auth (magic link) – lokální ověření redirect URL
+
+Pokud se v Mailpitu objevuje `127.0.0.1` v magic linku, postupuj přesně takto (CLI musí načíst aktuální `supabase/config.toml`):
+
+```bash
+npx supabase stop
+npx supabase start
+```
+
+Poté:
+1. V aplikaci odešli nový magic link (přihlášení přes e-mail).
+2. Otevři Mailpit inbox a zkontroluj odkaz v e-mailu.
+3. Ověř, že tlačítko/odkaz používá `{{ .ConfirmationURL }}` (ne ručně skládané `{{ .SiteURL }}/auth/v1/verify?...`).
+4. Ověř, že query parametr `redirect_to` odpovídá hodnotě z request payloadu (např. `/rezervace`).
+
+Poznámka: v tomto repozitáři je magic link šablona explicitně nastavena v `supabase/config.toml` přes `[auth.email.template.magic_link]` a HTML šablonu `supabase/templates/magic_link.html`.
