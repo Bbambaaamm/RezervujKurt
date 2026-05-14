@@ -13,14 +13,23 @@ Webový rezervační systém pro tenisové kurty TJ Baník Stříbro.
 ### Varianta A (doporučeno): GitHub Codespaces
 1. Otevři repozitář na GitHubu.
 2. Klikni na **Code** → **Codespaces** → **Create codespace on main**.
-3. Po otevření terminálu v Codespaces spusť:
+3. Po otevření terminálu v Codespaces spusť čistou instalaci závislostí (pomůže předejít chybám typu `ENOTEMPTY` nebo `next: not found`):
 
 ```bash
+rm -rf node_modules package-lock.json
 npm install
 npm run dev
 ```
 
 4. V panelu **Ports** otevři port `3000` v prohlížeči.
+
+5. Pokud by instalace i tak selhala, spusť ještě:
+
+```bash
+npm cache verify
+rm -rf node_modules package-lock.json
+npm install
+```
 
 > Poznámka: V Codespaces není potřeba lokální instalace Node.js, běh probíhá v cloudovém vývojovém prostředí GitHubu.
 
