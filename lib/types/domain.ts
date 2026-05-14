@@ -13,7 +13,7 @@ export type Reservation = {
   fromHour: number;
   toHour: number;
   status: ReservationStatus;
-  userType: 'clen' | 'host' | 'admin';
+  userType: 'clen' | 'admin';
   name: string;
   email: string;
   phone: string;

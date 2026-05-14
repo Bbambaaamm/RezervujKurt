@@ -4,7 +4,6 @@ const links = [
   { href: '/', label: 'Domů' },
   { href: '/rezervace', label: 'Rezervace' },
   { href: '/prihlaseni', label: 'Přihlášení' },
-  { href: '/admin', label: 'Admin' },
 ];
 
 export function Header() {
