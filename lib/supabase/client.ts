@@ -23,7 +23,11 @@ export async function supabaseSelect<T>(path: string): Promise<T[]> {
   });
 
   if (!response.ok) {
-    throw new Error(`Supabase SELECT selhal: ${response.status} ${response.statusText}`);
+    const responseBody = await response.text();
+
+    throw new Error(
+      `Supabase SELECT selhal: ${response.status} ${response.statusText} | URL: ${response.url} | Body: ${responseBody}`,
+    );
   }
 
   return (await response.json()) as T[];

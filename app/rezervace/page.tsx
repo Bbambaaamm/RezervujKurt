@@ -37,8 +37,8 @@ export default function ReservationPage() {
         if (active && loadedCourts.length > 0) {
           setCourts(loadedCourts);
         }
-      } catch {
-        // Při chybě zůstáváme na mock datech, aby UI zůstalo funkční.
+      } catch (error) {
+        console.error('Načtení kurtů ze Supabase selhalo, používám fallback data.', error);
       }
     }
 
@@ -59,8 +59,8 @@ export default function ReservationPage() {
         if (active) {
           setReservations(loadedReservations);
         }
-      } catch {
-        // Při chybě zůstáváme na mock datech, aby UI zůstalo funkční.
+      } catch (error) {
+        console.error(`Načtení rezervací pro ${selectedDate} ze Supabase selhalo, používám fallback data.`, error);
       }
     }
 
