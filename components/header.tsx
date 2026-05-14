@@ -2,22 +2,20 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import type { Session } from '@supabase/supabase-js';
-
-import { supabaseAuthClient } from '@/lib/supabase/auth-client';
+import { supabaseAuthClient, type AuthSession } from '@/lib/supabase/auth-client';
 
 const baseLinks = [
   { href: '/', label: 'Domů' },
   { href: '/rezervace', label: 'Rezervace' },
 ];
 
-function getAuthStatusText(session: Session | null): string {
+function getAuthStatusText(session: AuthSession | null): string {
   const email = session?.user?.email?.trim();
   return email ? `Přihlášen jako ${email}` : 'Přihlášen';
 }
 
 export function Header() {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<AuthSession | null>(null);
 
   useEffect(() => {
     supabaseAuthClient.auth.getSession().then(({ data }) => {

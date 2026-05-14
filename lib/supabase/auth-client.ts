@@ -1,4 +1,4 @@
-type AuthSession = {
+export type AuthSession = {
   access_token: string;
   refresh_token?: string;
   user: {

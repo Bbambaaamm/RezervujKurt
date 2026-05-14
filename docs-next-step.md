@@ -128,10 +128,10 @@ Projekt už má solidní datový a bezpečnostní základ (schéma, migrace, RLS
 - Tento krok je malý, bezpečný, dobře reviewovatelný a sníží provozní i bezpečnostní riziko.
 
 ### Návrh konkrétního Milestone 3 (malé bezpečné kroky)
-1. **Sjednotit auth typy bez nové dependency**
-   - odstranit zbytkový import `Session` ze SDK,
-   - používat interní typ session z `auth-client`.
-2. **Zprovoznit build gate**
+1. **Sjednotit auth typy bez nové dependency** — **SPLNĚNO**
+   - zbytkový import `Session` ze SDK byl odstraněn,
+   - UI používá interní typ `AuthSession` z `auth-client`.
+2. **Zprovoznit build gate** — **DALŠÍ MALÝ KROK**
    - CI/locally vyžadovat `npm run build` jako povinný check.
 3. **Zpevnit RLS release režim**
    - explicitně oddělit dev/prod policy migrace (nebo guard skript v release pipeline).
