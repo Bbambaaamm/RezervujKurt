@@ -46,3 +46,37 @@ export async function supabaseSelect<T>(path: string): Promise<T[]> {
 
   return (await response.json()) as T[];
 }
+
+export async function supabaseInsert<TPayload extends Record<string, unknown>, TResponse>(
+  path: string,
+  payload: TPayload,
+  options?: { accessToken?: string },
+): Promise<TResponse[]> {
+  if (!supabaseAnonKey) {
+    throw new Error('Chybí NEXT_PUBLIC_SUPABASE_ANON_KEY.');
+  }
+
+  const bearerToken = options?.accessToken ?? supabaseAnonKey;
+  const response = await fetch(getRestUrl(path), {
+    method: 'POST',
+    headers: {
+      apikey: supabaseAnonKey,
+      Authorization: `Bearer ${bearerToken}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const responseBody = await response.text();
+    throw new SupabaseRequestError(
+      `Supabase INSERT selhal: ${response.status} ${response.statusText}`,
+      response.url,
+      response.status,
+      responseBody,
+    );
+  }
+
+  return (await response.json()) as TResponse[];
+}
