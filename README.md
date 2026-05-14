@@ -142,3 +142,9 @@ Poté:
 4. Ověř, že query parametr `redirect_to` odpovídá hodnotě z request payloadu (např. `/rezervace`).
 
 Poznámka: v tomto repozitáři je magic link šablona explicitně nastavena v `supabase/config.toml` přes `[auth.email.template.magic_link]` a HTML šablonu `supabase/templates/magic_link.html`.
+
+### Codespaces poznámka k magic link hostu
+V GitHub Codespaces musí magic link v e-mailové šabloně používat veřejný Supabase API host na portu `54321` (např. `https://reimagined-space-tribble-7vp7vq5jrp9pcr545-54321.app.github.dev`), ne lokální `127.0.0.1`.
+
+Pokud by link mířil na `127.0.0.1`, e-mail otevřený mimo kontejner nedokončí ověření, protože localhost adresa je dostupná jen uvnitř Codespace kontejneru.
+
