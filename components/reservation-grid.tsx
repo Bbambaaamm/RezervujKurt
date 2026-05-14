@@ -1,3 +1,7 @@
+'use client';
+
+import { useMemo, useState } from 'react';
+
 import { courts, mockReservations, openHours } from '@/lib/mockData';
 
 const statusClasses: Record<string, string> = {
@@ -11,24 +15,104 @@ type ReservationGridProps = {
   selectedDate: string;
 };
 
-function getSlotStatus(courtId: number, hour: number, date: string) {
+type SlotKey = `${number}-${number}`;
+
+type DragState = {
+  courtId: number;
+  startTime: number;
+  endTime: number;
+} | null;
+
+function getSlotStatus(courtId: number, time: number, date: string) {
   const reservation = mockReservations.find(
-    (item) => item.courtId === courtId && item.date === date && hour >= item.fromHour && hour < item.toHour,
+    (item) => item.courtId === courtId && item.date === date && time >= item.fromHour && time < item.toHour,
   );
 
   if (!reservation) {
     return { type: 'volno', label: 'Volno' };
   }
 
-  return { type: reservation.status, label: reservation.status === 'cekajici' ? 'Čeká na schválení' : reservation.status === 'potvrzeno' ? 'Obsazeno' : 'Blokace' };
+  return {
+    type: reservation.status,
+    label:
+      reservation.status === 'cekajici'
+        ? 'Čeká na schválení'
+        : reservation.status === 'potvrzeno'
+          ? 'Obsazeno'
+          : 'Blokace',
+  };
+}
+
+function formatTimeLabel(time: number) {
+  const hour = Math.floor(time);
+  const minutes = time % 1 === 0 ? '00' : '30';
+  return `${hour}:${minutes}`;
+}
+
+function normalizeRange(start: number, end: number) {
+  return { from: Math.min(start, end), to: Math.max(start, end) + 0.5 };
 }
 
 export function ReservationGrid({ selectedDate }: ReservationGridProps) {
-  const hours = Array.from({ length: openHours.end - openHours.start }, (_, i) => openHours.start + i);
+  const halfHourSlots = useMemo(
+    () => Array.from({ length: (openHours.end - openHours.start) * 2 }, (_, i) => openHours.start + i * 0.5),
+    [],
+  );
+
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragState, setDragState] = useState<DragState>(null);
+
+  const selectedSlots = useMemo(() => {
+    if (!dragState) {
+      return new Set<SlotKey>();
+    }
+
+    const { from, to } = normalizeRange(dragState.startTime, dragState.endTime);
+    const slots = new Set<SlotKey>();
+
+    halfHourSlots.forEach((time) => {
+      const isInRange = time >= from && time < to;
+      if (!isInRange) {
+        return;
+      }
+
+      const slot = getSlotStatus(dragState.courtId, time, selectedDate);
+      if (slot.type === 'volno') {
+        slots.add(`${dragState.courtId}-${time}`);
+      }
+    });
+
+    return slots;
+  }, [dragState, halfHourSlots, selectedDate]);
+
+  const handlePointerDown = (courtId: number, time: number, slotType: string) => {
+    if (slotType !== 'volno') {
+      return;
+    }
+
+    setIsDragging(true);
+    setDragState({ courtId, startTime: time, endTime: time });
+  };
+
+  const handlePointerEnter = (courtId: number, time: number) => {
+    if (!isDragging || !dragState || dragState.courtId !== courtId) {
+      return;
+    }
+
+    setDragState((current) => (current ? { ...current, endTime: time } : current));
+  };
+
+  const handlePointerUp = () => {
+    setIsDragging(false);
+  };
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="grid min-w-[720px] grid-cols-4">
+    <div
+      className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm"
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp}
+    >
+      <div className="grid min-w-[760px] grid-cols-4">
         <div className="border-b border-r border-slate-200 bg-slate-100 p-3 text-sm font-semibold">Čas</div>
         {courts.map((court) => (
           <div key={court.id} className="border-b border-r border-slate-200 bg-slate-100 p-3 text-sm font-semibold last:border-r-0">
@@ -36,21 +120,26 @@ export function ReservationGrid({ selectedDate }: ReservationGridProps) {
           </div>
         ))}
 
-        {hours.map((hour) => (
-          <div key={`row-${hour}`} className="contents">
-            <div key={`time-${hour}`} className="border-b border-r border-slate-200 p-3 text-sm font-medium text-slate-700">
-              {hour}:00 - {hour + 1}:00
+        {halfHourSlots.map((time) => (
+          <div key={`row-${time}`} className="contents">
+            <div key={`time-${time}`} className="border-b border-r border-slate-200 p-3 text-sm font-medium text-slate-700">
+              {formatTimeLabel(time)} - {formatTimeLabel(time + 0.5)}
             </div>
             {courts.map((court) => {
-              const slot = getSlotStatus(court.id, hour, selectedDate);
+              const slot = getSlotStatus(court.id, time, selectedDate);
+              const slotKey = `${court.id}-${time}` as SlotKey;
+              const isSelected = selectedSlots.has(slotKey);
+
               return (
                 <button
-                  key={`${court.id}-${hour}`}
+                  key={slotKey}
                   type="button"
-                  className={`border-b border-r border-slate-200 p-3 text-left text-xs transition hover:brightness-95 last:border-r-0 ${statusClasses[slot.type]}`}
+                  onPointerDown={() => handlePointerDown(court.id, time, slot.type)}
+                  onPointerEnter={() => handlePointerEnter(court.id, time)}
+                  className={`border-b border-r border-slate-200 p-3 text-left text-xs transition hover:brightness-95 last:border-r-0 ${statusClasses[slot.type]} ${isSelected ? 'ring-2 ring-inset ring-blue-500' : ''}`}
                 >
                   <span className="font-semibold">{slot.label}</span>
-                  {slot.type === 'volno' && <p className="mt-1 text-slate-500">Klikněte pro rezervaci</p>}
+                  {slot.type === 'volno' && <p className="mt-1 text-slate-500">Klikněte a tahem vyberte úsek</p>}
                 </button>
               );
             })}
