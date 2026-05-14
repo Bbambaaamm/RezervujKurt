@@ -12,8 +12,29 @@ export default function LoginPage() {
 
   useEffect(() => {
     supabaseAuthClient.auth.getSession().then(({ data }) => {
-      setIsLoggedIn(Boolean(data.session));
+      const loggedIn = Boolean(data.session);
+      setIsLoggedIn(loggedIn);
+
+      if (loggedIn) {
+        setMessage('Jste přihlášen(a).');
+      }
     });
+
+    const {
+      data: { subscription },
+    } = supabaseAuthClient.auth.onAuthStateChange((_event, session) => {
+      const loggedIn = Boolean(session);
+      setIsLoggedIn(loggedIn);
+
+      if (loggedIn) {
+        setError(null);
+        setMessage('Jste přihlášen(a).');
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   function getMagicLinkRedirectUrl(): string {
