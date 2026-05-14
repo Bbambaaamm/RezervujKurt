@@ -65,11 +65,21 @@ export const supabaseAuthClient = {
     async signInWithOtp({ email, options }: { email: string; options?: { emailRedirectTo?: string } }) {
       const config = getSupabaseConfig();
       if (!config) return { error: new Error('Chybí NEXT_PUBLIC_SUPABASE_URL nebo NEXT_PUBLIC_SUPABASE_ANON_KEY.') };
+      const payload = {
+        email,
+        create_user: true,
+        email_redirect_to: options?.emailRedirectTo,
+      };
+      console.info('[auth] Supabase OTP payload:', {
+        email_domain: email.includes('@') ? email.split('@')[1] : null,
+        create_user: payload.create_user,
+        email_redirect_to: payload.email_redirect_to,
+      });
       try {
         const response = await fetch(`${config.url}/auth/v1/otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', apikey: config.anonKey },
-          body: JSON.stringify({ email, create_user: true, options: options?.emailRedirectTo ? { email_redirect_to: options.emailRedirectTo } : undefined }),
+          body: JSON.stringify(payload),
         });
         if (!response.ok) return { error: new Error(`Supabase Auth OTP selhalo (${response.status}).`) };
         return { error: null };
