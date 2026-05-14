@@ -1,5 +1,6 @@
 type AuthSession = {
   access_token: string;
+  refresh_token?: string;
   user: {
     id: string;
     email?: string;
@@ -20,7 +21,15 @@ function getSupabaseConfig(): { url: string; anonKey: string } | null {
 }
 
 function parseJwtPayload(token: string): Record<string, unknown> | null {
-  try { return JSON.parse(atob(token.split('.')[1]?.replace(/-/g, '+').replace(/_/g, '/') ?? '')); } catch { return null; }
+  try {
+    const base64UrlPayload = token.split('.')[1];
+    if (!base64UrlPayload) return null;
+    const base64Payload = base64UrlPayload.replace(/-/g, '+').replace(/_/g, '/');
+    const paddedPayload = base64Payload.padEnd(base64Payload.length + ((4 - (base64Payload.length % 4)) % 4), '=');
+    return JSON.parse(atob(paddedPayload));
+  } catch {
+    return null;
+  }
 }
 
 function getStoredSession(): AuthSession | null {
@@ -38,15 +47,25 @@ function emitAuthChange(event: AuthChangeEvent, session: AuthSession | null): vo
 
 function readSessionFromUrl(): AuthSession | null {
   if (typeof window === 'undefined') return null;
-  const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const hash = window.location.hash.replace(/^#/, '');
+  if (!hash) return null;
+  const params = new URLSearchParams(hash);
   const accessToken = params.get('access_token');
+  const refreshToken = params.get('refresh_token');
   if (!accessToken) return null;
   const payload = parseJwtPayload(accessToken);
   const userId = typeof payload?.sub === 'string' ? payload.sub : '';
   const email = typeof payload?.email === 'string' ? payload.email : undefined;
   if (!userId) return null;
-  const session: AuthSession = { access_token: accessToken, user: { id: userId, email } };
+  const session: AuthSession = {
+    access_token: accessToken,
+    ...(refreshToken ? { refresh_token: refreshToken } : {}),
+    user: { id: userId, email },
+  };
   setStoredSession(session);
+  if (process.env.NODE_ENV === 'development') {
+    console.info('[auth] session stored from magic link hash');
+  }
   window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
   emitAuthChange('SIGNED_IN', session);
   return session;

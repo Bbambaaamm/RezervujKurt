@@ -35,6 +35,13 @@ export default function ReservationPage() {
 
   useEffect(() => {
     supabaseAuthClient.auth.getSession().then(({ data }) => {
+      if (process.env.NODE_ENV === 'development') {
+        if (data.session) {
+          console.info('[auth] session found');
+        } else {
+          console.info('[auth] session missing');
+        }
+      }
       setSessionToken(data.session?.access_token ?? null);
       setSessionUserId(data.session?.user.id ?? null);
     });
