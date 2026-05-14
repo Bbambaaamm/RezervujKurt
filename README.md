@@ -15,24 +15,14 @@ Webový rezervační systém pro tenisové kurty TJ Baník Stříbro.
 
 > Poznámka: V repozitáři není definovaná povinná verze Node.js (`engines`), takže použij aktuální LTS verzi Node.js.
 
-### 2) Stažení projektu z GitHubu
-Zkopíruj repozitář a přejdi do složky projektu:
-
-```bash
-git clone <URL_REPOZITARE>
-cd RezervujKurt
-```
-
-> Poznámka: místo `<URL_REPOZITARE>` použij HTTPS nebo SSH URL z GitHubu (tlačítko **Code**).
-
-### 3) Instalace závislostí
+### 2) Instalace závislostí
 V kořeni projektu spusť:
 
 ```bash
 npm install
 ```
 
-### 4) Spuštění vývojového serveru
+### 3) Spuštění vývojového serveru
 ```bash
 npm run dev
 ```
@@ -41,7 +31,7 @@ Po spuštění otevři v prohlížeči:
 
 - http://localhost:3000
 
-### 5) Produkční build a spuštění (volitelně)
+### 4) Produkční build a spuštění (volitelně)
 Vytvoření build artefaktů:
 
 ```bash
@@ -54,7 +44,7 @@ Spuštění aplikace v produkčním režimu:
 npm run start
 ```
 
-### 6) Kontrola lint pravidel (volitelně)
+### 5) Kontrola lint pravidel (volitelně)
 ```bash
 npm run lint
 ```
