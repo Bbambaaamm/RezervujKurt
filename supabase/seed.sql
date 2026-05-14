@@ -1,5 +1,66 @@
 -- Seed dat pro lokální a vývojové prostředí.
 
+-- Testovací uživatelé pro lokální Supabase Auth.
+insert into auth.users (
+  id,
+  email,
+  encrypted_password,
+  email_confirmed_at,
+  raw_app_meta_data,
+  raw_user_meta_data,
+  aud,
+  role,
+  created_at,
+  updated_at
+)
+values
+  (
+    '11111111-1111-1111-1111-111111111111',
+    'jan.novak@example.com',
+    crypt('Test1234!', gen_salt('bf')),
+    now(),
+    '{"provider":"email","providers":["email"]}',
+    '{"full_name":"Jan Novák"}',
+    'authenticated',
+    'authenticated',
+    now(),
+    now()
+  ),
+  (
+    '22222222-2222-2222-2222-222222222222',
+    'petr.svoboda@example.com',
+    crypt('Test1234!', gen_salt('bf')),
+    now(),
+    '{"provider":"email","providers":["email"]}',
+    '{"full_name":"Petr Svoboda"}',
+    'authenticated',
+    'authenticated',
+    now(),
+    now()
+  ),
+  (
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    'spravce.arealu@example.com',
+    crypt('Test1234!', gen_salt('bf')),
+    now(),
+    '{"provider":"email","providers":["email"]}',
+    '{"full_name":"Správce areálu"}',
+    'authenticated',
+    'authenticated',
+    now(),
+    now()
+  )
+on conflict (id) do update
+set
+  email = excluded.email,
+  encrypted_password = excluded.encrypted_password,
+  email_confirmed_at = excluded.email_confirmed_at,
+  raw_app_meta_data = excluded.raw_app_meta_data,
+  raw_user_meta_data = excluded.raw_user_meta_data,
+  aud = excluded.aud,
+  role = excluded.role,
+  updated_at = excluded.updated_at;
+
 insert into public.courts (name, surface, is_active)
 values
   ('Kurt 1', 'antuka', true),
