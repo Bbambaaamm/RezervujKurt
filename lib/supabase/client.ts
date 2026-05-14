@@ -1,6 +1,18 @@
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+export class SupabaseRequestError extends Error {
+  constructor(
+    message: string,
+    public readonly endpoint: string,
+    public readonly status: number,
+    public readonly responseBody: string,
+  ) {
+    super(message);
+    this.name = 'SupabaseRequestError';
+  }
+}
+
 function getRestUrl(path: string) {
   if (!supabaseUrl) {
     throw new Error('Chybí NEXT_PUBLIC_SUPABASE_URL.');
@@ -24,9 +36,11 @@ export async function supabaseSelect<T>(path: string): Promise<T[]> {
 
   if (!response.ok) {
     const responseBody = await response.text();
-
-    throw new Error(
-      `Supabase SELECT selhal: ${response.status} ${response.statusText} | URL: ${response.url} | Body: ${responseBody}`,
+    throw new SupabaseRequestError(
+      `Supabase SELECT selhal: ${response.status} ${response.statusText}`,
+      response.url,
+      response.status,
+      responseBody,
     );
   }
 
