@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Header } from '@/components/header';
+import { AuthSessionSync } from '@/components/auth-session-sync';
 
 export const metadata: Metadata = {
   title: 'RezervujKurt | TJ Baník Stříbro',
@@ -11,6 +12,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="cs">
       <body>
+        <AuthSessionSync />
         <Header />
         <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
       </body>

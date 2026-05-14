@@ -45,6 +45,14 @@ function setStoredSession(session: AuthSession | null): void {
 
 function emitAuthChange(event: AuthChangeEvent, session: AuthSession | null): void { listeners.forEach((listener) => listener(event, session)); }
 
+function hasAuthHash(): boolean {
+  if (typeof window === 'undefined') return false;
+  const hash = window.location.hash.replace(/^#/, '');
+  if (!hash) return false;
+  const params = new URLSearchParams(hash);
+  return Boolean(params.get('access_token'));
+}
+
 function readSessionFromUrl(): AuthSession | null {
   if (typeof window === 'undefined') return null;
   const hash = window.location.hash.replace(/^#/, '');
@@ -53,6 +61,11 @@ function readSessionFromUrl(): AuthSession | null {
   const accessToken = params.get('access_token');
   const refreshToken = params.get('refresh_token');
   if (!accessToken) return null;
+  if (process.env.NODE_ENV === 'development') {
+    console.info('[auth] auth hash detected');
+  }
+  window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+
   const payload = parseJwtPayload(accessToken);
   const userId = typeof payload?.sub === 'string' ? payload.sub : '';
   const email = typeof payload?.email === 'string' ? payload.email : undefined;
@@ -66,15 +79,19 @@ function readSessionFromUrl(): AuthSession | null {
   if (process.env.NODE_ENV === 'development') {
     console.info('[auth] session stored from magic link hash');
   }
-  window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
   emitAuthChange('SIGNED_IN', session);
   return session;
 }
 
 export const supabaseAuthClient = {
   auth: {
+    processSessionFromUrlHash() {
+      const handled = hasAuthHash();
+      const session = readSessionFromUrl();
+      return { handled, session };
+    },
     async getSession() {
-      const session = readSessionFromUrl() ?? getStoredSession();
+      const session = getStoredSession();
       return { data: { session } };
     },
     onAuthStateChange(callback: AuthListener) {
