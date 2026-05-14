@@ -16,16 +16,37 @@ export default function LoginPage() {
     });
   }, []);
 
+  function getMagicLinkRedirectUrl(): string {
+    const redirectBase = process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL?.trim();
+    const fallbackBase = typeof window !== 'undefined' ? window.location.origin : '';
+    const baseUrl = redirectBase || fallbackBase;
+
+    if (!baseUrl) return '/rezervace';
+
+    try {
+      const redirectUrl = new URL('/rezervace', baseUrl);
+      return redirectUrl.toString();
+    } catch {
+      return '/rezervace';
+    }
+  }
+
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setMessage(null);
     setIsSubmitting(true);
 
+    const emailRedirectTo = getMagicLinkRedirectUrl();
+
+    if (process.env.NODE_ENV === 'development') {
+      console.info('[auth] Magic link redirect URL:', emailRedirectTo);
+    }
+
     const { error: signInError } = await supabaseAuthClient.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/rezervace`,
+        emailRedirectTo,
       },
     });
 
