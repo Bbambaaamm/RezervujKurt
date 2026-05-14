@@ -1,8 +1,11 @@
 "use client";
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { ReservationGrid } from '@/components/reservation-grid';
+import { courts as fallbackCourts, mockReservations as fallbackReservations } from '@/lib/mockData';
+import { getCourtsReadOnly, getReservationsReadOnly } from '@/lib/services/read-only';
+import type { Court, Reservation } from '@/lib/types/domain';
 
 function formatCzechDate(date: string) {
   const parsedDate = new Date(`${date}T00:00:00`);
@@ -20,7 +23,53 @@ function formatCzechDate(date: string) {
 
 export default function ReservationPage() {
   const [selectedDate, setSelectedDate] = useState('2026-05-14');
+  const [courts, setCourts] = useState<Court[]>(fallbackCourts);
+  const [reservations, setReservations] = useState<Reservation[]>(fallbackReservations);
   const formattedSelectedDate = useMemo(() => formatCzechDate(selectedDate), [selectedDate]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadCourts() {
+      try {
+        const loadedCourts = await getCourtsReadOnly();
+
+        if (active && loadedCourts.length > 0) {
+          setCourts(loadedCourts);
+        }
+      } catch {
+        // Při chybě zůstáváme na mock datech, aby UI zůstalo funkční.
+      }
+    }
+
+    loadCourts();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadReservations() {
+      try {
+        const loadedReservations = await getReservationsReadOnly(selectedDate);
+
+        if (active) {
+          setReservations(loadedReservations);
+        }
+      } catch {
+        // Při chybě zůstáváme na mock datech, aby UI zůstalo funkční.
+      }
+    }
+
+    loadReservations();
+
+    return () => {
+      active = false;
+    };
+  }, [selectedDate]);
 
   return (
     <div className="space-y-6">
@@ -46,7 +95,7 @@ export default function ReservationPage() {
         </div>
       </div>
 
-      <ReservationGrid selectedDate={selectedDate} />
+      <ReservationGrid selectedDate={selectedDate} courts={courts} reservations={reservations} />
 
       <section className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 text-sm md:grid-cols-3">
         <p><span className="inline-block h-3 w-3 rounded-full bg-white ring-1 ring-slate-300" /> Volný slot</p>
