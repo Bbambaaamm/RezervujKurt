@@ -269,6 +269,7 @@ export default function AdminPage() {
                 <th className="px-4 py-3 font-medium">Datum</th>
                 <th className="px-4 py-3 font-medium">Čas od</th>
                 <th className="px-4 py-3 font-medium">Čas do</th>
+                <th className="px-4 py-3 font-medium">Vytvořeno</th>
                 <th className="px-4 py-3 font-medium">Kurt</th>
                 <th className="px-4 py-3 font-medium">Uživatel</th>
                 <th className="px-4 py-3 font-medium">Stav</th>
@@ -276,11 +277,17 @@ export default function AdminPage() {
               </tr>
             </thead>
             <tbody>
-              {reservations.map((reservation) => (
-                <tr key={reservation.id} className="border-t border-slate-100">
+              {reservations.map((reservation) => {
+                if (process.env.NODE_ENV === 'development') {
+                  console.info('admin pending timestamp rendered', { reservationId: reservation.id });
+                }
+
+                return (
+                  <tr key={reservation.id} className="border-t border-slate-100">
                   <td className="px-4 py-3">{formatDate(reservation.reservationDate)}</td>
                   <td className="px-4 py-3">{reservation.timeFrom}</td>
                   <td className="px-4 py-3">{reservation.timeTo}</td>
+                  <td className="px-4 py-3">{formatCreatedAt(reservation.createdAt)}</td>
                   <td className="px-4 py-3">{reservation.courtName}</td>
                   <td className="px-4 py-3">{formatIdentity(reservation)}</td>
                   <td className="px-4 py-3">
@@ -308,8 +315,9 @@ export default function AdminPage() {
                       </button>
                     </div>
                   </td>
-                </tr>
-              ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
