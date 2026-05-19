@@ -20,6 +20,19 @@ function formatDate(date: string) {
   return new Intl.DateTimeFormat('cs-CZ', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(parsedDate);
 }
 
+function formatCreatedAt(value: string | null) {
+  if (!value) return '—';
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) return '—';
+  return new Intl.DateTimeFormat('cs-CZ', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(parsedDate);
+}
+
 function formatIdentity(reservation: ReservationOverview) {
   if (reservation.userDisplayName) return reservation.userDisplayName;
   return reservation.userId;
@@ -316,26 +329,34 @@ export default function AdminPage() {
                     <th className="px-4 py-3 font-medium">Datum</th>
                     <th className="px-4 py-3 font-medium">Čas od</th>
                     <th className="px-4 py-3 font-medium">Čas do</th>
+                    <th className="px-4 py-3 font-medium">Vytvořeno</th>
                     <th className="px-4 py-3 font-medium">Kurt</th>
                     <th className="px-4 py-3 font-medium">Uživatel</th>
                     <th className="px-4 py-3 font-medium">Stav</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {recentReservations.map((reservation) => (
-                    <tr key={`recent-${reservation.id}`} className="border-t border-slate-100">
-                      <td className="px-4 py-3">{formatDate(reservation.reservationDate)}</td>
-                      <td className="px-4 py-3">{reservation.timeFrom}</td>
-                      <td className="px-4 py-3">{reservation.timeTo}</td>
-                      <td className="px-4 py-3">{reservation.courtName}</td>
-                      <td className="px-4 py-3">{formatIdentity(reservation)}</td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-medium ${getStatusBadgeClass(reservation.status)}`}>
-                          {getStatusLabel(reservation.status)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {recentReservations.map((reservation) => {
+                    if (process.env.NODE_ENV === 'development') {
+                      console.info('admin reservation history timestamp rendered', { reservationId: reservation.id });
+                    }
+
+                    return (
+                      <tr key={`recent-${reservation.id}`} className="border-t border-slate-100">
+                        <td className="px-4 py-3">{formatDate(reservation.reservationDate)}</td>
+                        <td className="px-4 py-3">{reservation.timeFrom}</td>
+                        <td className="px-4 py-3">{reservation.timeTo}</td>
+                        <td className="px-4 py-3">{formatCreatedAt(reservation.createdAt)}</td>
+                        <td className="px-4 py-3">{reservation.courtName}</td>
+                        <td className="px-4 py-3">{formatIdentity(reservation)}</td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-medium ${getStatusBadgeClass(reservation.status)}`}>
+                            {getStatusLabel(reservation.status)}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

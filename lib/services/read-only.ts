@@ -24,6 +24,7 @@ type ReservationOverviewRow = {
   reservation_date: string;
   time_from: string;
   time_to: string;
+  created_at: string | null;
   status: 'pending' | 'approved' | 'cancelled';
   court_id: number;
   user_id: string;
@@ -44,6 +45,7 @@ export type ReservationOverview = {
   reservationDate: string;
   timeFrom: string;
   timeTo: string;
+  createdAt: string | null;
   courtName: string;
   userId: string;
   userDisplayName: string | null;
@@ -93,6 +95,7 @@ function mapReservationOverview(row: ReservationOverviewRow): ReservationOvervie
     reservationDate: row.reservation_date,
     timeFrom: row.time_from,
     timeTo: row.time_to,
+    createdAt: row.created_at,
     courtName: `Kurt ${row.court_id}`,
     userId: row.user_id,
     userDisplayName: null,
@@ -176,14 +179,14 @@ async function getReservationsOverviewByEndpoint(endpoint: string) {
 
 export async function getPendingReservationsReadOnly() {
   const reservationsEndpoint =
-    'reservations?select=id,reservation_date,time_from,time_to,status,court_id,user_id&status=eq.pending&order=reservation_date.asc,time_from.asc';
+    'reservations?select=id,reservation_date,time_from,time_to,created_at,status,court_id,user_id&status=eq.pending&order=reservation_date.asc,time_from.asc';
   return getReservationsOverviewByEndpoint(reservationsEndpoint);
 }
 
 export async function getRecentReservationsReadOnly(limit = 20) {
   const safeLimit = Number.isFinite(limit) ? Math.min(Math.max(Math.trunc(limit), 1), 50) : 20;
   const reservationsEndpoint =
-    `reservations?select=id,reservation_date,time_from,time_to,status,court_id,user_id&order=created_at.desc&limit=${safeLimit}`;
+    `reservations?select=id,reservation_date,time_from,time_to,created_at,status,court_id,user_id&order=created_at.desc&limit=${safeLimit}`;
   const loadedReservations = await getReservationsOverviewByEndpoint(reservationsEndpoint);
 
   if (process.env.NODE_ENV === 'development') {

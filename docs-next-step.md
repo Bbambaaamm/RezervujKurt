@@ -187,3 +187,6 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
 - O.7 small safe rozšíření `/admin`: pod existující pending sekci přidán read-only blok **„Poslední rezervace“** s posledními 20 záznamy (`order=created_at.desc&limit=20`) a sloupci datum, čas od/do, kurt, uživatel, status.
 - Status je vizuálně odlišen badge stylem pro `pending` / `approved` / `cancelled` bez přidání nových write akcí nebo filtrační/pagination logiky.
 - Přidán dev log `admin reservation history loaded` při načtení historie.
+- O.8 small safe rozšíření history overview: do tabulky **„Poslední rezervace“** přidán sloupec **„Vytvořeno“** čtený z `reservations.created_at` (bez navýšení limitu a bez nového requestu).
+- `created_at` je formátováno v `cs-CZ` jako datum + čas; pokud je hodnota `null`/invalid, UI zobrazí fallback `—`.
+- Přidán dev log `admin reservation history timestamp rendered` při renderu timestampu v history řádku.
