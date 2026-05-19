@@ -142,6 +142,7 @@ Projekt už má solidní datový a bezpečnostní základ (schéma, migrace, RLS
    - create formulář na `/rezervace` se renderuje pouze pro přihlášeného uživatele,
    - anonymní uživatel vidí jasnou výzvu k přihlášení a CTA odkaz na `/prihlaseni`,
    - přidány vývojové logy `write guard: authenticated` / `write guard: anonymous`.
+   - UX polish: na `/prihlaseni` se po `SIGNED_OUT` čistí stale success/error stav; na `/rezervace` se výchozí datum počítá z aktuálního lokálního dne (`cs-CZ`).
 5. **Připravit audit write hook** — **DALŠÍ MALÝ KROK**
    - trigger nebo service zápis pro create/update/cancel jako základ Milestone 4.
 
