@@ -132,7 +132,10 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
    - `getSession()` nyní validuje `exp` z JWT payloadu a při expiraci/krátce před expirací spouští silent refresh přes `refresh_token`.
    - Je přidané plánování refresh krátce před expirací tokenu (timer), bez zásahu do UI architektury.
    - Při nevalidním refresh tokenu proběhne fallback logout: vyčištění localStorage, emit `SIGNED_OUT` a redirect na `/prihlaseni` jen pokud je to potřeba.
-3. Volitelně navázat malé sjednocení error mappingu kolizí (priorita 3).
+3. ✅ **Sjednocení error mappingu Supabase/DB chyb je hotové (N.4).**
+   - Vytvořena centrální mapovací vrstva pro create reservation flow.
+   - Konzistentní mapování na: kolize rezervace, chybějící oprávnění, nevalidní vstup, neočekávaná chyba.
+   - Zachovaná česká UX hláška pro kolizi: „Kolize rezervace. Vybraný termín je už obsazen.“
 
 ### Proč právě tento krok
 - Auditní stopa write operací je nyní pokrytá pro create i update/cancel.
