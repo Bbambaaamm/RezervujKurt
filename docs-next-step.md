@@ -51,9 +51,9 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
 - Callback/session synchronizace je funkční.
 
 ### Milestone H: Session persistence
-**Stav: SPLNĚNO (MVP), ČÁSTEČNĚ OTEVŘENO PRO PROD HARDENING**
+**Stav: SPLNĚNO (production hardening dokončen v N.3)**
 - Persist/reload session funguje.
-- Otevřené zůstává: session refresh orchestrace při expiraci tokenu (hardening krok, ne blocker MVP).
+- Session refresh orchestrace při expiraci tokenu je implementovaná (silent refresh + fallback logout).
 
 ### Milestone I: Create reservation flow
 **Stav: SPLNĚNO (MVP funkční)**
@@ -128,7 +128,10 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
    - Trigger na `reservations` zapisuje audit při `UPDATE`.
    - Rozlišuje `action='cancel'` při změně statusu na `cancelled`, jinak `action='update'`.
    - Ukládá `old_status`, `new_status` a payload snapshotu staré/nové hodnoty.
-2. **Session refresh orchestrace** (priorita 2, stále otevřené).
+2. ✅ **Session refresh orchestrace je hotová (N.3).**
+   - `getSession()` nyní validuje `exp` z JWT payloadu a při expiraci/krátce před expirací spouští silent refresh přes `refresh_token`.
+   - Je přidané plánování refresh krátce před expirací tokenu (timer), bez zásahu do UI architektury.
+   - Při nevalidním refresh tokenu proběhne fallback logout: vyčištění localStorage, emit `SIGNED_OUT` a redirect na `/prihlaseni` jen pokud je to potřeba.
 3. Volitelně navázat malé sjednocení error mappingu kolizí (priorita 3).
 
 ### Proč právě tento krok
