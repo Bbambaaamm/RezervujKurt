@@ -11,8 +11,10 @@ create policy "courts_select_active_anon"
   using (is_active = true);
 
 -- Reservations: anonymní read-only přehled pro grid.
+-- DEV_ONLY_POLICY: reservations_select_public_overview_anon
+-- Guard: policy je aktivní jen při `app.rls_mode=dev`, jinak vrací false (produkce).
 create policy "reservations_select_public_overview_anon"
   on public.reservations
   for select
   to anon
-  using (true);
+  using (coalesce(current_setting('app.rls_mode', true), 'prod') = 'dev');

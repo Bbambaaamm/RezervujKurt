@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "check:rls": "node scripts/check-rls.js",
+    "check:rls:prod": "RLS_RELEASE_MODE=prod node scripts/check-rls.js"
   },
   "dependencies": {
     "next": "15.3.2",
