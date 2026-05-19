@@ -10,8 +10,18 @@ export type AuthSession = {
 type AuthChangeEvent = 'SIGNED_IN' | 'SIGNED_OUT' | 'TOKEN_REFRESHED';
 type AuthListener = (event: AuthChangeEvent, session: AuthSession | null) => void;
 
+type JwtPayload = {
+  sub?: string;
+  email?: string;
+  exp?: number;
+};
+
 const SESSION_STORAGE_KEY = 'rezervujkurt.auth.session';
+const REFRESH_EARLY_SECONDS = 60;
 const listeners = new Set<AuthListener>();
+
+let refreshTimeoutId: number | null = null;
+let refreshInFlight: Promise<AuthSession | null> | null = null;
 
 function getSupabaseConfig(): { url: string; anonKey: string } | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -20,13 +30,13 @@ function getSupabaseConfig(): { url: string; anonKey: string } | null {
   return { url, anonKey };
 }
 
-function parseJwtPayload(token: string): Record<string, unknown> | null {
+function parseJwtPayload(token: string): JwtPayload | null {
   try {
     const base64UrlPayload = token.split('.')[1];
     if (!base64UrlPayload) return null;
     const base64Payload = base64UrlPayload.replace(/-/g, '+').replace(/_/g, '/');
     const paddedPayload = base64Payload.padEnd(base64Payload.length + ((4 - (base64Payload.length % 4)) % 4), '=');
-    return JSON.parse(atob(paddedPayload));
+    return JSON.parse(atob(paddedPayload)) as JwtPayload;
   } catch {
     return null;
   }
@@ -45,12 +55,184 @@ function setStoredSession(session: AuthSession | null): void {
 
 function emitAuthChange(event: AuthChangeEvent, session: AuthSession | null): void { listeners.forEach((listener) => listener(event, session)); }
 
+function clearRefreshTimeout(): void {
+  if (typeof window === 'undefined') return;
+  if (refreshTimeoutId !== null) {
+    window.clearTimeout(refreshTimeoutId);
+    refreshTimeoutId = null;
+  }
+}
+
+function getTokenExpirationEpoch(accessToken: string): number | null {
+  const payload = parseJwtPayload(accessToken);
+  return typeof payload?.exp === 'number' ? payload.exp : null;
+}
+
+function isAccessTokenExpired(accessToken: string): boolean {
+  const exp = getTokenExpirationEpoch(accessToken);
+  if (!exp) return true;
+  return exp <= Math.floor(Date.now() / 1000);
+}
+
+function shouldRefreshSoon(accessToken: string): boolean {
+  const exp = getTokenExpirationEpoch(accessToken);
+  if (!exp) return true;
+  const now = Math.floor(Date.now() / 1000);
+  return exp - now <= REFRESH_EARLY_SECONDS;
+}
+
+function scheduleRefresh(session: AuthSession | null): void {
+  if (typeof window === 'undefined') return;
+  clearRefreshTimeout();
+  if (!session?.access_token || !session.refresh_token) return;
+
+  const exp = getTokenExpirationEpoch(session.access_token);
+  if (!exp) return;
+
+  const now = Math.floor(Date.now() / 1000);
+  const refreshAtEpoch = exp - REFRESH_EARLY_SECONDS;
+  const delayMs = Math.max((refreshAtEpoch - now) * 1000, 0);
+
+  refreshTimeoutId = window.setTimeout(() => {
+    void ensureValidSession({ allowRedirect: false });
+  }, delayMs);
+}
+
 function hasAuthHash(): boolean {
   if (typeof window === 'undefined') return false;
   const hash = window.location.hash.replace(/^#/, '');
   if (!hash) return false;
   const params = new URLSearchParams(hash);
   return Boolean(params.get('access_token'));
+}
+
+function redirectToLoginIfNeeded(): void {
+  if (typeof window === 'undefined') return;
+  if (window.location.pathname !== '/prihlaseni') {
+    window.location.assign('/prihlaseni');
+  }
+}
+
+function invalidateSession(options?: { redirectToLogin?: boolean; reason?: 'expired' | 'refresh_failed' }): void {
+  if (options?.reason === 'expired' && process.env.NODE_ENV === 'development') {
+    console.info('[auth] session expired');
+  }
+  setStoredSession(null);
+  clearRefreshTimeout();
+  emitAuthChange('SIGNED_OUT', null);
+
+  if (options?.redirectToLogin) {
+    redirectToLoginIfNeeded();
+  }
+}
+
+async function refreshSession(currentSession: AuthSession, options?: { allowRedirect?: boolean }): Promise<AuthSession | null> {
+  if (!currentSession.refresh_token) {
+    invalidateSession({ redirectToLogin: options?.allowRedirect ?? false, reason: 'expired' });
+    return null;
+  }
+
+  const config = getSupabaseConfig();
+  if (!config) return currentSession;
+
+  if (process.env.NODE_ENV === 'development') {
+    console.info('[auth] session refresh started');
+  }
+
+  const endpoint = `${config.url}/auth/v1/token?grant_type=refresh_token`;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: config.anonKey,
+      },
+      body: JSON.stringify({ refresh_token: currentSession.refresh_token }),
+    });
+
+    if (!response.ok) {
+      if (process.env.NODE_ENV === 'development') {
+        console.info('[auth] session refresh failed');
+      }
+      invalidateSession({ redirectToLogin: options?.allowRedirect ?? true, reason: 'refresh_failed' });
+      return null;
+    }
+
+    const responseData = (await response.json()) as { access_token?: string; refresh_token?: string; user?: { id?: string; email?: string } };
+    if (!responseData.access_token) {
+      if (process.env.NODE_ENV === 'development') {
+        console.info('[auth] session refresh failed');
+      }
+      invalidateSession({ redirectToLogin: options?.allowRedirect ?? true, reason: 'refresh_failed' });
+      return null;
+    }
+
+    const payload = parseJwtPayload(responseData.access_token);
+    const userId = responseData.user?.id ?? (typeof payload?.sub === 'string' ? payload.sub : '');
+    const email = responseData.user?.email ?? (typeof payload?.email === 'string' ? payload.email : undefined);
+
+    if (!userId) {
+      if (process.env.NODE_ENV === 'development') {
+        console.info('[auth] session refresh failed');
+      }
+      invalidateSession({ redirectToLogin: options?.allowRedirect ?? true, reason: 'refresh_failed' });
+      return null;
+    }
+
+    const nextSession: AuthSession = {
+      access_token: responseData.access_token,
+      refresh_token: responseData.refresh_token ?? currentSession.refresh_token,
+      user: { id: userId, email },
+    };
+
+    setStoredSession(nextSession);
+    scheduleRefresh(nextSession);
+    emitAuthChange('TOKEN_REFRESHED', nextSession);
+
+    if (process.env.NODE_ENV === 'development') {
+      console.info('[auth] session refresh success');
+    }
+
+    return nextSession;
+  } catch {
+    if (process.env.NODE_ENV === 'development') {
+      console.info('[auth] session refresh failed');
+    }
+    invalidateSession({ redirectToLogin: options?.allowRedirect ?? true, reason: 'refresh_failed' });
+    return null;
+  }
+}
+
+async function ensureValidSession(options?: { allowRedirect?: boolean }): Promise<AuthSession | null> {
+  const storedSession = getStoredSession();
+  if (!storedSession) {
+    clearRefreshTimeout();
+    return null;
+  }
+
+  if (!storedSession.access_token) {
+    invalidateSession({ redirectToLogin: options?.allowRedirect ?? true, reason: 'expired' });
+    return null;
+  }
+
+  if (!isAccessTokenExpired(storedSession.access_token) && !shouldRefreshSoon(storedSession.access_token)) {
+    scheduleRefresh(storedSession);
+    return storedSession;
+  }
+
+  if (!storedSession.refresh_token) {
+    invalidateSession({ redirectToLogin: options?.allowRedirect ?? true, reason: 'expired' });
+    return null;
+  }
+
+  if (!refreshInFlight) {
+    refreshInFlight = refreshSession(storedSession, options).finally(() => {
+      refreshInFlight = null;
+    });
+  }
+
+  return refreshInFlight;
 }
 
 function readSessionFromUrl(): AuthSession | null {
@@ -76,6 +258,7 @@ function readSessionFromUrl(): AuthSession | null {
     user: { id: userId, email },
   };
   setStoredSession(session);
+  scheduleRefresh(session);
   if (process.env.NODE_ENV === 'development') {
     console.info('[auth] session stored from magic link hash');
   }
@@ -91,7 +274,7 @@ export const supabaseAuthClient = {
       return { handled, session };
     },
     async getSession() {
-      const session = getStoredSession();
+      const session = await ensureValidSession({ allowRedirect: false });
       return { data: { session } };
     },
     onAuthStateChange(callback: AuthListener) {
@@ -129,6 +312,6 @@ export const supabaseAuthClient = {
         return { error: new Error('Síťová chyba při volání Supabase Auth OTP.') };
       }
     },
-    async signOut() { setStoredSession(null); emitAuthChange('SIGNED_OUT', null); return { error: null }; },
+    async signOut() { invalidateSession({ redirectToLogin: false }); return { error: null }; },
   },
 };
