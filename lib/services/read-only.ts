@@ -19,6 +19,33 @@ type ReservationRow = {
   created_at: string;
 };
 
+type PendingReservationRow = {
+  id: string;
+  reservation_date: string;
+  time_from: string;
+  time_to: string;
+  status: 'pending';
+  court_id: number;
+  user_id: string;
+  profiles: {
+    email: string | null;
+  } | null;
+  courts: {
+    name: string;
+  } | null;
+};
+
+export type PendingReservationOverview = {
+  id: string;
+  reservationDate: string;
+  timeFrom: string;
+  timeTo: string;
+  courtName: string;
+  userId: string;
+  userEmail: string | null;
+  status: 'pending';
+};
+
 function mapStatus(status: ReservationRow['status']): ReservationStatus {
   if (status === 'pending') return 'cekajici';
   if (status === 'approved') return 'potvrzeno';
@@ -56,6 +83,19 @@ function mapReservation(row: ReservationRow): Reservation {
   };
 }
 
+function mapPendingReservation(row: PendingReservationRow): PendingReservationOverview {
+  return {
+    id: row.id,
+    reservationDate: row.reservation_date,
+    timeFrom: row.time_from,
+    timeTo: row.time_to,
+    courtName: row.courts?.name ?? `Kurt ${row.court_id}`,
+    userId: row.user_id,
+    userEmail: row.profiles?.email ?? null,
+    status: row.status,
+  };
+}
+
 export async function getCourtsReadOnly() {
   const rows = await supabaseSelect<CourtRow>('courts?select=id,name,surface,is_active&is_active=eq.true&order=id.asc');
   return rows.map(mapCourt);
@@ -67,4 +107,12 @@ export async function getReservationsReadOnly(date: string) {
   );
 
   return rows.map(mapReservation);
+}
+
+export async function getPendingReservationsReadOnly() {
+  const rows = await supabaseSelect<PendingReservationRow>(
+    'reservations?select=id,reservation_date,time_from,time_to,status,court_id,user_id,profiles:profiles(email),courts:courts(name)&status=eq.pending&order=reservation_date.asc,time_from.asc',
+  );
+
+  return rows.map(mapPendingReservation);
 }
