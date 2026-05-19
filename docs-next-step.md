@@ -151,8 +151,8 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
 - Lokalizovaný custom date picker je vhodný budoucí UX enhancement, ale není blocker pro aktuální milestone ani pro provoz MVP.
 
 
-### Milestone O: Admin reservation overview (read-only)
-**Stav: O.3 HOTOVO (admin odkaz v headeru podle role)**
+### Milestone O: Admin reservation overview + basic pending actions
+**Stav: O.4 HOTOVO (minimální approve/cancel workflow pro pending rezervace)**
 - Route `/admin` už nepoužívá dočasný DEV guard.
 - Přidán lightweight helper `getCurrentUserRoleFromSession`, který přes REST (`/profiles`) načte roli aktuálního profilu podle `session.user.id`.
 - Guard na stránce `/admin` rozlišuje 3 stavy:
@@ -163,6 +163,16 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
 - Header menu nyní zobrazuje položku `Admin` pouze uživateli s rolí `admin`; anonymní i běžný přihlášený uživatel položku nevidí.
 - Přidány development logy headeru: `header admin link visible` a `header admin link hidden`.
 - Role lookup je v klientu lightweight cachovaný (in-memory podle `session.user.id` + deduplikace in-flight lookupu), aby se při stabilní session neposílal zbytečný request navíc na každý render.
-- Read-only admin přehled pending rezervací zůstává beze změny, bez approve/cancel/edit akcí.
-- Bez zásahu do create reservation flow a bez zásahu do audit triggerů.
+- Admin přehled pending rezervací nově obsahuje dvě minimální akce pouze pro řádky se stavem `pending`:
+  - `Schválit` → `status='approved'`
+  - `Zrušit` → `status='cancelled'`
+- Akce jsou implementované lightweight přes REST `PATCH /rest/v1/reservations?id=eq.<id>&status=eq.pending` a pouze mění `status`.
+- Během requestu je řádková akce ve stavu loading/disabled a po úspěchu proběhne refresh seznamu pending rezervací.
+- Přidány dev logy akcí:
+  - `admin approve started`
+  - `admin approve success`
+  - `admin cancel started`
+  - `admin cancel success`
+  - `admin action failed`
+- Bez zásahu do create reservation flow, bez zásahu do auth/session orchestrace a bez zásahu do existujících audit triggerů.
 - RLS/policy změna nebyla potřeba, existující owner/admin model v `profiles` + `reservations` enforcement pokrývá cílové chování.

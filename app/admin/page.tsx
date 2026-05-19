@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { getPendingReservationsReadOnly, type PendingReservationOverview } from '@/lib/services/read-only';
+import { ReservationUnauthorizedError, ReservationValidationError } from '@/lib/services/supabase-error-mapping';
 import { getCurrentUserRoleFromSession, type CurrentUserRole } from '@/lib/services/profile';
+import { updateReservationStatus } from '@/lib/services/reservations';
 import { supabaseAuthClient } from '@/lib/supabase/auth-client';
 import { SupabaseRequestError } from '@/lib/supabase/client';
 
@@ -33,6 +35,7 @@ export default function AdminPage() {
   const [isSessionChecked, setIsSessionChecked] = useState(false);
   const [userRole, setUserRole] = useState<CurrentUserRole>('anonymous');
   const [isLoading, setIsLoading] = useState(false);
+  const [isActionLoadingById, setIsActionLoadingById] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [reservations, setReservations] = useState<PendingReservationOverview[]>([]);
 
@@ -123,6 +126,54 @@ export default function AdminPage() {
     };
   }, [isSessionChecked, userRole]);
 
+  async function handleReservationAction(reservationId: string, action: 'approve' | 'cancel') {
+    const status = action === 'approve' ? 'approved' : 'cancelled';
+    const startedMessage = action === 'approve' ? 'admin approve started' : 'admin cancel started';
+    const successMessage = action === 'approve' ? 'admin approve success' : 'admin cancel success';
+
+    console.info(startedMessage, { reservationId });
+    setIsActionLoadingById((prev) => ({ ...prev, [reservationId]: true }));
+    setError(null);
+
+    try {
+      const { data } = await supabaseAuthClient.auth.getSession();
+      const accessToken = data.session?.access_token;
+
+      if (!accessToken) {
+        throw new ReservationUnauthorizedError('Provedení admin akce vyžaduje platné přihlášení.');
+      }
+
+      await updateReservationStatus({
+        accessToken,
+        reservationId,
+        status,
+      });
+
+      const loadedReservations = await getPendingReservationsReadOnly();
+      setReservations(loadedReservations);
+      console.info(successMessage, { reservationId });
+    } catch (actionError) {
+      console.error('admin action failed', {
+        reservationId,
+        action,
+        errorName: getErrorName(actionError),
+        errorMessage: getErrorMessage(actionError),
+      });
+
+      if (actionError instanceof ReservationUnauthorizedError) {
+        setError('Nemáte oprávnění provést tuto admin akci.');
+      } else if (actionError instanceof ReservationValidationError) {
+        setError('Rezervaci se nepodařilo změnit. Zkontrolujte prosím její aktuální stav.');
+      } else if (actionError instanceof SupabaseRequestError) {
+        setError('Admin akce se nepodařila dokončit. Zkuste to prosím znovu.');
+      } else {
+        setError('Došlo k neočekávané chybě při admin akci.');
+      }
+    } finally {
+      setIsActionLoadingById((prev) => ({ ...prev, [reservationId]: false }));
+    }
+  }
+
   if (!isSessionChecked) {
     return <div className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600">Kontroluji přihlášení…</div>;
   }
@@ -172,6 +223,7 @@ export default function AdminPage() {
                 <th className="px-4 py-3 font-medium">Kurt</th>
                 <th className="px-4 py-3 font-medium">Uživatel</th>
                 <th className="px-4 py-3 font-medium">Stav</th>
+                <th className="px-4 py-3 font-medium">Akce</th>
               </tr>
             </thead>
             <tbody>
@@ -183,6 +235,26 @@ export default function AdminPage() {
                   <td className="px-4 py-3">{reservation.courtName}</td>
                   <td className="px-4 py-3">{formatIdentity(reservation)}</td>
                   <td className="px-4 py-3">{reservation.status}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void handleReservationAction(reservation.id, 'approve')}
+                        disabled={isActionLoadingById[reservation.id]}
+                        className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-1 text-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isActionLoadingById[reservation.id] ? 'Schvaluji…' : 'Schválit'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleReservationAction(reservation.id, 'cancel')}
+                        disabled={isActionLoadingById[reservation.id]}
+                        className="rounded-md border border-rose-300 bg-rose-50 px-3 py-1 text-rose-800 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isActionLoadingById[reservation.id] ? 'Ruším…' : 'Zrušit'}
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
