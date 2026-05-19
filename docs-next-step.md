@@ -197,3 +197,4 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
 - O.10 small safe sjednocení pending prioritizace: pending rezervace jsou explicitně řazené jako **nejstarší čekající nahoře** přes `order=created_at.asc.nullslast,reservation_date.asc,time_from.asc`.
 - Fallback při chybějícím `created_at` je zajištěn sekundárním řazením `reservation_date.asc,time_from.asc` (deterministické pořadí bez nového requestu a bez změny approve/cancel flow).
 - Přidán dev log `admin pending ordered by oldest first` po načtení pending seznamu.
+- O.11 test coverage: přidán cílený unit test pro konstrukci pending endpointu, který hlídá ordering `created_at.asc.nullslast,reservation_date.asc,time_from.asc` bez testování Supabase backend řazení.
