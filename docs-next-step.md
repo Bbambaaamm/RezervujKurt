@@ -182,4 +182,5 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
   - `admin stale pending detected`
   - `admin stale pending refresh`
 - Bez zásahu do create reservation flow, bez zásahu do auth/session orchestrace a bez zásahu do existujících audit triggerů.
+- O.6 test coverage: přidány cílené unit testy pro `updateReservationStatus` (stale pending: `[]`, `Content-Range */0`, úspěch pro neprázdné pole a mapování 403/42501 přes existující error mapper).
 - RLS/policy změna nebyla potřeba, existující owner/admin model v `profiles` + `reservations` enforcement pokrývá cílové chování.
