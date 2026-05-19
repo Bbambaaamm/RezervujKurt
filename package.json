@@ -9,7 +9,7 @@
     "lint": "next lint",
     "check:rls": "node scripts/check-rls.js",
     "check:rls:prod": "RLS_RELEASE_MODE=prod node scripts/check-rls.js",
-    "test:unit": "rm -rf .tmp-tests && tsc -p tsconfig.test.json && node --test .tmp-tests/tests/**/*.test.js",
+    "test:unit": "rm -rf .tmp-tests && tsc -p tsconfig.test.json && node --test $(find .tmp-tests/tests -name '*.test.js' -print)",
     "test": "npm run test:unit"
   },
   "dependencies": {
