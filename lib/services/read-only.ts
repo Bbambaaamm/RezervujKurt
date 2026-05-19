@@ -28,7 +28,7 @@ type PendingReservationRow = {
   court_id: number;
   user_id: string;
   profiles: {
-    email: string | null;
+    full_name: string | null;
   } | null;
   courts: {
     name: string;
@@ -42,7 +42,7 @@ export type PendingReservationOverview = {
   timeTo: string;
   courtName: string;
   userId: string;
-  userEmail: string | null;
+  userDisplayName: string | null;
   status: 'pending';
 };
 
@@ -91,7 +91,7 @@ function mapPendingReservation(row: PendingReservationRow): PendingReservationOv
     timeTo: row.time_to,
     courtName: row.courts?.name ?? `Kurt ${row.court_id}`,
     userId: row.user_id,
-    userEmail: row.profiles?.email ?? null,
+    userDisplayName: row.profiles?.full_name ?? null,
     status: row.status,
   };
 }
@@ -111,7 +111,7 @@ export async function getReservationsReadOnly(date: string) {
 
 export async function getPendingReservationsReadOnly() {
   const rows = await supabaseSelect<PendingReservationRow>(
-    'reservations?select=id,reservation_date,time_from,time_to,status,court_id,user_id,profiles:profiles(email),courts:courts(name)&status=eq.pending&order=reservation_date.asc,time_from.asc',
+    'reservations?select=id,reservation_date,time_from,time_to,status,court_id,user_id,profiles:profiles(full_name),courts:courts(name)&status=eq.pending&order=reservation_date.asc,time_from.asc',
   );
 
   return rows.map(mapPendingReservation);

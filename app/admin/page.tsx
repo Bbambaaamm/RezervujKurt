@@ -15,8 +15,18 @@ function formatDate(date: string) {
 }
 
 function formatIdentity(reservation: PendingReservationOverview) {
-  if (reservation.userEmail) return reservation.userEmail;
+  if (reservation.userDisplayName) return reservation.userDisplayName;
   return reservation.userId;
+}
+
+function getErrorName(error: unknown) {
+  if (error instanceof Error && error.name) return error.name;
+  return 'UnknownError';
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) return error.message;
+  return String(error);
 }
 
 export default function AdminPage() {
@@ -87,12 +97,20 @@ export default function AdminPage() {
           console.error('Admin pending reservations load failed.', {
             endpoint: loadError.endpoint,
             status: loadError.status,
-            response: loadError.responseBody,
+            responseBody: loadError.responseBody,
+            errorName: loadError.name,
+            errorMessage: loadError.message,
           });
           return;
         }
 
-        console.error('Admin pending reservations load failed.', loadError);
+        console.error('Admin pending reservations load failed.', {
+          endpoint: 'n/a',
+          status: 'n/a',
+          responseBody: 'n/a',
+          errorName: getErrorName(loadError),
+          errorMessage: getErrorMessage(loadError),
+        });
       } finally {
         if (active) setIsLoading(false);
       }
