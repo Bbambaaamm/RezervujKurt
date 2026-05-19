@@ -1,4 +1,4 @@
-import { mapReservationWriteError } from '@/lib/services/supabase-error-mapping';
+import { mapReservationWriteError, ReservationNoLongerPendingError } from '@/lib/services/supabase-error-mapping';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -68,7 +68,7 @@ export async function updateReservationStatus(input: UpdateReservationStatusInpu
       apikey: supabaseAnonKey,
       Authorization: `Bearer ${input.accessToken}`,
       'Content-Type': 'application/json',
-      Prefer: 'return=minimal',
+      Prefer: 'return=representation,count=exact',
     },
     body: JSON.stringify({
       status: input.status,
@@ -76,6 +76,33 @@ export async function updateReservationStatus(input: UpdateReservationStatusInpu
   });
 
   if (response.ok) {
+    const responseBody = await response.text();
+    const contentRange = response.headers.get('content-range');
+    const isZeroAffectedByRange = contentRange?.trim().endsWith('/0') ?? false;
+
+    if (!responseBody) {
+      if (isZeroAffectedByRange) {
+        throw new ReservationNoLongerPendingError('Rezervace už není ve stavu pending.');
+      }
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(responseBody) as unknown;
+      if (Array.isArray(parsed) && parsed.length === 0) {
+        throw new ReservationNoLongerPendingError('Rezervace už není ve stavu pending.');
+      }
+    } catch (parseError) {
+      if (parseError instanceof ReservationNoLongerPendingError) {
+        throw parseError;
+      }
+      // Pokud backend nevrátí JSON pole, neblokujeme úspěšný update.
+    }
+
+    if (isZeroAffectedByRange) {
+      throw new ReservationNoLongerPendingError('Rezervace už není ve stavu pending.');
+    }
+
     return;
   }
 

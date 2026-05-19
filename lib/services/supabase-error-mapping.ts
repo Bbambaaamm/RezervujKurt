@@ -3,6 +3,7 @@ import { SupabaseRequestError } from '../supabase/client';
 export class ReservationConflictError extends Error {}
 export class ReservationUnauthorizedError extends Error {}
 export class ReservationValidationError extends Error {}
+export class ReservationNoLongerPendingError extends Error {}
 
 const CONFLICT_CODES = new Set(['23P01', '23505']);
 const VALIDATION_CODES = new Set(['22P02', '23514']);

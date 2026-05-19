@@ -152,7 +152,7 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
 
 
 ### Milestone O: Admin reservation overview + basic pending actions
-**Stav: O.4 HOTOVO (minimální approve/cancel workflow pro pending rezervace)**
+**Stav: O.5 HOTOVO (stale pending UX handling pro souběžné admin akce)**
 - Route `/admin` už nepoužívá dočasný DEV guard.
 - Přidán lightweight helper `getCurrentUserRoleFromSession`, který přes REST (`/profiles`) načte roli aktuálního profilu podle `session.user.id`.
 - Guard na stránce `/admin` rozlišuje 3 stavy:
@@ -174,5 +174,12 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
   - `admin cancel started`
   - `admin cancel success`
   - `admin action failed`
+- Doplněn explicitní stale pending handling pro souběžný admin scénář (2 admini nad stejným řádkem):
+  - `updateReservationStatus` nyní detekuje „0 affected rows“ přes `return=representation,count=exact` a mapuje scénáře `empty array` / `Content-Range */0` na specializovanou chybu.
+  - V `/admin` se tato chyba mapuje na uživatelskou hlášku: `Rezervace už není ve stavu pending.`
+  - Po stale pending chybě se automaticky refreshne pending seznam, aby zastaralý řádek ihned zmizel z UI.
+- Přidány dev logy stale scénáře:
+  - `admin stale pending detected`
+  - `admin stale pending refresh`
 - Bez zásahu do create reservation flow, bez zásahu do auth/session orchestrace a bez zásahu do existujících audit triggerů.
 - RLS/policy změna nebyla potřeba, existující owner/admin model v `profiles` + `reservations` enforcement pokrývá cílové chování.

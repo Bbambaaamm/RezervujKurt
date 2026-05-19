@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { getPendingReservationsReadOnly, type PendingReservationOverview } from '@/lib/services/read-only';
-import { ReservationUnauthorizedError, ReservationValidationError } from '@/lib/services/supabase-error-mapping';
+import { ReservationNoLongerPendingError, ReservationUnauthorizedError, ReservationValidationError } from '@/lib/services/supabase-error-mapping';
 import { getCurrentUserRoleFromSession, type CurrentUserRole } from '@/lib/services/profile';
 import { updateReservationStatus } from '@/lib/services/reservations';
 import { supabaseAuthClient } from '@/lib/supabase/auth-client';
@@ -162,6 +162,12 @@ export default function AdminPage() {
 
       if (actionError instanceof ReservationUnauthorizedError) {
         setError('Nemáte oprávnění provést tuto admin akci.');
+      } else if (actionError instanceof ReservationNoLongerPendingError) {
+        setError('Rezervace už není ve stavu pending.');
+        console.info('admin stale pending detected', { reservationId, action });
+        const loadedReservations = await getPendingReservationsReadOnly();
+        setReservations(loadedReservations);
+        console.info('admin stale pending refresh', { reservationId, count: loadedReservations.length });
       } else if (actionError instanceof ReservationValidationError) {
         setError('Rezervaci se nepodařilo změnit. Zkontrolujte prosím její aktuální stav.');
       } else if (actionError instanceof SupabaseRequestError) {
