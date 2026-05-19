@@ -74,9 +74,10 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
 - Fallback při chybě čtení je přítomný.
 
 ### Milestone M: Audit log připravenost
-**Stav: ČÁSTEČNĚ SPLNĚNO**
+**Stav: ČÁSTEČNĚ SPLNĚNO (N.1 HOTOVO)**
 - Datová i policy připravenost existuje.
-- Otevřené: audit write hook pro create/update/cancel (trigger nebo aplikační zápis).
+- Hotovo: N.1 write hook pro create (DB trigger).
+- Otevřené: write hook pro update/cancel (další krok).
 
 ---
 
@@ -109,7 +110,7 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
 ---
 
 ## Technické dluhy (aktuální)
-1. **Audit write hook není dotažený** (nejvyšší priorita dohledatelnosti změn).
+1. **Audit write hook je částečně dotažený** (create hotovo, zbývá update/cancel).
 2. **Session refresh orchestrace není centralizovaná** (riziko sporadických auth výpadků po expiraci).
 3. **Error mapping kolizí není plně sjednocený** (UX konzistence).
 
@@ -123,7 +124,7 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
 **Milestone N: Auditovatelnost a session hardening.**
 
 ### Rozsah
-1. **Audit write hook** pro create/update/cancel (priorita 1).
+1. **Audit write hook** pro update/cancel (priorita 1, create je hotovo).
 2. **Session refresh orchestrace** (priorita 2).
 3. Volitelně navázat malé sjednocení error mappingu kolizí (priorita 3).
 
