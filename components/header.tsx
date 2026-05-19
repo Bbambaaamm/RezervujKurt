@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabaseAuthClient, type AuthSession } from '@/lib/supabase/auth-client';
+import { clearCurrentUserRoleCache, getCurrentUserRoleFromSession } from '@/lib/services/profile';
 
 const baseLinks = [
   { href: '/', label: 'Domů' },
@@ -18,6 +19,7 @@ function getAuthStatusText(session: AuthSession | null): string {
 export function Header() {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -36,6 +38,33 @@ export function Header() {
     };
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    getCurrentUserRoleFromSession(session)
+      .then((role) => {
+        if (!isMounted) {
+          return;
+        }
+
+        const shouldShowAdminLink = role === 'admin';
+        setIsAdmin(shouldShowAdminLink);
+        console.info(shouldShowAdminLink ? 'header admin link visible' : 'header admin link hidden');
+      })
+      .catch(() => {
+        if (!isMounted) {
+          return;
+        }
+
+        setIsAdmin(false);
+        console.info('header admin link hidden');
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [session]);
+
   async function handleMenuLogout() {
     console.info('[auth] header logout clicked');
     setIsLoggingOut(true);
@@ -45,6 +74,7 @@ export function Header() {
     setIsLoggingOut(false);
 
     if (!error) {
+      clearCurrentUserRoleCache();
       router.push('/prihlaseni');
       router.refresh();
     }
@@ -67,6 +97,11 @@ export function Header() {
 
           {session ? (
             <>
+              {isAdmin && (
+                <Link href="/admin" className="text-slate-700 transition hover:text-court">
+                  Admin
+                </Link>
+              )}
               <Link href="/ucet" className="text-slate-700 transition hover:text-court">
                 Účet
               </Link>

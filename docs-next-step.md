@@ -152,7 +152,7 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
 
 
 ### Milestone O: Admin reservation overview (read-only)
-**Stav: O.2 HOTOVO (owner/admin enforcement dokončen)**
+**Stav: O.3 HOTOVO (admin odkaz v headeru podle role)**
 - Route `/admin` už nepoužívá dočasný DEV guard.
 - Přidán lightweight helper `getCurrentUserRoleFromSession`, který přes REST (`/profiles`) načte roli aktuálního profilu podle `session.user.id`.
 - Guard na stránce `/admin` rozlišuje 3 stavy:
@@ -160,6 +160,9 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
   - přihlášený bez admin role: „Nemáte oprávnění pro správu rezervací.“,
   - admin: načtení pending rezervací.
 - Přidány development logy guardu: `admin guard: anonymous`, `admin guard: user`, `admin guard: admin`.
+- Header menu nyní zobrazuje položku `Admin` pouze uživateli s rolí `admin`; anonymní i běžný přihlášený uživatel položku nevidí.
+- Přidány development logy headeru: `header admin link visible` a `header admin link hidden`.
+- Role lookup je v klientu lightweight cachovaný (in-memory podle `session.user.id` + deduplikace in-flight lookupu), aby se při stabilní session neposílal zbytečný request navíc na každý render.
 - Read-only admin přehled pending rezervací zůstává beze změny, bez approve/cancel/edit akcí.
 - Bez zásahu do create reservation flow a bez zásahu do audit triggerů.
 - RLS/policy změna nebyla potřeba, existující owner/admin model v `profiles` + `reservations` enforcement pokrývá cílové chování.
