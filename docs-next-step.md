@@ -1,162 +1,137 @@
-# Audit stavu projektu vůči milestone plánu (k 14. 5. 2026)
+# Audit stavu projektu vůči milestone plánu (k 19. 5. 2026)
 
 ## Stručné shrnutí
-Projekt už má solidní datový a bezpečnostní základ (schéma, migrace, RLS, seed), funkční read-only část a základ auth/create flow přes magic link. End-to-end však ještě není produkčně uzavřený kvůli chybějícímu audit log zápisu při create/update, nehotovým guardům a nekonzistenci v auth type vrstvě, která aktuálně rozbíjí build.
+Projekt je nyní stabilní na úrovni produkčního základu pro core rezervační flow: build prochází, RLS release hardening je zavedený, auth typy jsou sjednocené přes interní `AuthSession`, magic link + session persistence + `AuthSessionSync` fungují a create reservation flow je funkční včetně refresh gridu. Otevřené položky jsou primárně provozní/technický dluh (audit write hook, session refresh orchestrace, hlubší error mapping), ne blokery základního provozu.
 
 ---
 
 ## Milestone audit
 
 ### Milestone A: DB schéma
-**Stav: SPLNĚNO**
+**Stav: SPLNĚNO (production-ready)**
 - Tabulky `profiles`, `courts`, `reservations`, `reservation_audit_log` existují.
-- Jsou přítomné klíčové integritní kontroly: `check (time_from < time_to)`, unikátní slot index i exclusion constraint proti překryvu.
+- Integritní kontroly pro časové intervaly a kolize jsou zavedené.
 
 ### Milestone B: Migrace
-**Stav: SPLNĚNO**
+**Stav: SPLNĚNO (production-ready)**
 - Inicializační migrace schématu je přítomná.
-- Dev migrace pro anon read-only policy je přítomná.
-- Migrace pro bootstrap profilu po vytvoření auth uživatele je přítomná.
+- Navazující migrace pro auth/profile bootstrap i policy úpravy jsou přítomné.
 
 ### Milestone C: RLS
-**Stav: ČÁSTEČNĚ SPLNĚNO**
-- RLS je zapnuté na všech klíčových tabulkách a owner/admin model je implementovaný.
-- Chybí provozní oddělení dev/prod policy režimu (dev anon policy je stále explicitně otevřená pro `reservations` přes `using (true)`).
-
-**Co chybí přesně**
-- Jednoznačný mechanismus, který při produkčním nasazení zabrání aktivaci `reservations_select_public_overview_anon using (true)`.
-
-**Technické riziko**
-- Riziko nechtěného zveřejnění rezervačních dat při chybně nastaveném release procesu.
+**Stav: SPLNĚNO (production-ready)**
+- RLS je aktivní na klíčových tabulkách.
+- Owner/admin model je zavedený.
+- Release hardening pro dev-only policy je zavedený (včetně guardu a kontrol v CI).
 
 ### Milestone D: Seed
-**Stav: SPLNĚNO**
-- Seed obsahuje uživatele, profily, kurty, rezervace i audit log seed záznamy.
+**Stav: SPLNĚNO (MVP/dev ready)**
+- Seed pokrývá uživatele, profily, kurty, rezervace i audit log demo data.
 
 ### Milestone E: Read-only flow
-**Stav: SPLNĚNO**
-- Read service načítá kurty a rezervace ze Supabase.
+**Stav: SPLNĚNO (production-ready)**
+- Načítání kurtů a rezervací funguje.
 - Grid zobrazuje data po dnech.
 
 ### Milestone F: Auth flow
-**Stav: ČÁSTEČNĚ SPLNĚNO**
-- Přihlášení/odhlášení přes OTP je implementované.
-- Session se čte a propaguje do UI.
-- Chybí route guard pro chráněné akce/stránky a jednotná server/client strategie auth enforcementu.
-
-**Co chybí přesně**
-- Guard minimálně pro write akce a stránky, které mají být jen pro přihlášené.
-- Stabilizace typové vrstvy auth klienta (aktuální build fail).
-
-**Technické riziko**
-- Nekonzistentní UX a možnost, že nepřihlášený uživatel vstoupí do flow, které pak padá až při submitu.
+**Stav: SPLNĚNO (MVP+ stabilizováno)**
+- Magic link login funguje.
+- Lightweight REST auth klient funguje.
+- Auth typy jsou sjednocené přes interní `AuthSession`.
+- Session persistence přes `localStorage` funguje.
+- `AuthSessionSync` funguje.
+- Route/write guard existuje.
+- Menu korektně rozlišuje anonymního vs přihlášeného uživatele.
+- `/ucet` existuje.
+- Logout flow funguje.
+- UX fixy kolem `SIGNED_OUT` a výchozího dne rezervace jsou hotové.
 
 ### Milestone G: Magic link login
-**Stav: SPLNĚNO**
-- Login stránka odesílá OTP a redirect URL.
-- `AuthSessionSync` zpracuje hash token z URL a uloží session.
+**Stav: SPLNĚNO (production-ready)**
+- Login stránka odesílá OTP + redirect.
+- Callback/session synchronizace je funkční.
 
 ### Milestone H: Session persistence
-**Stav: ČÁSTEČNĚ SPLNĚNO**
-- Session je perzistovaná v `localStorage` a obnovuje se po reloadu.
-- Chybí refresh token orchestrace/obnova expirované session.
-
-**Co chybí přesně**
-- Obnova session přes refresh token a handling expirace access tokenu.
-
-**Technické riziko**
-- Náhlé odhlašování nebo selhání write operací po expiraci tokenu.
+**Stav: SPLNĚNO (MVP), ČÁSTEČNĚ OTEVŘENO PRO PROD HARDENING**
+- Persist/reload session funguje.
+- Otevřené zůstává: session refresh orchestrace při expiraci tokenu (hardening krok, ne blocker MVP).
 
 ### Milestone I: Create reservation flow
-**Stav: SPLNĚNO (MVP úroveň)**
-- Existuje write service (`POST /rest/v1/reservations`) s bearer tokenem.
-- UI formulář je navázaný na výběr slotu a submit.
-- Při úspěchu proběhne refresh dat aktuálního dne.
+**Stav: SPLNĚNO (MVP funkční)**
+- Write flow vytvoření rezervace je funkční.
+- Po úspěchu probíhá refresh dat aktuálního dne.
 
 ### Milestone J: Kolizní validace
 **Stav: ČÁSTEČNĚ SPLNĚNO**
-- DB-level validace kolizí je robustní (exclusion constraint).
-- Aplikace mapuje konfliktní odpověď na uživatelskou chybu.
-- Chybí pre-submit validace v UI (např. jemnější kontrola slotu před odesláním a detailnější mapování všech DB error kódů).
-
-**Co chybí přesně**
-- Jednotná mapovací vrstva pro Postgres/Supabase error kódy.
-- Volitelný lightweight pre-check dostupnosti slotu.
-
-**Technické riziko**
-- Vyšší četnost „obecných“ chybových hlášek a horší UX při souběžných rezervacích.
+- DB-level ochrana proti kolizím je robustní.
+- Otevřené: sjednocenější mapování chybových kódů a případný lightweight pre-check dostupnosti slotu pro lepší UX.
 
 ### Milestone K: Refresh gridu po vytvoření rezervace
-**Stav: SPLNĚNO**
-- Po vytvoření rezervace se znovu načtou rezervace pro vybraný den.
+**Stav: SPLNĚNO (production-ready)**
+- Refresh gridu po create funguje.
 
 ### Milestone L: Fallback logika
-**Stav: SPLNĚNO**
-- Při chybě čtení ze Supabase aplikace přechází na mock fallback data.
+**Stav: SPLNĚNO (MVP/provozní fallback)**
+- Fallback při chybě čtení je přítomný.
 
 ### Milestone M: Audit log připravenost
 **Stav: ČÁSTEČNĚ SPLNĚNO**
-- Audit log tabulka i select/insert policy jsou připravené.
-- Chybí aplikační write mechanismus, který při create/update/cancel skutečně zapisuje audit událost.
-
-**Co chybí přesně**
-- Trigger nebo aplikační vrstva, která konzistentně zapisuje audit eventy.
-
-**Technické riziko**
-- Nízká dohledatelnost změn a slabší forenzní stopa při incidentech.
+- Datová i policy připravenost existuje.
+- Otevřené: audit write hook pro create/update/cancel (trigger nebo aplikační zápis).
 
 ---
 
 ## Ověření
-- `npm run build` aktuálně **neprošlo**: chybí modul `@supabase/supabase-js` v `components/header.tsx` (import typu `Session`), zatímco zbytek auth vrstvy používá vlastní lightweight klient.
+- `npm run build` **prochází**.
+- `npm run check:rls` **prochází**.
+- GitHub Actions build gate existuje a běží (včetně RLS checku v gate).
 
 ---
 
-## Závěrečné doporučení roadmapy
+## Rozdělení podle provozní připravenosti
 
-### Aktuální největší technický dluh
-- Nekonzistentní auth vrstva (mix vlastního klienta + import typu ze SDK), která nyní rozbíjí build a komplikuje další vývoj.
+### Production-ready části
+- DB schéma + klíčové integritní constrainty.
+- RLS model včetně release hardeningu dev-only policy.
+- Read-only flow.
+- Refresh gridu po create.
+- Build gate + build/check:rls průchod.
 
-### Aktuální největší bezpečnostní riziko
-- Riziko ponechání dev anon read policy (`reservations ... using (true)`) v prostředí, kde to nemá být veřejné.
+### MVP části (funkční, ale s prostorem pro hardening)
+- Auth/session vrstva (funkční login, persistence, sync, guardy, logout).
+- Create reservation flow.
+- Fallback logika.
 
-### Doporučený další milestone
-**Milestone 3: Stabilizace auth + bezpečnostní hardening před dalším feature rozvojem.**
-
-### Proč je to teď nejlepší další krok
-- Bez stabilního buildu, konzistentní auth vrstvy a jasného policy režimu je rizikové přidávat admin workflow nebo další business logiku.
-- Tento krok je malý, bezpečný, dobře reviewovatelný a sníží provozní i bezpečnostní riziko.
-
-### Návrh konkrétního Milestone 3 (malé bezpečné kroky)
-1. **Sjednotit auth typy bez nové dependency** — **SPLNĚNO**
-   - zbytkový import `Session` ze SDK byl odstraněn,
-   - UI používá interní typ `AuthSession` z `auth-client`.
-2. **Zprovoznit build gate** — **SPLNĚNO**
-   - přidán GitHub Actions workflow `.github/workflows/build-gate.yml`,
-   - na `pull_request` a `push` do `main` běží povinně `npm ci` + `npm run build`.
-3. **Zpevnit RLS release režim** — **SPLNĚNO**
-   - dev-only policy `reservations_select_public_overview_anon` je označená markerem `DEV_ONLY_POLICY` a má SQL guard `current_setting('app.rls_mode', true)`; bez `app.rls_mode=dev` je policy neaktivní.
-   - přidán skript `npm run check:rls` (validace markeru) a `npm run check:rls:prod` (fail při přítomnosti dev-only policy pro produkční release).
-   - build gate v GitHub Actions nyní spouští `npm run check:rls` před buildem.
-4. **Doplnit minimální route/write guard** — **SPLNĚNO**
-   - create formulář na `/rezervace` se renderuje pouze pro přihlášeného uživatele,
-   - anonymní uživatel vidí jasnou výzvu k přihlášení a CTA odkaz na `/prihlaseni`,
-   - přidány vývojové logy `write guard: authenticated` / `write guard: anonymous`.
-   - UX polish: na `/prihlaseni` se po `SIGNED_OUT` čistí stale success/error stav; na `/rezervace` se výchozí datum počítá z aktuálního lokálního dne (`cs-CZ`).
-5. **Připravit audit write hook** — **DALŠÍ MALÝ KROK**
-   - trigger nebo service zápis pro create/update/cancel jako základ Milestone 4.
+### Otevřené milestone / dluh
+- Milestone J: hlubší UX/error mapping kolizí.
+- Milestone M: audit write hook.
+- Session refresh orchestrace po expiraci tokenu.
 
 ---
 
-## Co je aktuálně production-ready
-- Datový model rezervací včetně integritních omezení proti kolizím.
-- Základ RLS modelu owner/admin.
-- Read-only flow s fallbackem.
+## Technické dluhy (aktuální)
+1. **Audit write hook není dotažený** (nejvyšší priorita dohledatelnosti změn).
+2. **Session refresh orchestrace není centralizovaná** (riziko sporadických auth výpadků po expiraci).
+3. **Error mapping kolizí není plně sjednocený** (UX konzistence).
 
-## Co je zatím pouze MVP
-- Auth/session vrstva (bez plného refresh orchestrace a guardů).
-- Create flow (funkční, ale bez audit zápisu a bez plně sjednocené chybové mapy).
-- Provozní oddělení dev/prod policy režimu.
+## Bezpečnostní rizika (aktuální)
+- **Původní riziko dev-only RLS policy v produkci je mitigováno** release hardeningem + CI kontrolami.
+- **Zbývající riziko:** bez audit write hooku je omezená forenzní stopa write operací.
 
-## Doporučení seniorního architekta
-Nejprve uzavřít **Milestone 3 (stabilizace auth + security hardening)**, teprve potom pokračovat Milestone 4 (audit write + admin workflow). Tím se minimalizuje riziko regresí i bezpečnostních incidentů při dalším škálování funkcionality.
+---
+
+## Doporučený další milestone (small safe)
+**Milestone N: Auditovatelnost a session hardening.**
+
+### Rozsah
+1. **Audit write hook** pro create/update/cancel (priorita 1).
+2. **Session refresh orchestrace** (priorita 2).
+3. Volitelně navázat malé sjednocení error mappingu kolizí (priorita 3).
+
+### Proč právě tento krok
+- Je malý, bezpečný, dobře reviewovatelný.
+- Uzavírá největší zbývající provozní a bezpečnostní dluh bez zásahu do širší architektury.
+
+---
+
+## UX poznámka (ne-blocker)
+- Lokalizovaný custom date picker je vhodný budoucí UX enhancement, ale není blocker pro aktuální milestone ani pro provoz MVP.
