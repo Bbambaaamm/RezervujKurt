@@ -179,8 +179,14 @@ async function getReservationsOverviewByEndpoint(endpoint: string) {
 
 export async function getPendingReservationsReadOnly() {
   const reservationsEndpoint =
-    'reservations?select=id,reservation_date,time_from,time_to,created_at,status,court_id,user_id&status=eq.pending&order=reservation_date.asc,time_from.asc';
-  return getReservationsOverviewByEndpoint(reservationsEndpoint);
+    'reservations?select=id,reservation_date,time_from,time_to,created_at,status,court_id,user_id&status=eq.pending&order=created_at.asc.nullslast,reservation_date.asc,time_from.asc';
+  const loadedReservations = await getReservationsOverviewByEndpoint(reservationsEndpoint);
+
+  if (process.env.NODE_ENV === 'development') {
+    console.info('admin pending ordered by oldest first', { count: loadedReservations.length });
+  }
+
+  return loadedReservations;
 }
 
 export async function getRecentReservationsReadOnly(limit = 20) {
