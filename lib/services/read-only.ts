@@ -19,12 +19,12 @@ type ReservationRow = {
   created_at: string;
 };
 
-type PendingReservationRow = {
+type ReservationOverviewRow = {
   id: string;
   reservation_date: string;
   time_from: string;
   time_to: string;
-  status: 'pending';
+  status: 'pending' | 'approved' | 'cancelled';
   court_id: number;
   user_id: string;
 };
@@ -39,7 +39,7 @@ type PendingProfileRow = {
   full_name: string | null;
 };
 
-export type PendingReservationOverview = {
+export type ReservationOverview = {
   id: string;
   reservationDate: string;
   timeFrom: string;
@@ -47,7 +47,7 @@ export type PendingReservationOverview = {
   courtName: string;
   userId: string;
   userDisplayName: string | null;
-  status: 'pending';
+  status: 'pending' | 'approved' | 'cancelled';
 };
 
 function mapStatus(status: ReservationRow['status']): ReservationStatus {
@@ -87,7 +87,7 @@ function mapReservation(row: ReservationRow): Reservation {
   };
 }
 
-function mapPendingReservation(row: PendingReservationRow): PendingReservationOverview {
+function mapReservationOverview(row: ReservationOverviewRow): ReservationOverview {
   return {
     id: row.id,
     reservationDate: row.reservation_date,
@@ -128,15 +128,13 @@ export async function getReservationsReadOnly(date: string) {
   return rows.map(mapReservation);
 }
 
-export async function getPendingReservationsReadOnly() {
+async function getReservationsOverviewByEndpoint(endpoint: string) {
   try {
-    const reservationsEndpoint =
-      'reservations?select=id,reservation_date,time_from,time_to,status,court_id,user_id&status=eq.pending&order=reservation_date.asc,time_from.asc';
-    console.info('Admin pending reservations request.', { endpoint: reservationsEndpoint });
-    const pendingReservations = await supabaseSelect<PendingReservationRow>(reservationsEndpoint);
+    console.info('Admin reservation overview request.', { endpoint });
+    const reservations = await supabaseSelect<ReservationOverviewRow>(endpoint);
 
-    const courtIds = [...new Set(pendingReservations.map((row) => row.court_id))];
-    const userIds = [...new Set(pendingReservations.map((row) => row.user_id))];
+    const courtIds = [...new Set(reservations.map((row) => row.court_id))];
+    const userIds = [...new Set(reservations.map((row) => row.user_id))];
 
     const courtRows = courtIds.length
       ? await (async () => {
@@ -158,8 +156,8 @@ export async function getPendingReservationsReadOnly() {
     const courtsById = new Map(courtRows.map((row) => [row.id, row.name]));
     const profilesById = new Map(profileRows.map((row) => [row.id, row.full_name]));
 
-    return pendingReservations.map((row) => {
-      const baseReservation = mapPendingReservation(row);
+    return reservations.map((row) => {
+      const baseReservation = mapReservationOverview(row);
       const courtName = courtsById.get(row.court_id) ?? `${row.court_id}`;
       const fullName = profilesById.get(row.user_id) ?? null;
 
@@ -173,4 +171,24 @@ export async function getPendingReservationsReadOnly() {
     logSupabaseRequestFailure(error);
     throw error;
   }
+}
+
+
+export async function getPendingReservationsReadOnly() {
+  const reservationsEndpoint =
+    'reservations?select=id,reservation_date,time_from,time_to,status,court_id,user_id&status=eq.pending&order=reservation_date.asc,time_from.asc';
+  return getReservationsOverviewByEndpoint(reservationsEndpoint);
+}
+
+export async function getRecentReservationsReadOnly(limit = 20) {
+  const safeLimit = Number.isFinite(limit) ? Math.min(Math.max(Math.trunc(limit), 1), 50) : 20;
+  const reservationsEndpoint =
+    `reservations?select=id,reservation_date,time_from,time_to,status,court_id,user_id&order=created_at.desc&limit=${safeLimit}`;
+  const loadedReservations = await getReservationsOverviewByEndpoint(reservationsEndpoint);
+
+  if (process.env.NODE_ENV === 'development') {
+    console.info('admin reservation history loaded', { count: loadedReservations.length, limit: safeLimit });
+  }
+
+  return loadedReservations;
 }

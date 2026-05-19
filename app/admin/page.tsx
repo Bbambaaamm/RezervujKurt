@@ -3,7 +3,11 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-import { getPendingReservationsReadOnly, type PendingReservationOverview } from '@/lib/services/read-only';
+import {
+  getPendingReservationsReadOnly,
+  getRecentReservationsReadOnly,
+  type ReservationOverview,
+} from '@/lib/services/read-only';
 import { ReservationNoLongerPendingError, ReservationUnauthorizedError, ReservationValidationError } from '@/lib/services/supabase-error-mapping';
 import { getCurrentUserRoleFromSession, type CurrentUserRole } from '@/lib/services/profile';
 import { updateReservationStatus } from '@/lib/services/reservations';
@@ -16,7 +20,7 @@ function formatDate(date: string) {
   return new Intl.DateTimeFormat('cs-CZ', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(parsedDate);
 }
 
-function formatIdentity(reservation: PendingReservationOverview) {
+function formatIdentity(reservation: ReservationOverview) {
   if (reservation.userDisplayName) return reservation.userDisplayName;
   return reservation.userId;
 }
@@ -31,13 +35,27 @@ function getErrorMessage(error: unknown) {
   return String(error);
 }
 
+
+function getStatusBadgeClass(status: ReservationOverview['status']) {
+  if (status === 'approved') return 'border-emerald-200 bg-emerald-50 text-emerald-800';
+  if (status === 'cancelled') return 'border-rose-200 bg-rose-50 text-rose-800';
+  return 'border-amber-200 bg-amber-50 text-amber-800';
+}
+
+function getStatusLabel(status: ReservationOverview['status']) {
+  if (status === 'approved') return 'approved';
+  if (status === 'cancelled') return 'cancelled';
+  return 'pending';
+}
+
 export default function AdminPage() {
   const [isSessionChecked, setIsSessionChecked] = useState(false);
   const [userRole, setUserRole] = useState<CurrentUserRole>('anonymous');
   const [isLoading, setIsLoading] = useState(false);
   const [isActionLoadingById, setIsActionLoadingById] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
-  const [reservations, setReservations] = useState<PendingReservationOverview[]>([]);
+  const [reservations, setReservations] = useState<ReservationOverview[]>([]);
+  const [recentReservations, setRecentReservations] = useState<ReservationOverview[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -85,9 +103,13 @@ export default function AdminPage() {
       setError(null);
 
       try {
-        const loadedReservations = await getPendingReservationsReadOnly();
+        const [loadedReservations, loadedRecentReservations] = await Promise.all([
+          getPendingReservationsReadOnly(),
+          getRecentReservationsReadOnly(20),
+        ]);
         if (!active) return;
         setReservations(loadedReservations);
+        setRecentReservations(loadedRecentReservations);
 
         if (process.env.NODE_ENV === 'development') {
           console.info('admin reservations loaded', { count: loadedReservations.length });
@@ -149,8 +171,12 @@ export default function AdminPage() {
         status,
       });
 
-      const loadedReservations = await getPendingReservationsReadOnly();
+      const [loadedReservations, loadedRecentReservations] = await Promise.all([
+        getPendingReservationsReadOnly(),
+        getRecentReservationsReadOnly(20),
+      ]);
       setReservations(loadedReservations);
+      setRecentReservations(loadedRecentReservations);
       console.info(successMessage, { reservationId });
     } catch (actionError) {
       console.error('admin action failed', {
@@ -165,8 +191,12 @@ export default function AdminPage() {
       } else if (actionError instanceof ReservationNoLongerPendingError) {
         setError('Rezervace už není ve stavu pending.');
         console.info('admin stale pending detected', { reservationId, action });
-        const loadedReservations = await getPendingReservationsReadOnly();
+        const [loadedReservations, loadedRecentReservations] = await Promise.all([
+          getPendingReservationsReadOnly(),
+          getRecentReservationsReadOnly(20),
+        ]);
         setReservations(loadedReservations);
+        setRecentReservations(loadedRecentReservations);
         console.info('admin stale pending refresh', { reservationId, count: loadedReservations.length });
       } else if (actionError instanceof ReservationValidationError) {
         setError('Rezervaci se nepodařilo změnit. Zkontrolujte prosím její aktuální stav.');
@@ -240,7 +270,11 @@ export default function AdminPage() {
                   <td className="px-4 py-3">{reservation.timeTo}</td>
                   <td className="px-4 py-3">{reservation.courtName}</td>
                   <td className="px-4 py-3">{formatIdentity(reservation)}</td>
-                  <td className="px-4 py-3">{reservation.status}</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-medium ${getStatusBadgeClass(reservation.status)}`}>
+                      {getStatusLabel(reservation.status)}
+                    </span>
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
                       <button
@@ -267,6 +301,48 @@ export default function AdminPage() {
           </table>
         </div>
       ) : null}
+
+
+      {!isLoading && !error ? (
+        <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+          <h2 className="text-lg font-semibold text-slate-900">Poslední rezervace</h2>
+          {recentReservations.length === 0 ? (
+            <p className="text-sm text-slate-600">Zatím nejsou k dispozici žádné rezervace.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-slate-50 text-left text-slate-600">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Datum</th>
+                    <th className="px-4 py-3 font-medium">Čas od</th>
+                    <th className="px-4 py-3 font-medium">Čas do</th>
+                    <th className="px-4 py-3 font-medium">Kurt</th>
+                    <th className="px-4 py-3 font-medium">Uživatel</th>
+                    <th className="px-4 py-3 font-medium">Stav</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentReservations.map((reservation) => (
+                    <tr key={`recent-${reservation.id}`} className="border-t border-slate-100">
+                      <td className="px-4 py-3">{formatDate(reservation.reservationDate)}</td>
+                      <td className="px-4 py-3">{reservation.timeFrom}</td>
+                      <td className="px-4 py-3">{reservation.timeTo}</td>
+                      <td className="px-4 py-3">{reservation.courtName}</td>
+                      <td className="px-4 py-3">{formatIdentity(reservation)}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-medium ${getStatusBadgeClass(reservation.status)}`}>
+                          {getStatusLabel(reservation.status)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      ) : null}
+
     </div>
   );
 }
