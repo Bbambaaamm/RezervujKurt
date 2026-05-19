@@ -152,11 +152,14 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
 
 
 ### Milestone O: Admin reservation overview (read-only)
-**Stav: O.1 HOTOVO (small safe milestone)**
-- Route `/admin` je dokončená jako read-only přehled rezervací ve stavu `pending`.
-- Zobrazení obsahuje datum, čas od/do, kurt, identitu uživatele (`email` pokud je dostupný, jinak `user_id`) a status.
-- Přidán minimální guard: anonymní uživatel data nevidí a dostane výzvu k přihlášení.
-- Dočasný DEV guard: stránka je nyní dostupná jen v development režimu pro přihlášeného uživatele.
-- TODO ponecháno explicitně na budoucí owner/admin enforcement bez zásahu do existující auth/session architektury.
-- Přidány development logy: `admin page: session found`, `admin page: session missing`, `admin reservations loaded`.
-- Neimplementováno záměrně: approve/cancel akce, editace rezervací, zásahy do reservation flow/audit triggerů/session orchestrace.
+**Stav: O.2 HOTOVO (owner/admin enforcement dokončen)**
+- Route `/admin` už nepoužívá dočasný DEV guard.
+- Přidán lightweight helper `getCurrentUserRoleFromSession`, který přes REST (`/profiles`) načte roli aktuálního profilu podle `session.user.id`.
+- Guard na stránce `/admin` rozlišuje 3 stavy:
+  - anonymní uživatel: výzva k přihlášení,
+  - přihlášený bez admin role: „Nemáte oprávnění pro správu rezervací.“,
+  - admin: načtení pending rezervací.
+- Přidány development logy guardu: `admin guard: anonymous`, `admin guard: user`, `admin guard: admin`.
+- Read-only admin přehled pending rezervací zůstává beze změny, bez approve/cancel/edit akcí.
+- Bez zásahu do create reservation flow a bez zásahu do audit triggerů.
+- RLS/policy změna nebyla potřeba, existující owner/admin model v `profiles` + `reservations` enforcement pokrývá cílové chování.
