@@ -184,3 +184,6 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
 - Bez zásahu do create reservation flow, bez zásahu do auth/session orchestrace a bez zásahu do existujících audit triggerů.
 - O.6 test coverage: přidány cílené unit testy pro `updateReservationStatus` (stale pending: `[]`, `Content-Range */0`, úspěch pro neprázdné pole a mapování 403/42501 přes existující error mapper).
 - RLS/policy změna nebyla potřeba, existující owner/admin model v `profiles` + `reservations` enforcement pokrývá cílové chování.
+- O.7 small safe rozšíření `/admin`: pod existující pending sekci přidán read-only blok **„Poslední rezervace“** s posledními 20 záznamy (`order=created_at.desc&limit=20`) a sloupci datum, čas od/do, kurt, uživatel, status.
+- Status je vizuálně odlišen badge stylem pro `pending` / `approved` / `cancelled` bez přidání nových write akcí nebo filtrační/pagination logiky.
+- Přidán dev log `admin reservation history loaded` při načtení historie.
