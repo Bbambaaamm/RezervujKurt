@@ -1,4 +1,4 @@
-import { SupabaseRequestError } from '@/lib/supabase/client';
+import { SupabaseRequestError } from '../supabase/client';
 
 export class ReservationConflictError extends Error {}
 export class ReservationUnauthorizedError extends Error {}

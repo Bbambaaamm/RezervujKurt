@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": ".tmp-tests",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "ES2020",
+    "isolatedModules": false,
+    "incremental": false,
+    "paths": {}
+  },
+  "include": [
+    "tests/**/*.ts",
+    "lib/services/supabase-error-mapping.ts",
+    "lib/supabase/client.ts"
+  ]
+}
