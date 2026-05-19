@@ -124,13 +124,16 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
 **Milestone N: Auditovatelnost a session hardening.**
 
 ### Rozsah
-1. **Audit write hook** pro update/cancel (priorita 1, create je hotovo).
-2. **Session refresh orchestrace** (priorita 2).
+1. ✅ **Audit write hook pro update/cancel je hotový (N.2)**.
+   - Trigger na `reservations` zapisuje audit při `UPDATE`.
+   - Rozlišuje `action='cancel'` při změně statusu na `cancelled`, jinak `action='update'`.
+   - Ukládá `old_status`, `new_status` a payload snapshotu staré/nové hodnoty.
+2. **Session refresh orchestrace** (priorita 2, stále otevřené).
 3. Volitelně navázat malé sjednocení error mappingu kolizí (priorita 3).
 
 ### Proč právě tento krok
-- Je malý, bezpečný, dobře reviewovatelný.
-- Uzavírá největší zbývající provozní a bezpečnostní dluh bez zásahu do širší architektury.
+- Auditní stopa write operací je nyní pokrytá pro create i update/cancel.
+- Další postup může zůstat malý a bezpečný (session hardening bez zásahu do UI).
 
 ---
 
