@@ -149,3 +149,14 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
 
 ## UX poznámka (ne-blocker)
 - Lokalizovaný custom date picker je vhodný budoucí UX enhancement, ale není blocker pro aktuální milestone ani pro provoz MVP.
+
+
+### Milestone O: Admin reservation overview (read-only)
+**Stav: O.1 HOTOVO (small safe milestone)**
+- Route `/admin` je dokončená jako read-only přehled rezervací ve stavu `pending`.
+- Zobrazení obsahuje datum, čas od/do, kurt, identitu uživatele (`email` pokud je dostupný, jinak `user_id`) a status.
+- Přidán minimální guard: anonymní uživatel data nevidí a dostane výzvu k přihlášení.
+- Dočasný DEV guard: stránka je nyní dostupná jen v development režimu pro přihlášeného uživatele.
+- TODO ponecháno explicitně na budoucí owner/admin enforcement bez zásahu do existující auth/session architektury.
+- Přidány development logy: `admin page: session found`, `admin page: session missing`, `admin reservations loaded`.
+- Neimplementováno záměrně: approve/cancel akce, editace rezervací, zásahy do reservation flow/audit triggerů/session orchestrace.

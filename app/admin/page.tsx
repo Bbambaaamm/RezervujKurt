@@ -1,17 +1,163 @@
+"use client";
+
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+
+import { getPendingReservationsReadOnly, type PendingReservationOverview } from '@/lib/services/read-only';
+import { supabaseAuthClient } from '@/lib/supabase/auth-client';
+import { SupabaseRequestError } from '@/lib/supabase/client';
+
+function formatDate(date: string) {
+  const parsedDate = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(parsedDate.getTime())) return date;
+  return new Intl.DateTimeFormat('cs-CZ', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(parsedDate);
+}
+
+function formatIdentity(reservation: PendingReservationOverview) {
+  if (reservation.userEmail) return reservation.userEmail;
+  return reservation.userId;
+}
+
 export default function AdminPage() {
-  return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Administrace</h1>
-      <div className="grid gap-4 md:grid-cols-2">
-        <section className="rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="font-semibold">Rezervace</h2>
-          <p className="mt-2 text-sm text-slate-600">Filtrace dle data a stavu, schválení, zamítnutí a ruční zásahy.</p>
-        </section>
-        <section className="rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="font-semibold">Uživatelé a členství</h2>
-          <p className="mt-2 text-sm text-slate-600">Správa uživatelů a označení účtu jako člen.</p>
-        </section>
+  const [isSessionChecked, setIsSessionChecked] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isDevAdminAllowed, setIsDevAdminAllowed] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [reservations, setReservations] = useState<PendingReservationOverview[]>([]);
+
+  useEffect(() => {
+    let active = true;
+
+    supabaseAuthClient.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      const hasSession = Boolean(data.session);
+      setIsAuthenticated(hasSession);
+      setIsDevAdminAllowed(process.env.NODE_ENV === 'development' && hasSession);
+      setIsSessionChecked(true);
+
+      if (process.env.NODE_ENV === 'development') {
+        console.info(hasSession ? 'admin page: session found' : 'admin page: session missing');
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isSessionChecked || !isAuthenticated || !isDevAdminAllowed) {
+      return;
+    }
+
+    let active = true;
+
+    async function loadReservations() {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const loadedReservations = await getPendingReservationsReadOnly();
+        if (!active) return;
+        setReservations(loadedReservations);
+
+        if (process.env.NODE_ENV === 'development') {
+          console.info('admin reservations loaded', { count: loadedReservations.length });
+        }
+      } catch (loadError) {
+        if (!active) return;
+        setError('Načtení čekajících rezervací se nepodařilo. Zkuste to prosím později.');
+
+        if (loadError instanceof SupabaseRequestError) {
+          console.error('Admin pending reservations load failed.', {
+            endpoint: loadError.endpoint,
+            status: loadError.status,
+            response: loadError.responseBody,
+          });
+          return;
+        }
+
+        console.error('Admin pending reservations load failed.', loadError);
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    }
+
+    void loadReservations();
+
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated, isDevAdminAllowed, isSessionChecked]);
+
+  if (!isSessionChecked) {
+    return <div className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600">Kontroluji přihlášení…</div>;
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="space-y-4 rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+        <h1 className="text-2xl font-bold text-slate-900">Administrace rezervací</h1>
+        <p>Pro zobrazení administrace se musíte přihlásit.</p>
+        <Link href="/prihlaseni" className="inline-flex rounded-md border border-amber-300 bg-white px-3 py-2 text-amber-900 hover:bg-amber-100">
+          Přejít na přihlášení
+        </Link>
       </div>
+    );
+  }
+
+  if (!isDevAdminAllowed) {
+    return (
+      <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-700">
+        <h1 className="text-2xl font-bold text-slate-900">Administrace rezervací</h1>
+        <p>Tato stránka je dočasně dostupná pouze v development režimu.</p>
+        <p className="text-xs text-slate-500">TODO: doplnit owner/admin enforcement podle cílového role modelu.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <h1 className="text-3xl font-bold">Administrace rezervací</h1>
+      <p className="text-sm text-slate-600">Read-only přehled rezervací čekajících na schválení.</p>
+
+      {isLoading ? <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">Načítám čekající rezervace…</div> : null}
+
+      {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{error}</div> : null}
+
+      {!isLoading && !error && reservations.length === 0 ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">Aktuálně nejsou žádné rezervace ve stavu čekající.</div>
+      ) : null}
+
+      {!isLoading && !error && reservations.length > 0 ? (
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <table className="min-w-full text-sm">
+            <thead className="bg-slate-50 text-left text-slate-600">
+              <tr>
+                <th className="px-4 py-3 font-medium">Datum</th>
+                <th className="px-4 py-3 font-medium">Čas od</th>
+                <th className="px-4 py-3 font-medium">Čas do</th>
+                <th className="px-4 py-3 font-medium">Kurt</th>
+                <th className="px-4 py-3 font-medium">Uživatel</th>
+                <th className="px-4 py-3 font-medium">Stav</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reservations.map((reservation) => (
+                <tr key={reservation.id} className="border-t border-slate-100">
+                  <td className="px-4 py-3">{formatDate(reservation.reservationDate)}</td>
+                  <td className="px-4 py-3">{reservation.timeFrom}</td>
+                  <td className="px-4 py-3">{reservation.timeTo}</td>
+                  <td className="px-4 py-3">{reservation.courtName}</td>
+                  <td className="px-4 py-3">{formatIdentity(reservation)}</td>
+                  <td className="px-4 py-3">{reservation.status}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
     </div>
   );
 }
