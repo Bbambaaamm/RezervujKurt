@@ -138,9 +138,11 @@ Projekt už má solidní datový a bezpečnostní základ (schéma, migrace, RLS
    - dev-only policy `reservations_select_public_overview_anon` je označená markerem `DEV_ONLY_POLICY` a má SQL guard `current_setting('app.rls_mode', true)`; bez `app.rls_mode=dev` je policy neaktivní.
    - přidán skript `npm run check:rls` (validace markeru) a `npm run check:rls:prod` (fail při přítomnosti dev-only policy pro produkční release).
    - build gate v GitHub Actions nyní spouští `npm run check:rls` před buildem.
-4. **Doplnit minimální route/write guard** — **DALŠÍ MALÝ KROK**
-   - write CTA jen pro přihlášené, redirect na login pro chráněné kroky.
-5. **Připravit audit write hook**
+4. **Doplnit minimální route/write guard** — **SPLNĚNO**
+   - create formulář na `/rezervace` se renderuje pouze pro přihlášeného uživatele,
+   - anonymní uživatel vidí jasnou výzvu k přihlášení a CTA odkaz na `/prihlaseni`,
+   - přidány vývojové logy `write guard: authenticated` / `write guard: anonymous`.
+5. **Připravit audit write hook** — **DALŠÍ MALÝ KROK**
    - trigger nebo service zápis pro create/update/cancel jako základ Milestone 4.
 
 ---
