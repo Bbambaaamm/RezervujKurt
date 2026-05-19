@@ -1,32 +1,32 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from 'react';
-import { supabaseAuthClient } from '@/lib/supabase/auth-client';
+import { supabaseAuthClient, type AuthSession } from '@/lib/supabase/auth-client';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [session, setSession] = useState<AuthSession | null>(null);
 
   useEffect(() => {
     supabaseAuthClient.auth.getSession().then(({ data }) => {
-      const loggedIn = Boolean(data.session);
-      setIsLoggedIn(loggedIn);
+      const nextSession = data.session ?? null;
+      setSession(nextSession);
 
-      if (loggedIn) {
+      if (nextSession) {
         setMessage('Jste přihlášen(a).');
       }
     });
 
     const {
       data: { subscription },
-    } = supabaseAuthClient.auth.onAuthStateChange((_event, session) => {
-      const loggedIn = Boolean(session);
-      setIsLoggedIn(loggedIn);
+    } = supabaseAuthClient.auth.onAuthStateChange((_event, nextSession) => {
+      const normalizedSession = nextSession ?? null;
+      setSession(normalizedSession);
 
-      if (loggedIn) {
+      if (normalizedSession) {
         setError(null);
         setMessage('Jste přihlášen(a).');
       }
@@ -92,35 +92,42 @@ export default function LoginPage() {
       return;
     }
 
-    setIsLoggedIn(false);
+    setSession(null);
     setMessage('Byli jste odhlášeni.');
   }
+
+  const isLoggedIn = Boolean(session);
 
   return (
     <div className="mx-auto max-w-xl space-y-5 rounded-xl border border-slate-200 bg-white p-6">
       <h1 className="text-2xl font-bold">Přihlášení</h1>
       <p className="text-sm text-slate-600">Pro vytvoření rezervace použijte přihlášení e-mailem.</p>
 
-      <form onSubmit={handleLogin} className="space-y-3">
-        <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-          E-mail
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-            placeholder="jmeno@domena.cz"
-          />
-        </label>
-        <button disabled={isSubmitting} className="w-full rounded-md border border-slate-300 px-4 py-2 text-left disabled:opacity-60">
-          {isSubmitting ? 'Odesílám odkaz…' : 'Poslat odkaz pro přihlášení'}
-        </button>
-      </form>
-
-      <button onClick={handleLogout} disabled={!isLoggedIn} className="w-full rounded-md border border-slate-300 px-4 py-2 text-left disabled:opacity-60">
-        Odhlásit se
-      </button>
+      {isLoggedIn ? (
+        <>
+          <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Jste přihlášen(a).</p>
+          <button onClick={handleLogout} className="w-full rounded-md border border-slate-300 px-4 py-2 text-left">
+            Odhlásit se
+          </button>
+        </>
+      ) : (
+        <form onSubmit={handleLogin} className="space-y-3">
+          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+            E-mail
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              placeholder="jmeno@domena.cz"
+            />
+          </label>
+          <button disabled={isSubmitting} className="w-full rounded-md border border-slate-300 px-4 py-2 text-left disabled:opacity-60">
+            {isSubmitting ? 'Odesílám odkaz…' : 'Poslat odkaz pro přihlášení'}
+          </button>
+        </form>
+      )}
 
       {message && <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{message}</p>}
       {error && <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">{error}</p>}
