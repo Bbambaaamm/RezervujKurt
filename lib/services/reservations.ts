@@ -1,4 +1,4 @@
-import { mapReservationWriteError, ReservationNoLongerPendingError } from '@/lib/services/supabase-error-mapping';
+import { mapReservationWriteError, ReservationNoLongerPendingError } from './supabase-error-mapping';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
