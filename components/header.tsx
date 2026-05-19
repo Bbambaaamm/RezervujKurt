@@ -1,6 +1,7 @@
 "use client";
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabaseAuthClient, type AuthSession } from '@/lib/supabase/auth-client';
 
@@ -16,6 +17,8 @@ function getAuthStatusText(session: AuthSession | null): string {
 
 export function Header() {
   const [session, setSession] = useState<AuthSession | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     supabaseAuthClient.auth.getSession().then(({ data }) => {
@@ -33,12 +36,19 @@ export function Header() {
     };
   }, []);
 
-  const authLinks = session
-    ? [
-        { href: '/prihlaseni', label: 'Účet' },
-        { href: '/prihlaseni', label: 'Odhlásit' },
-      ]
-    : [{ href: '/prihlaseni', label: 'Přihlášení' }];
+  async function handleMenuLogout() {
+    console.info('[auth] header logout clicked');
+    setIsLoggingOut(true);
+
+    const { error } = await supabaseAuthClient.auth.signOut();
+
+    setIsLoggingOut(false);
+
+    if (!error) {
+      router.push('/prihlaseni');
+      router.refresh();
+    }
+  }
 
   return (
     <header className="border-b border-slate-200 bg-white">
@@ -49,11 +59,26 @@ export function Header() {
           {session && <p className="text-xs text-emerald-700">{getAuthStatusText(session)}</p>}
         </div>
         <nav className="flex gap-4 text-sm font-medium">
-          {[...baseLinks, ...authLinks].map((link, index) => (
-            <Link key={`${link.href}-${index}`} href={link.href} className="text-slate-700 transition hover:text-court">
+          {baseLinks.map((link) => (
+            <Link key={link.href} href={link.href} className="text-slate-700 transition hover:text-court">
               {link.label}
             </Link>
           ))}
+
+          {session ? (
+            <>
+              <Link href="/ucet" className="text-slate-700 transition hover:text-court">
+                Účet
+              </Link>
+              <button onClick={handleMenuLogout} disabled={isLoggingOut} className="text-slate-700 transition hover:text-court disabled:opacity-60">
+                {isLoggingOut ? 'Odhlašuji…' : 'Odhlášení'}
+              </button>
+            </>
+          ) : (
+            <Link href="/prihlaseni" className="text-slate-700 transition hover:text-court">
+              Přihlášení
+            </Link>
+          )}
         </nav>
       </div>
     </header>
