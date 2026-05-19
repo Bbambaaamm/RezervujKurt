@@ -1,5 +1,5 @@
 import type { Court, Reservation, ReservationStatus } from '@/lib/types/domain';
-import { supabaseSelect } from '@/lib/supabase/client';
+import { SupabaseRequestError, supabaseSelect } from '@/lib/supabase/client';
 
 type CourtRow = {
   id: number;
@@ -27,12 +27,16 @@ type PendingReservationRow = {
   status: 'pending';
   court_id: number;
   user_id: string;
-  profiles: {
-    full_name: string | null;
-  } | null;
-  courts: {
-    name: string;
-  } | null;
+};
+
+type PendingCourtRow = {
+  id: number;
+  name: string;
+};
+
+type PendingProfileRow = {
+  id: string;
+  full_name: string | null;
 };
 
 export type PendingReservationOverview = {
@@ -89,11 +93,26 @@ function mapPendingReservation(row: PendingReservationRow): PendingReservationOv
     reservationDate: row.reservation_date,
     timeFrom: row.time_from,
     timeTo: row.time_to,
-    courtName: row.courts?.name ?? `Kurt ${row.court_id}`,
+    courtName: `Kurt ${row.court_id}`,
     userId: row.user_id,
-    userDisplayName: row.profiles?.full_name ?? null,
+    userDisplayName: null,
     status: row.status,
   };
+}
+
+function logSupabaseRequestFailure(error: unknown) {
+  if (error instanceof SupabaseRequestError) {
+    console.error('Admin read-only request failed.', {
+      endpoint: error.endpoint,
+      status: error.status,
+      responseBody: error.responseBody,
+    });
+    return;
+  }
+
+  console.error('Admin read-only request failed.', {
+    error,
+  });
 }
 
 export async function getCourtsReadOnly() {
@@ -110,9 +129,48 @@ export async function getReservationsReadOnly(date: string) {
 }
 
 export async function getPendingReservationsReadOnly() {
-  const rows = await supabaseSelect<PendingReservationRow>(
-    'reservations?select=id,reservation_date,time_from,time_to,status,court_id,user_id,profiles:profiles(full_name),courts:courts(name)&status=eq.pending&order=reservation_date.asc,time_from.asc',
-  );
+  try {
+    const reservationsEndpoint =
+      'reservations?select=id,reservation_date,time_from,time_to,status,court_id,user_id&status=eq.pending&order=reservation_date.asc,time_from.asc';
+    console.info('Admin pending reservations request.', { endpoint: reservationsEndpoint });
+    const pendingReservations = await supabaseSelect<PendingReservationRow>(reservationsEndpoint);
 
-  return rows.map(mapPendingReservation);
+    const courtIds = [...new Set(pendingReservations.map((row) => row.court_id))];
+    const userIds = [...new Set(pendingReservations.map((row) => row.user_id))];
+
+    const courtRows = courtIds.length
+      ? await (async () => {
+          const courtsEndpoint = `courts?select=id,name&id=in.(${courtIds.join(',')})`;
+          console.info('Admin courts lookup request.', { endpoint: courtsEndpoint });
+          return supabaseSelect<PendingCourtRow>(courtsEndpoint);
+        })()
+      : [];
+
+    const profileRows = userIds.length
+      ? await (async () => {
+          const quotedUserIds = userIds.map((id) => `"${id}"`).join(',');
+          const profilesEndpoint = `profiles?select=id,full_name&id=in.(${quotedUserIds})`;
+          console.info('Admin profiles lookup request.', { endpoint: profilesEndpoint });
+          return supabaseSelect<PendingProfileRow>(profilesEndpoint);
+        })()
+      : [];
+
+    const courtsById = new Map(courtRows.map((row) => [row.id, row.name]));
+    const profilesById = new Map(profileRows.map((row) => [row.id, row.full_name]));
+
+    return pendingReservations.map((row) => {
+      const baseReservation = mapPendingReservation(row);
+      const courtName = courtsById.get(row.court_id) ?? `${row.court_id}`;
+      const fullName = profilesById.get(row.user_id) ?? null;
+
+      return {
+        ...baseReservation,
+        courtName,
+        userDisplayName: fullName ?? row.user_id,
+      };
+    });
+  } catch (error) {
+    logSupabaseRequestFailure(error);
+    throw error;
+  }
 }
