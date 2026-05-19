@@ -152,7 +152,7 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
 
 
 ### Milestone O: Admin reservation overview + basic pending actions
-**Stav: O.9 HOTOVO (pending tabulka rozšířena o timestamp vytvoření)**
+**Stav: O.10 HOTOVO (pending řazení podle stáří čekání)**
 - Route `/admin` už nepoužívá dočasný DEV guard.
 - Přidán lightweight helper `getCurrentUserRoleFromSession`, který přes REST (`/profiles`) načte roli aktuálního profilu podle `session.user.id`.
 - Guard na stránce `/admin` rozlišuje 3 stavy:
@@ -194,3 +194,6 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
 - O.9 small safe rozšíření pending overview: do čekající tabulky v `/admin` přidán sloupec **„Vytvořeno“** využívající již načtené `created_at` (`createdAt`) bez nového requestu.
 - Formátování je sjednocené s history overview (`cs-CZ`, datum + čas) přes existující formatter; pro `null`/invalid hodnoty se zobrazuje fallback `—`.
 - Přidán dev log `admin pending timestamp rendered` při renderu timestampu v pending řádku.
+- O.10 small safe sjednocení pending prioritizace: pending rezervace jsou explicitně řazené jako **nejstarší čekající nahoře** přes `order=created_at.asc.nullslast,reservation_date.asc,time_from.asc`.
+- Fallback při chybějícím `created_at` je zajištěn sekundárním řazením `reservation_date.asc,time_from.asc` (deterministické pořadí bez nového requestu a bez změny approve/cancel flow).
+- Přidán dev log `admin pending ordered by oldest first` po načtení pending seznamu.
