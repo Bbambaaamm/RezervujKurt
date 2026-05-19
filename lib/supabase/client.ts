@@ -46,3 +46,29 @@ export async function supabaseSelect<T>(path: string): Promise<T[]> {
 
   return (await response.json()) as T[];
 }
+
+export async function supabaseSelectWithAccessToken<T>(path: string, accessToken: string): Promise<T[]> {
+  if (!supabaseAnonKey) {
+    throw new Error('Chybí NEXT_PUBLIC_SUPABASE_ANON_KEY.');
+  }
+
+  const response = await fetch(getRestUrl(path), {
+    headers: {
+      apikey: supabaseAnonKey,
+      Authorization: `Bearer ${accessToken}`,
+    },
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    const responseBody = await response.text();
+    throw new SupabaseRequestError(
+      `Supabase SELECT selhal: ${response.status} ${response.statusText}`,
+      response.url,
+      response.status,
+      responseBody,
+    );
+  }
+
+  return (await response.json()) as T[];
+}

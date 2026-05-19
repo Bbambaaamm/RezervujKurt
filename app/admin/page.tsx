@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { getPendingReservationsReadOnly, type PendingReservationOverview } from '@/lib/services/read-only';
+import { getCurrentUserRoleFromSession, type CurrentUserRole } from '@/lib/services/profile';
 import { supabaseAuthClient } from '@/lib/supabase/auth-client';
 import { SupabaseRequestError } from '@/lib/supabase/client';
 
@@ -20,8 +21,7 @@ function formatIdentity(reservation: PendingReservationOverview) {
 
 export default function AdminPage() {
   const [isSessionChecked, setIsSessionChecked] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isDevAdminAllowed, setIsDevAdminAllowed] = useState(false);
+  const [userRole, setUserRole] = useState<CurrentUserRole>('anonymous');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reservations, setReservations] = useState<PendingReservationOverview[]>([]);
@@ -29,15 +29,29 @@ export default function AdminPage() {
   useEffect(() => {
     let active = true;
 
-    supabaseAuthClient.auth.getSession().then(({ data }) => {
+    supabaseAuthClient.auth.getSession().then(async ({ data }) => {
       if (!active) return;
-      const hasSession = Boolean(data.session);
-      setIsAuthenticated(hasSession);
-      setIsDevAdminAllowed(process.env.NODE_ENV === 'development' && hasSession);
-      setIsSessionChecked(true);
 
-      if (process.env.NODE_ENV === 'development') {
-        console.info(hasSession ? 'admin page: session found' : 'admin page: session missing');
+      try {
+        const nextRole = await getCurrentUserRoleFromSession(data.session);
+        if (!active) return;
+
+        setUserRole(nextRole);
+
+        if (nextRole === 'anonymous') {
+          console.info('admin guard: anonymous');
+        } else if (nextRole === 'admin') {
+          console.info('admin guard: admin');
+        } else {
+          console.info('admin guard: user');
+        }
+      } catch (guardError) {
+        if (!active) return;
+        setUserRole('anonymous');
+        setError('Ověření přístupu do administrace selhalo. Zkuste to prosím znovu.');
+        console.error('Admin guard check failed.', guardError);
+      } finally {
+        if (active) setIsSessionChecked(true);
       }
     });
 
@@ -47,7 +61,7 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    if (!isSessionChecked || !isAuthenticated || !isDevAdminAllowed) {
+    if (!isSessionChecked || userRole !== 'admin') {
       return;
     }
 
@@ -89,13 +103,13 @@ export default function AdminPage() {
     return () => {
       active = false;
     };
-  }, [isAuthenticated, isDevAdminAllowed, isSessionChecked]);
+  }, [isSessionChecked, userRole]);
 
   if (!isSessionChecked) {
     return <div className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600">Kontroluji přihlášení…</div>;
   }
 
-  if (!isAuthenticated) {
+  if (userRole === 'anonymous') {
     return (
       <div className="space-y-4 rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
         <h1 className="text-2xl font-bold text-slate-900">Administrace rezervací</h1>
@@ -107,12 +121,11 @@ export default function AdminPage() {
     );
   }
 
-  if (!isDevAdminAllowed) {
+  if (userRole !== 'admin') {
     return (
       <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-700">
         <h1 className="text-2xl font-bold text-slate-900">Administrace rezervací</h1>
-        <p>Tato stránka je dočasně dostupná pouze v development režimu.</p>
-        <p className="text-xs text-slate-500">TODO: doplnit owner/admin enforcement podle cílového role modelu.</p>
+        <p>Nemáte oprávnění pro správu rezervací.</p>
       </div>
     );
   }
