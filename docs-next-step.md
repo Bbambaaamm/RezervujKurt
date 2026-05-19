@@ -136,6 +136,10 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
    - Vytvořena centrální mapovací vrstva pro create reservation flow.
    - Konzistentní mapování na: kolize rezervace, chybějící oprávnění, nevalidní vstup, neočekávaná chyba.
    - Zachovaná česká UX hláška pro kolizi: „Kolize rezervace. Vybraný termín je už obsazen.“
+4. ✅ **Cílené unit testy pro error mapper jsou hotové (N.5).**
+   - Přidané unit testy pro `mapReservationWriteError` pokrývají mapování `23P01`/`409`, `42501`/`403`, `22P02`/`422` i fallback neočekávané chyby.
+   - Přidán skript `npm run test:unit` (alias `npm run test`) s minimálním Node.js test setupem přes `node:test` + kompilace přes `tsc` do dočasného výstupu.
+   - Test je zapojený do CI build gate před `check:rls` a `build`.
 
 ### Proč právě tento krok
 - Auditní stopa write operací je nyní pokrytá pro create i update/cancel.
