@@ -25,8 +25,9 @@ export function mapReservationWriteError(params: {
   statusText: string;
   endpoint: string;
   responseBody: string;
+  operation?: 'create' | 'update';
 }): Error {
-  const { status, statusText, endpoint, responseBody } = params;
+  const { status, statusText, endpoint, responseBody, operation = 'create' } = params;
   const errorCode = extractSupabaseErrorCode(responseBody);
 
   if (process.env.NODE_ENV === 'development') {
@@ -34,7 +35,10 @@ export function mapReservationWriteError(params: {
   }
 
   if (status === 401 || status === 403 || errorCode === '42501') {
-    return new ReservationUnauthorizedError('Nemáte oprávnění k vytvoření rezervace.');
+    const message = operation === 'update'
+      ? 'Nemáte oprávnění upravit rezervaci.'
+      : 'Nemáte oprávnění k vytvoření rezervace.';
+    return new ReservationUnauthorizedError(message);
   }
 
   if (
@@ -51,7 +55,7 @@ export function mapReservationWriteError(params: {
   }
 
   return new SupabaseRequestError(
-    `Vytvoření rezervace selhalo: ${status} ${statusText}`,
+    `${operation === 'update' ? 'Úprava rezervace' : 'Vytvoření rezervace'} selhalo: ${status} ${statusText}`,
     endpoint,
     status,
     responseBody,
