@@ -22,13 +22,19 @@ export default function LoginPage() {
 
     const {
       data: { subscription },
-    } = supabaseAuthClient.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabaseAuthClient.auth.onAuthStateChange((event, nextSession) => {
       const normalizedSession = nextSession ?? null;
       setSession(normalizedSession);
 
       if (normalizedSession) {
         setError(null);
         setMessage('Jste přihlášen(a).');
+        return;
+      }
+
+      if (event === 'SIGNED_OUT') {
+        setMessage(null);
+        setError(null);
       }
     });
 
