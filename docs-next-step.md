@@ -134,9 +134,11 @@ Projekt už má solidní datový a bezpečnostní základ (schéma, migrace, RLS
 2. **Zprovoznit build gate** — **SPLNĚNO**
    - přidán GitHub Actions workflow `.github/workflows/build-gate.yml`,
    - na `pull_request` a `push` do `main` běží povinně `npm ci` + `npm run build`.
-3. **Zpevnit RLS release režim** — **DALŠÍ MALÝ KROK**
-   - explicitně oddělit dev/prod policy migrace (nebo guard skript v release pipeline).
-4. **Doplnit minimální route/write guard**
+3. **Zpevnit RLS release režim** — **SPLNĚNO**
+   - dev-only policy `reservations_select_public_overview_anon` je označená markerem `DEV_ONLY_POLICY` a má SQL guard `current_setting('app.rls_mode', true)`; bez `app.rls_mode=dev` je policy neaktivní.
+   - přidán skript `npm run check:rls` (validace markeru) a `npm run check:rls:prod` (fail při přítomnosti dev-only policy pro produkční release).
+   - build gate v GitHub Actions nyní spouští `npm run check:rls` před buildem.
+4. **Doplnit minimální route/write guard** — **DALŠÍ MALÝ KROK**
    - write CTA jen pro přihlášené, redirect na login pro chráněné kroky.
 5. **Připravit audit write hook**
    - trigger nebo service zápis pro create/update/cancel jako základ Milestone 4.
