@@ -4,7 +4,8 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 
 import { ReservationGrid } from '@/components/reservation-grid';
 import { courts as fallbackCourts, mockReservations as fallbackReservations } from '@/lib/mockData';
-import { createReservation, ReservationConflictError, ReservationUnauthorizedError } from '@/lib/services/reservations';
+import { createReservation } from '@/lib/services/reservations';
+import { ReservationConflictError, ReservationUnauthorizedError, ReservationValidationError } from '@/lib/services/supabase-error-mapping';
 import { getCourtsReadOnly, getReservationsReadOnly } from '@/lib/services/read-only';
 import { supabaseAuthClient } from '@/lib/supabase/auth-client';
 import { SupabaseRequestError } from '@/lib/supabase/client';
@@ -108,6 +109,10 @@ export default function ReservationPage() {
       }
       if (error instanceof ReservationUnauthorizedError) {
         setSubmitError('Chyba oprávnění. Nemáte právo vytvořit tuto rezervaci.');
+        return;
+      }
+      if (error instanceof ReservationValidationError) {
+        setSubmitError('Zadané údaje rezervace nejsou platné. Zkontrolujte prosím termín.');
         return;
       }
       setSubmitError('Rezervaci se nepodařilo vytvořit. Zkuste to prosím znovu.');
