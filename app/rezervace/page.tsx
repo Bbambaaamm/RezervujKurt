@@ -122,12 +122,11 @@ export default function ReservationPage() {
 
 
   useEffect(() => {
-    if (!selectionReady || !sessionToken) {
+    if (!selectionReady) {
       setAvailabilityWarning(null);
       return;
     }
 
-    const token = sessionToken;
     let active = true;
 
     async function runAvailabilityCheck() {
@@ -137,7 +136,6 @@ export default function ReservationPage() {
 
       try {
         const isAvailable = await checkReservationSlotAvailability({
-          accessToken: token,
           courtId: Number(courtId),
           reservationDate: selectedDate,
           timeFrom,
@@ -169,7 +167,7 @@ export default function ReservationPage() {
     return () => {
       active = false;
     };
-  }, [courtId, selectedDate, selectionReady, sessionToken, timeFrom, timeTo]);
+  }, [courtId, selectedDate, selectionReady, timeFrom, timeTo]);
   async function handleCreateReservation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitMessage(null);

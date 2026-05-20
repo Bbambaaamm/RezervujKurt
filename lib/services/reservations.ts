@@ -20,7 +20,6 @@ type UpdateReservationStatusInput = {
 };
 
 type ReservationAvailabilityCheckInput = {
-  accessToken: string;
   courtId: number;
   reservationDate: string;
   timeFrom: string;
@@ -166,7 +165,7 @@ export async function checkReservationSlotAvailability(input: ReservationAvailab
     method: 'GET',
     headers: {
       apikey: supabaseAnonKey,
-      Authorization: `Bearer ${input.accessToken}`,
+      Authorization: `Bearer ${supabaseAnonKey}`,
       Accept: 'application/json',
     },
   });
@@ -187,6 +186,11 @@ export async function checkReservationSlotAvailability(input: ReservationAvailab
   }
 
   const rows = JSON.parse(responseBody) as ReservationAvailabilityRow[];
+
+  if (process.env.NODE_ENV === 'development') {
+    console.info('availability raw count', { count: rows.length, reservationDate: input.reservationDate, courtId: input.courtId });
+    console.info('availability mapped count', { count: rows.length });
+  }
 
   const hasConflict = rows.some((row) => doesReservationIntervalOverlap(
     { timeFrom: input.timeFrom, timeTo: input.timeTo },
