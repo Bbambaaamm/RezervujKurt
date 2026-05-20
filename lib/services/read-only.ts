@@ -129,8 +129,17 @@ export async function getCourtsReadOnly() {
 export async function getReservationsReadOnly(date: string) {
   const endpoint = `reservations?select=id,court_id,reservation_date,time_from,time_to,status,created_at&reservation_date=eq.${date}&status=in.(pending,approved)&order=time_from.asc`;
   const rows = await supabaseSelect<ReservationRow>(endpoint);
+  if (process.env.NODE_ENV === 'development') {
+    console.info('public reservations raw count', { count: rows.length, date });
+    console.info('public reservations sample', rows.slice(0, 3));
+  }
 
-  return rows.map(mapReservation);
+  const mappedRows = rows.map(mapReservation);
+  if (process.env.NODE_ENV === 'development') {
+    console.info('public reservations mapped count', { count: mappedRows.length, date });
+  }
+
+  return mappedRows;
 }
 
 async function getReservationsOverviewByEndpoint(endpoint: string, accessToken: string) {

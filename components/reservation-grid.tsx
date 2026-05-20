@@ -81,6 +81,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
 
   if (process.env.NODE_ENV === "development") {
     console.info('reservation grid received reservations count', { count: reservations.length, selectedDate });
+    console.info('grid received reservations sample', reservations.slice(0, 3));
   }
   const [dragState, setDragState] = useState<DragState>(null);
 
