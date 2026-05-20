@@ -85,8 +85,7 @@ export default function ReservationPage() {
       setReservations(loadedReservations);
 
       if (process.env.NODE_ENV === 'development') {
-        console.info('reservation page loaded reservations count', { date, requestId, count: loadedReservations.length });
-        console.info('reservation page reservations sample', loadedReservations.slice(0, 3));
+        console.info('reservation grid loaded public occupancy', { date, requestId, count: loadedReservations.length });
       }
     } catch (error) {
       if (requestId !== reservationsReloadRequestRef.current) {
@@ -97,7 +96,7 @@ export default function ReservationPage() {
       setSourceMode('mock fallback');
 
       if (process.env.NODE_ENV === 'development') {
-        console.info('reservation reload failed', { date, requestId, error });
+        console.info('public occupancy request failed', { date, requestId, error });
       }
     }
   }, []);

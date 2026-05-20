@@ -98,8 +98,8 @@ test('checkReservationSlotAvailability: pending a approved blokují slot, cancel
   assert.equal(available, false);
 
   const parsedUrl = new URL(capturedUrl);
-  assert.equal(parsedUrl.pathname, '/rest/v1/reservations');
-  assert.equal(parsedUrl.searchParams.get('select'), 'time_from,time_to,status');
+  assert.equal(parsedUrl.pathname, '/rest/v1/reservation_public_occupancy');
+  assert.equal(parsedUrl.searchParams.get('select'), 'court_id,reservation_date,time_from,time_to,status');
   assert.equal(parsedUrl.searchParams.get('court_id'), 'eq.2');
   assert.equal(parsedUrl.searchParams.get('reservation_date'), 'eq.2026-05-20');
   assert.equal(parsedUrl.searchParams.get('status'), 'in.(pending,approved)');

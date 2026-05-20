@@ -11,14 +11,11 @@ type CourtRow = {
 };
 
 type ReservationRow = {
-  id: string;
   court_id: number;
   reservation_date: string;
   time_from: string;
   time_to: string;
-  status: 'pending' | 'approved' | 'cancelled';
-  note: string | null;
-  created_at: string;
+  status: 'pending' | 'approved';
 };
 
 type ReservationOverviewRow = {
@@ -76,8 +73,10 @@ function mapCourt(row: CourtRow): Court {
 }
 
 function mapReservation(row: ReservationRow): Reservation {
+  const syntheticId = `${row.court_id}-${row.reservation_date}-${row.time_from}-${row.time_to}`;
+
   return {
-    id: row.id,
+    id: syntheticId,
     courtId: row.court_id,
     date: row.reservation_date,
     fromHour: parseHour(row.time_from),
@@ -87,9 +86,8 @@ function mapReservation(row: ReservationRow): Reservation {
     name: 'Rezervace',
     email: '',
     phone: '',
-    note: row.note ?? undefined,
     paymentMethod: 'online_placeholder',
-    createdAt: row.created_at,
+    createdAt: `${row.reservation_date}T${row.time_from}`,
   };
 }
 
@@ -129,10 +127,19 @@ export async function getCourtsReadOnly() {
 }
 
 export async function getReservationsReadOnly(date: string, accessToken?: string | null) {
-  const endpoint = `reservations?select=id,court_id,reservation_date,time_from,time_to,status,note,created_at&reservation_date=eq.${date}&status=in.(pending,approved)&order=time_from.asc`;
+  const endpoint = `reservation_public_occupancy?select=court_id,reservation_date,time_from,time_to,status&reservation_date=eq.${date}&status=in.(pending,approved)&order=time_from.asc`;
+
+  if (process.env.NODE_ENV === 'development') {
+    console.info('public occupancy request started', { date });
+  }
+
   const rows = accessToken
     ? await supabaseSelectWithAccessToken<ReservationRow>(endpoint, accessToken)
     : await supabaseSelect<ReservationRow>(endpoint);
+
+  if (process.env.NODE_ENV === 'development') {
+    console.info('public occupancy loaded', { date, count: rows.length });
+  }
 
   return rows.map(mapReservation);
 }
