@@ -6,6 +6,15 @@ const path = require('node:path');
 const migrationsDir = path.join(process.cwd(), 'supabase', 'migrations');
 const mode = process.env.RLS_RELEASE_MODE === 'prod' ? 'prod' : 'dev';
 
+
+const requiredPolicies = [
+  {
+    table: 'public.reservations',
+    name: 'reservations_select_owner_or_admin',
+    reason: 'Admin musí mít SELECT na reservations přes policy owner_or_admin i po db resetu.'
+  }
+];
+
 const devOnlyPolicies = [
   {
     name: 'reservations_select_public_overview_anon',
@@ -35,6 +44,20 @@ function hasDevOnlyMarker(sql, policyName) {
 }
 
 const files = readMigrationFiles();
+
+for (const policy of requiredPolicies) {
+  const exists = files.some((file) => {
+    const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
+    return containsPolicyDefinition(sql, policy.name);
+  });
+
+  if (!exists) {
+    console.error('❌ RLS check selhal: chybí povinná policy.');
+    console.error(`- ${policy.name} (${policy.table}): ${policy.reason}`);
+    process.exit(1);
+  }
+}
+
 const findings = [];
 
 for (const file of files) {

@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import {
-  getPendingReservationsReadOnly,
-  getRecentReservationsReadOnly,
+  getPendingReservationsReadOnlyWithSession,
+  getRecentReservationsReadOnlyWithSession,
   type ReservationOverview,
 } from '@/lib/services/read-only';
 import { ReservationNoLongerPendingError, ReservationUnauthorizedError, ReservationValidationError } from '@/lib/services/supabase-error-mapping';
@@ -119,9 +119,16 @@ export default function AdminPage() {
       setError(null);
 
       try {
+        const { data } = await supabaseAuthClient.auth.getSession();
+        const accessToken = data.session?.access_token;
+
+        if (!accessToken) {
+          throw new ReservationUnauthorizedError('Pro zobrazení administrace je potřeba přihlášení.');
+        }
+
         const [loadedReservations, loadedRecentReservations] = await Promise.all([
-          getPendingReservationsReadOnly(),
-          getRecentReservationsReadOnly(20),
+          getPendingReservationsReadOnlyWithSession(accessToken),
+          getRecentReservationsReadOnlyWithSession(accessToken, 20),
         ]);
         if (!active) return;
         setReservations(loadedReservations);
@@ -188,8 +195,8 @@ export default function AdminPage() {
       });
 
       const [loadedReservations, loadedRecentReservations] = await Promise.all([
-        getPendingReservationsReadOnly(),
-        getRecentReservationsReadOnly(20),
+        getPendingReservationsReadOnlyWithSession(accessToken),
+        getRecentReservationsReadOnlyWithSession(accessToken, 20),
       ]);
       setReservations(loadedReservations);
       setRecentReservations(loadedRecentReservations);
@@ -207,9 +214,16 @@ export default function AdminPage() {
       } else if (actionError instanceof ReservationNoLongerPendingError) {
         setError('Rezervace už není ve stavu pending.');
         console.info('admin stale pending detected', { reservationId, action });
+        const { data } = await supabaseAuthClient.auth.getSession();
+        const refreshedAccessToken = data.session?.access_token;
+
+        if (!refreshedAccessToken) {
+          throw new ReservationUnauthorizedError('Pro obnovení administrace je potřeba přihlášení.');
+        }
+
         const [loadedReservations, loadedRecentReservations] = await Promise.all([
-          getPendingReservationsReadOnly(),
-          getRecentReservationsReadOnly(20),
+          getPendingReservationsReadOnlyWithSession(refreshedAccessToken),
+          getRecentReservationsReadOnlyWithSession(refreshedAccessToken, 20),
         ]);
         setReservations(loadedReservations);
         setRecentReservations(loadedRecentReservations);

@@ -110,7 +110,7 @@ function mapReservationOverview(row: ReservationOverviewRow): ReservationOvervie
 
 function logSupabaseRequestFailure(error: unknown) {
   if (error instanceof SupabaseRequestError) {
-    console.error('Admin read-only request failed.', {
+    console.error('admin reservations read failed', {
       endpoint: error.endpoint,
       status: error.status,
       responseBody: error.responseBody,
@@ -118,7 +118,7 @@ function logSupabaseRequestFailure(error: unknown) {
     return;
   }
 
-  console.error('Admin read-only request failed.', {
+  console.error('admin reservations read failed', {
     error,
   });
 }
@@ -136,10 +136,9 @@ export async function getReservationsReadOnly(date: string) {
   return rows.map(mapReservation);
 }
 
-async function getReservationsOverviewByEndpoint(endpoint: string) {
+async function getReservationsOverviewByEndpoint(endpoint: string, accessToken: string) {
   try {
-    console.info('Admin reservation overview request.', { endpoint });
-    const reservations = await supabaseSelect<ReservationOverviewRow>(endpoint);
+    const reservations = await supabaseSelectWithAccessToken<ReservationOverviewRow>(endpoint, accessToken);
 
     const courtIds = [...new Set(reservations.map((row) => row.court_id))];
     const userIds = [...new Set(reservations.map((row) => row.user_id))];
@@ -148,7 +147,7 @@ async function getReservationsOverviewByEndpoint(endpoint: string) {
       ? await (async () => {
           const courtsEndpoint = `courts?select=id,name&id=in.(${courtIds.join(',')})`;
           console.info('Admin courts lookup request.', { endpoint: courtsEndpoint });
-          return supabaseSelect<PendingCourtRow>(courtsEndpoint);
+          return supabaseSelectWithAccessToken<PendingCourtRow>(courtsEndpoint, accessToken);
         })()
       : [];
 
@@ -157,7 +156,7 @@ async function getReservationsOverviewByEndpoint(endpoint: string) {
           const quotedUserIds = userIds.map((id) => `"${id}"`).join(',');
           const profilesEndpoint = `profiles?select=id,full_name,email&id=in.(${quotedUserIds})`;
           console.info('Admin profiles lookup request.', { endpoint: profilesEndpoint });
-          return supabaseSelect<PendingProfileRow>(profilesEndpoint);
+          return supabaseSelectWithAccessToken<PendingProfileRow>(profilesEndpoint, accessToken);
         })()
       : [];
 
@@ -206,26 +205,34 @@ export async function getMyReservationsReadOnly(session: AuthSession | null) {
   return rows.map(mapReservationOverview);
 }
 
-export async function getPendingReservationsReadOnly() {
+export async function getPendingReservationsReadOnlyWithSession(accessToken: string) {
+  if (process.env.NODE_ENV === 'development') {
+    console.info('admin pending reservations request started');
+  }
+
   const reservationsEndpoint =
     'reservations?select=id,reservation_date,time_from,time_to,created_at,status,court_id,user_id&status=eq.pending&order=created_at.asc.nullslast,reservation_date.asc,time_from.asc';
-  const loadedReservations = await getReservationsOverviewByEndpoint(reservationsEndpoint);
+  const loadedReservations = await getReservationsOverviewByEndpoint(reservationsEndpoint, accessToken);
 
   if (process.env.NODE_ENV === 'development') {
-    console.info('admin pending ordered by oldest first', { count: loadedReservations.length });
+    console.info('admin pending reservations loaded', { count: loadedReservations.length });
   }
 
   return loadedReservations;
 }
 
-export async function getRecentReservationsReadOnly(limit = 20) {
+export async function getRecentReservationsReadOnlyWithSession(accessToken: string, limit = 20) {
+  if (process.env.NODE_ENV === 'development') {
+    console.info('admin recent reservations request started');
+  }
+
   const safeLimit = Number.isFinite(limit) ? Math.min(Math.max(Math.trunc(limit), 1), 50) : 20;
   const reservationsEndpoint =
     `reservations?select=id,reservation_date,time_from,time_to,created_at,status,court_id,user_id&order=created_at.desc&limit=${safeLimit}`;
-  const loadedReservations = await getReservationsOverviewByEndpoint(reservationsEndpoint);
+  const loadedReservations = await getReservationsOverviewByEndpoint(reservationsEndpoint, accessToken);
 
   if (process.env.NODE_ENV === 'development') {
-    console.info('admin reservation history loaded', { count: loadedReservations.length, limit: safeLimit });
+    console.info('admin recent reservations loaded', { count: loadedReservations.length, limit: safeLimit });
   }
 
   return loadedReservations;
