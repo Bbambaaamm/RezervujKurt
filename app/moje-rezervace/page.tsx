@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { getMyReservationsReadOnly, type ReservationOverview } from '@/lib/services/read-only';
-import { cancelMyReservation, isMyReservationCancelable } from '@/lib/services/my-reservations';
+import { cancelMyReservation, getMyReservationsFeedbackOnReload, isMyReservationCancelable } from '@/lib/services/my-reservations';
 import { ReservationNoLongerPendingError, ReservationUnauthorizedError } from '@/lib/services/supabase-error-mapping';
 import { supabaseAuthClient } from '@/lib/supabase/auth-client';
 
@@ -35,13 +35,16 @@ function getStatusBadgeClass(status: ReservationOverview['status']) {
 export default function MyReservationsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [reservations, setReservations] = useState<ReservationOverview[]>([]);
   const [cancelingReservationId, setCancelingReservationId] = useState<string | null>(null);
 
   async function loadMyReservations(activeGuard?: { active: boolean }) {
     setIsLoading(true);
-    setError(null);
+    const nextFeedback = getMyReservationsFeedbackOnReload(successMessage);
+    setErrorMessage(nextFeedback.errorMessage);
+    setSuccessMessage(nextFeedback.successMessage);
 
     try {
       const { data } = await supabaseAuthClient.auth.getSession();
@@ -58,7 +61,7 @@ export default function MyReservationsPage() {
         return;
       }
 
-      setError('Načtení rezervací se nepodařilo. Zkuste to prosím později.');
+      setErrorMessage('Načtení rezervací se nepodařilo. Zkuste to prosím později.');
     } finally {
       if (!activeGuard || activeGuard.active) setIsLoading(false);
     }
@@ -74,10 +77,11 @@ export default function MyReservationsPage() {
   }, []);
 
   async function handleCancelReservation(reservation: ReservationOverview) {
-    setError(null);
+    setErrorMessage(null);
+    setSuccessMessage(null);
 
     if (!isMyReservationCancelable(reservation)) {
-      setError('Rezervaci už není možné zrušit.');
+      setErrorMessage('Rezervaci už není možné zrušit.');
       return;
     }
 
@@ -86,21 +90,21 @@ export default function MyReservationsPage() {
     try {
       const { data } = await supabaseAuthClient.auth.getSession();
       await cancelMyReservation({ session: data.session ?? null, reservationId: reservation.id });
-      setError('Rezervace byla zrušena.');
+      setSuccessMessage('Rezervace byla zrušena.');
       await loadMyReservations();
     } catch (cancelError) {
       if (cancelError instanceof ReservationNoLongerPendingError) {
-        setError('Rezervaci už není možné zrušit.');
+        setErrorMessage('Rezervaci už není možné zrušit.');
         await loadMyReservations();
         return;
       }
 
       if (cancelError instanceof ReservationUnauthorizedError) {
-        setError('Nemáte oprávnění zrušit tuto rezervaci.');
+        setErrorMessage('Nemáte oprávnění zrušit tuto rezervaci.');
         return;
       }
 
-      setError('Rezervaci se nepodařilo zrušit.');
+      setErrorMessage('Rezervaci se nepodařilo zrušit.');
     } finally {
       setCancelingReservationId(null);
     }
@@ -125,7 +129,8 @@ export default function MyReservationsPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-3xl font-bold">Moje rezervace</h1>
-      {error && <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">{error}</p>}
+      {successMessage && <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{successMessage}</p>}
+      {errorMessage && <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">{errorMessage}</p>}
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="min-w-full text-sm">
           <thead className="bg-slate-100 text-left text-slate-700">

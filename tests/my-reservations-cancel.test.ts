@@ -104,8 +104,24 @@ test('cancelMyReservation: 403 mapuje na ReservationUnauthorizedError', async ()
 test('isMyReservationCancelable: minulá rezervace není zrušitelná', async () => {
   const { isMyReservationCancelable } = await import('../lib/services/my-reservations');
 
-  const result = isMyReservationCancelable({ reservationDate: '2026-05-19', timeFrom: '10:00:00', status: 'approved' }, new Date('2026-05-20T00:00:00Z'));
+  const result = isMyReservationCancelable({ reservationDate: '2026-01-10', timeFrom: '10:00:00', status: 'approved' }, new Date('2026-01-10T10:00:01+01:00'));
   assert.equal(result, false);
+});
+
+test('isMyReservationCancelable: budoucí rezervace je zrušitelná v business timezone Europe/Prague', async () => {
+  const { isMyReservationCancelable } = await import('../lib/services/my-reservations');
+
+  const result = isMyReservationCancelable({ reservationDate: '2026-01-10', timeFrom: '10:00:00', status: 'approved' }, new Date('2026-01-10T09:59:59+01:00'));
+  assert.equal(result, true);
+});
+
+test('isMyReservationCancelable: výsledek nezávisí na timezone zařízení', async () => {
+  const { isMyReservationCancelable } = await import('../lib/services/my-reservations');
+
+  const nowAbsolute = new Date('2026-01-10T08:30:00Z');
+  const result = isMyReservationCancelable({ reservationDate: '2026-01-10', timeFrom: '10:00:00', status: 'approved' }, nowAbsolute);
+
+  assert.equal(result, true);
 });
 
 test('isMyReservationCancelable: cancelled rezervace není zrušitelná', async () => {
@@ -113,4 +129,13 @@ test('isMyReservationCancelable: cancelled rezervace není zrušitelná', async 
 
   const result = isMyReservationCancelable({ reservationDate: '2026-05-21', timeFrom: '10:00:00', status: 'cancelled' }, new Date('2026-05-20T00:00:00Z'));
   assert.equal(result, false);
+});
+
+test('getMyReservationsFeedbackOnReload: zachová success message po reloadu seznamu', async () => {
+  const { getMyReservationsFeedbackOnReload } = await import('../lib/services/my-reservations');
+
+  assert.deepEqual(getMyReservationsFeedbackOnReload('Rezervace byla zrušena.'), {
+    errorMessage: null,
+    successMessage: 'Rezervace byla zrušena.',
+  });
 });
