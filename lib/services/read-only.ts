@@ -1,5 +1,7 @@
 import type { Court, Reservation, ReservationStatus } from '@/lib/types/domain';
-import { SupabaseRequestError, supabaseSelect } from '@/lib/supabase/client';
+import type { AuthSession } from '../supabase/auth-client';
+import { ReservationUnauthorizedError } from './supabase-error-mapping';
+import { SupabaseRequestError, supabaseSelect, supabaseSelectWithAccessToken } from '@/lib/supabase/client';
 
 type CourtRow = {
   id: number;
@@ -176,6 +178,27 @@ async function getReservationsOverviewByEndpoint(endpoint: string) {
   }
 }
 
+export async function getMyReservationsReadOnly(session: AuthSession | null) {
+  if (process.env.NODE_ENV === 'development') {
+    console.info('my reservations loading');
+  }
+
+  if (!session?.user?.id || !session.access_token) {
+    if (process.env.NODE_ENV === 'development') {
+      console.info('my reservations unauthorized');
+    }
+    throw new ReservationUnauthorizedError('Pro zobrazení rezervací je potřeba přihlášení.');
+  }
+
+  const endpoint = `reservations?select=id,reservation_date,time_from,time_to,created_at,status,court_id,user_id&user_id=eq.${session.user.id}&order=reservation_date.asc,time_from.asc`;
+  const rows = await supabaseSelectWithAccessToken<ReservationOverviewRow>(endpoint, session.access_token);
+
+  if (process.env.NODE_ENV === 'development') {
+    console.info('my reservations loaded', { count: rows.length });
+  }
+
+  return rows.map(mapReservationOverview);
+}
 
 export async function getPendingReservationsReadOnly() {
   const reservationsEndpoint =

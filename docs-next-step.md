@@ -202,3 +202,15 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
 - O.13 test coverage: přidán cílený unit test pro validaci limitu v `getRecentReservationsReadOnly` (NaN/Infinity fallback na `20`, `0` a záporné hodnoty clamp na `1`) pouze přes kontrolu konstrukce URL query parametru `limit`.
 
 - O.14 security verification coverage: přidány lightweight unit testy pro resolution admin role (anonymous/user/admin, cache hit, in-flight dedupe), cílené testy admin guard decision flow (unauthorized/forbidden/allowed) a explicitní mapování unauthorized odpovědí `updateReservationStatus` (`403`, `42501`, prázdná unauthorized response) na admin-only forbidden kontrakt.
+
+### Milestone P: My reservations overview
+**Stav: P.1 HOTOVO (small safe read-only scope)**
+- Přidána route `/moje-rezervace` s read-only přehledem rezervací aktuálně přihlášeného uživatele.
+- Přidán lightweight helper `getMyReservationsReadOnly`, který používá existující session/auth flow a filtruje pouze `user_id = session.user.id`.
+- Dotaz je bez pagination/limitu/filtrů navíc, s orderingem `reservation_date.asc,time_from.asc`.
+- Pro anonymního uživatele route zobrazí výzvu k přihlášení; pro přihlášeného uživatele renderuje tabulku.
+- Tabulka obsahuje sloupce Datum, Čas od, Čas do, Kurt, Stav, Vytvořeno.
+- `created_at` je formátováno stejně jako v `/admin` (`cs-CZ`, fallback `—` pro null/invalid).
+- Status badge používá stejný vizuální styl jako `/admin` pro `pending` / `approved` / `cancelled`.
+- Přidány development logy: `my reservations loading`, `my reservations loaded`, `my reservations unauthorized`.
+- P.1 read-only my reservations overview.

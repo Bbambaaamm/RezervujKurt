@@ -102,6 +102,9 @@ export function Header() {
                   Admin
                 </Link>
               )}
+              <Link href="/moje-rezervace" className="text-slate-700 transition hover:text-court">
+                Moje rezervace
+              </Link>
               <Link href="/ucet" className="text-slate-700 transition hover:text-court">
                 Účet
               </Link>
