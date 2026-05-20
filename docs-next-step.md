@@ -45,6 +45,7 @@ Předchozí verze dokumentu obsahovala interní rozpory (např. otevřené dluhy
 **Stav: SPLNĚNO**
 - DB-level ochrana proti kolizím je zachována jako source of truth.
 - Lightweight availability pre-check je doplněný jako UX helper.
+- Overlap porovnání v pre-checku je normalizované na numerické porovnání času (minuty), takže funguje i pro vstupy bez zero-paddingu (např. `9:00`).
 
 ### K: Refresh gridu po vytvoření
 **Stav: SPLNĚNO**

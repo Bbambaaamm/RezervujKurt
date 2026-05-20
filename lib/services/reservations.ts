@@ -33,11 +33,24 @@ type ReservationAvailabilityRow = {
   status: 'pending' | 'approved' | 'cancelled';
 };
 
+function timeStringToMinutes(value: string): number {
+  const [hoursPart, minutesPart] = value.split(':');
+  const hours = Number(hoursPart);
+  const minutes = Number(minutesPart);
+
+  return (hours * 60) + minutes;
+}
+
 export function doesReservationIntervalOverlap(
   left: { timeFrom: string; timeTo: string },
   right: { timeFrom: string; timeTo: string },
 ): boolean {
-  return left.timeFrom < right.timeTo && right.timeFrom < left.timeTo;
+  const leftFrom = timeStringToMinutes(left.timeFrom);
+  const leftTo = timeStringToMinutes(left.timeTo);
+  const rightFrom = timeStringToMinutes(right.timeFrom);
+  const rightTo = timeStringToMinutes(right.timeTo);
+
+  return leftFrom < rightTo && rightFrom < leftTo;
 }
 
 export async function createReservation(input: CreateReservationInput): Promise<void> {

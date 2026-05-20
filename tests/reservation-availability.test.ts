@@ -10,6 +10,34 @@ test.afterEach(() => {
   globalThis.fetch = originalFetch;
 });
 
+
+test('overlap funguje správně i pro nezero-pad čas 9:00 vs 10:00', async () => {
+  const { doesReservationIntervalOverlap } = await import('../lib/services/reservations');
+  assert.equal(
+    doesReservationIntervalOverlap(
+      { timeFrom: '9:00', timeTo: '10:00' },
+      { timeFrom: '09:30', timeTo: '10:30' },
+    ),
+    true,
+  );
+});
+
+test('09:00 a 9:00 dávají stejný výsledek', async () => {
+  const { doesReservationIntervalOverlap } = await import('../lib/services/reservations');
+
+  const padded = doesReservationIntervalOverlap(
+    { timeFrom: '09:00', timeTo: '10:00' },
+    { timeFrom: '10:00', timeTo: '11:00' },
+  );
+
+  const nonPadded = doesReservationIntervalOverlap(
+    { timeFrom: '9:00', timeTo: '10:00' },
+    { timeFrom: '10:00', timeTo: '11:00' },
+  );
+
+  assert.equal(padded, nonPadded);
+});
+
 test('touching intervals nejsou kolize', async () => {
   const { doesReservationIntervalOverlap } = await import('../lib/services/reservations');
   assert.equal(
