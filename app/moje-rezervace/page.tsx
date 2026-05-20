@@ -6,6 +6,7 @@ import { getMyReservationsReadOnly, type ReservationOverview } from '@/lib/servi
 import { cancelMyReservation, getMyReservationsFeedbackOnReload, isMyReservationCancelable } from '@/lib/services/my-reservations';
 import { ReservationNoLongerPendingError, ReservationUnauthorizedError } from '@/lib/services/supabase-error-mapping';
 import { supabaseAuthClient } from '@/lib/supabase/auth-client';
+import { getAriaBusy, getAriaDisabled, getReservationStatusLabel } from '@/lib/services/reservation-overview-ui';
 
 function formatDate(date: string) {
   const parsedDate = new Date(`${date}T00:00:00`);
@@ -115,7 +116,7 @@ export default function MyReservationsPage() {
   }
 
   if (isLoading) {
-    return <div className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600">Načítám vaše rezervace…</div>;
+    return <div aria-busy={getAriaBusy(isLoading)} className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600">Načítání rezervací...</div>;
   }
 
   if (!isAuthorized) {
@@ -133,8 +134,8 @@ export default function MyReservationsPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-3xl font-bold">Moje rezervace</h1>
-      {successMessage && <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{successMessage}</p>}
-      {errorMessage && <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">{errorMessage}</p>}
+      {successMessage && <p role="status" className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{successMessage}</p>}
+      {errorMessage && <p role="status" className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">{errorMessage}</p>}
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="min-w-full text-sm">
           <thead className="bg-slate-100 text-left text-slate-700">
@@ -157,7 +158,7 @@ export default function MyReservationsPage() {
                 <td className="px-3 py-2">{reservation.courtName}</td>
                 <td className="px-3 py-2">
                   <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-medium ${getStatusBadgeClass(reservation.status)}`}>
-                    {reservation.status}
+                    {getReservationStatusLabel(reservation.status)}
                   </span>
                 </td>
                 <td className="px-3 py-2">{formatCreatedAt(reservation.createdAt)}</td>
@@ -167,6 +168,7 @@ export default function MyReservationsPage() {
                       type="button"
                       onClick={() => void handleCancelReservation(reservation)}
                       disabled={cancelingReservationId === reservation.id}
+                      aria-disabled={getAriaDisabled(cancelingReservationId === reservation.id)}
                       className="rounded-md border border-rose-300 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {cancelingReservationId === reservation.id ? 'Ruším...' : 'Zrušit'}
