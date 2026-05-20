@@ -128,10 +128,11 @@ export async function getCourtsReadOnly() {
   return rows.map(mapCourt);
 }
 
-export async function getReservationsReadOnly(date: string) {
-  const rows = await supabaseSelect<ReservationRow>(
-    `reservations?select=id,court_id,reservation_date,time_from,time_to,status,note,created_at&reservation_date=eq.${date}`,
-  );
+export async function getReservationsReadOnly(date: string, accessToken?: string | null) {
+  const endpoint = `reservations?select=id,court_id,reservation_date,time_from,time_to,status,note,created_at&reservation_date=eq.${date}&status=in.(pending,approved)&order=time_from.asc`;
+  const rows = accessToken
+    ? await supabaseSelectWithAccessToken<ReservationRow>(endpoint, accessToken)
+    : await supabaseSelect<ReservationRow>(endpoint);
 
   return rows.map(mapReservation);
 }
