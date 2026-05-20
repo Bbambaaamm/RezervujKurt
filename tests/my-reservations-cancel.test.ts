@@ -134,8 +134,24 @@ test('isMyReservationCancelable: cancelled rezervace není zrušitelná', async 
 test('getMyReservationsFeedbackOnReload: zachová success message po reloadu seznamu', async () => {
   const { getMyReservationsFeedbackOnReload } = await import('../lib/services/my-reservations');
 
-  assert.deepEqual(getMyReservationsFeedbackOnReload('Rezervace byla zrušena.'), {
+  assert.deepEqual(getMyReservationsFeedbackOnReload({ currentSuccessMessage: 'Rezervace byla zrušena.' }), {
     errorMessage: null,
     successMessage: 'Rezervace byla zrušena.',
   });
+});
+
+
+test('getMyReservationsFeedbackOnReload: explicitně zachová success message pro immediate reload po cancel', async () => {
+  const { getMyReservationsFeedbackOnReload } = await import('../lib/services/my-reservations');
+
+  assert.deepEqual(
+    getMyReservationsFeedbackOnReload({
+      currentSuccessMessage: null,
+      preservedSuccessMessage: 'Rezervace byla zrušena.',
+    }),
+    {
+      errorMessage: null,
+      successMessage: 'Rezervace byla zrušena.',
+    },
+  );
 });
