@@ -19,6 +19,7 @@
     "tests/**/*.ts",
     "lib/services/supabase-error-mapping.ts",
     "lib/supabase/client.ts",
-    "lib/services/reservations.ts"
+    "lib/services/reservations.ts",
+    "lib/services/profile-save-error.ts"
   ]
 }
