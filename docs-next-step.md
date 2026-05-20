@@ -1,222 +1,127 @@
-# Audit stavu projektu vůči milestone plánu (k 19. 5. 2026)
+# Audit stavu projektu vůči milestone plánu (k 20. 5. 2026)
 
 ## Stručné shrnutí
-Projekt je nyní stabilní na úrovni produkčního základu pro core rezervační flow: build prochází, RLS release hardening je zavedený, auth typy jsou sjednocené přes interní `AuthSession`, magic link + session persistence + `AuthSessionSync` fungují a create reservation flow je funkční včetně refresh gridu. Otevřené položky jsou primárně provozní/technický dluh (audit write hook, session refresh orchestrace, hlubší error mapping), ne blokery základního provozu.
+Původní milestone plán **A–P je dokončený**. Core MVP flow je implementované a pokryté cílenými unit testy: auth/session persistence, create reservation, kolizní ochrana + lightweight availability pre-check, admin approve/cancel, moje rezervace, user cancellation, audit trail, RLS hardening, UX polish i test/build gate.
+
+Předchozí verze dokumentu obsahovala interní rozpory (např. otevřené dluhy u položek, které jsou v kódu už hotové). Tento dokument je sjednocený podle reálného stavu kódu.
 
 ---
 
-## Milestone audit
+## Milestone audit (A–P)
 
-### Milestone A: DB schéma
-**Stav: SPLNĚNO (production-ready)**
+### A: DB schéma
+**Stav: SPLNĚNO**
 - Tabulky `profiles`, `courts`, `reservations`, `reservation_audit_log` existují.
-- Integritní kontroly pro časové intervaly a kolize jsou zavedené.
+- Integritní kontroly intervalů/kolizí jsou zavedené.
 
-### Milestone B: Migrace
-**Stav: SPLNĚNO (production-ready)**
-- Inicializační migrace schématu je přítomná.
-- Navazující migrace pro auth/profile bootstrap i policy úpravy jsou přítomné.
+### B: Migrace
+**Stav: SPLNĚNO**
+- Inicializační schéma i navazující migrace jsou přítomné.
 
-### Milestone C: RLS
-**Stav: SPLNĚNO (production-ready)**
+### C: RLS
+**Stav: SPLNĚNO**
 - RLS je aktivní na klíčových tabulkách.
-- Owner/admin model je zavedený.
-- Release hardening pro dev-only policy je zavedený (včetně guardu a kontrol v CI).
+- Owner/admin model je zavedený a hardened pro release.
 
-### Milestone D: Seed
-**Stav: SPLNĚNO (MVP/dev ready)**
-- Seed pokrývá uživatele, profily, kurty, rezervace i audit log demo data.
+### D: Seed
+**Stav: SPLNĚNO**
+- Seed pokrývá uživatele, profily, kurty, rezervace i audit demo data.
 
-### Milestone E: Read-only flow
-**Stav: SPLNĚNO (production-ready)**
-- Načítání kurtů a rezervací funguje.
-- Grid zobrazuje data po dnech.
+### E: Read-only flow
+**Stav: SPLNĚNO**
+- Načítání kurtů/rezervací a grid po dnech fungují.
 
-### Milestone F: Auth flow
-**Stav: SPLNĚNO (MVP+ stabilizováno)**
-- Magic link login funguje.
-- Lightweight REST auth klient funguje.
-- Auth typy jsou sjednocené přes interní `AuthSession`.
+### F–H: Auth, magic link, session persistence
+**Stav: SPLNĚNO**
+- Magic link login + callback/session sync fungují.
 - Session persistence přes `localStorage` funguje.
-- `AuthSessionSync` funguje.
-- Route/write guard existuje.
-- Menu korektně rozlišuje anonymního vs přihlášeného uživatele.
-- `/ucet` existuje.
-- Logout flow funguje.
-- UX fixy kolem `SIGNED_OUT` a výchozího dne rezervace jsou hotové.
-
-### Milestone G: Magic link login
-**Stav: SPLNĚNO (production-ready)**
-- Login stránka odesílá OTP + redirect.
-- Callback/session synchronizace je funkční.
-
-### Milestone H: Session persistence
-**Stav: SPLNĚNO (production hardening dokončen v N.3)**
-- Persist/reload session funguje.
 - Session refresh orchestrace při expiraci tokenu je implementovaná (silent refresh + fallback logout).
 
-### Milestone I: Create reservation flow
-**Stav: SPLNĚNO (MVP funkční)**
-- Write flow vytvoření rezervace je funkční.
-- Po úspěchu probíhá refresh dat aktuálního dne.
-
-### Milestone J: Kolizní validace
+### I: Create reservation flow
 **Stav: SPLNĚNO**
-- DB-level ochrana proti kolizím je robustní.
-- J.2 lightweight availability pre-check je doplněný jako UX helper před submitem (bez zásahu do DB source-of-truth validace).
+- Vytvoření rezervace funguje včetně refresh gridu.
 
-### Milestone K: Refresh gridu po vytvoření rezervace
-**Stav: SPLNĚNO (production-ready)**
-- Refresh gridu po create funguje.
+### J: Kolizní validace
+**Stav: SPLNĚNO**
+- DB-level ochrana proti kolizím je zachována jako source of truth.
+- Lightweight availability pre-check je doplněný jako UX helper.
 
-### Milestone L: Fallback logika
-**Stav: SPLNĚNO (MVP/provozní fallback)**
-- Fallback při chybě čtení je přítomný.
+### K: Refresh gridu po vytvoření
+**Stav: SPLNĚNO**
 
-### Milestone M: Audit log připravenost
-**Stav: ČÁSTEČNĚ SPLNĚNO (N.1 HOTOVO)**
-- Datová i policy připravenost existuje.
-- Hotovo: N.1 write hook pro create (DB trigger).
-- Otevřené: write hook pro update/cancel (další krok).
+### L: Fallback logika
+**Stav: SPLNĚNO**
 
----
+### M: Audit log připravenost
+**Stav: SPLNĚNO**
+- Audit trigger pro create je hotový.
+- Audit trigger pro update/cancel je hotový.
 
-## Ověření
-- `npm run build` **prochází**.
-- `npm run check:rls` **prochází**.
-- GitHub Actions build gate existuje a běží (včetně RLS checku v gate).
+### N: Auditovatelnost + session hardening + error mapping
+**Stav: SPLNĚNO**
+- Session refresh orchestrace je centralizovaná.
+- Centralized reservation write error mapping je implementovaný.
+- Cílené unit testy mapperu jsou přítomné.
 
----
+### O: Admin reservation overview + pending actions
+**Stav: SPLNĚNO**
+- Admin guard/authorization je pokrytý.
+- Pending přehled + approve/cancel akce fungují.
+- Stale pending handling je implementovaný.
+- History přehled (read-only) je implementovaný.
 
-## Rozdělení podle provozní připravenosti
-
-### Production-ready části
-- DB schéma + klíčové integritní constrainty.
-- RLS model včetně release hardeningu dev-only policy.
-- Read-only flow.
-- Refresh gridu po create.
-- Build gate + build/check:rls průchod.
-
-### MVP části (funkční, ale s prostorem pro hardening)
-- Auth/session vrstva (funkční login, persistence, sync, guardy, logout).
-- Create reservation flow.
-- Fallback logika.
-
-### Otevřené milestone / dluh
-- Milestone J: hlubší UX/error mapping kolizí.
-- Milestone M: audit write hook.
-- Session refresh orchestrace po expiraci tokenu.
+### P: My reservations overview + user cancellation
+**Stav: SPLNĚNO**
+- `/moje-rezervace` read-only přehled je implementovaný.
+- User cancellation flow je implementovaný (pending/approved budoucí rezervace).
+- Cancelability logika je timezone-safe (`Europe/Prague`).
+- Oprava stale success message po reloadu je hotová.
+- UX helpery a polish jsou pokryté.
 
 ---
 
-## Technické dluhy (aktuální)
-1. **Audit write hook je částečně dotažený** (create hotovo, zbývá update/cancel).
-2. **Session refresh orchestrace není centralizovaná** (riziko sporadických auth výpadků po expiraci).
-3. **Error mapping kolizí není plně sjednocený** (UX konzistence).
+## Ověření vůči kódu (kontrolované oblasti)
 
-## Bezpečnostní rizika (aktuální)
-- **Původní riziko dev-only RLS policy v produkci je mitigováno** release hardeningem + CI kontrolami.
-- **Zbývající riziko:** bez audit write hooku je omezená forenzní stopa write operací.
+### Implementace
+- Audit trigger create/update/cancel: přítomno.
+- Session refresh orchestrace: přítomna.
+- Centralized error mapping: přítomen.
+- Admin authorization coverage: přítomna.
+- My reservations overview: přítomen.
+- User cancellation flow: přítomen.
+- Timezone-safe cancellation logika: přítomna.
+- Stale success message fix: přítomen.
+- UX polish helpery: přítomny.
+- Lightweight availability pre-check: přítomen.
 
----
-
-## Doporučený další milestone (small safe)
-**Milestone N: Auditovatelnost a session hardening.**
-
-### Rozsah
-1. ✅ **Audit write hook pro update/cancel je hotový (N.2)**.
-   - Trigger na `reservations` zapisuje audit při `UPDATE`.
-   - Rozlišuje `action='cancel'` při změně statusu na `cancelled`, jinak `action='update'`.
-   - Ukládá `old_status`, `new_status` a payload snapshotu staré/nové hodnoty.
-2. ✅ **Session refresh orchestrace je hotová (N.3).**
-   - `getSession()` nyní validuje `exp` z JWT payloadu a při expiraci/krátce před expirací spouští silent refresh přes `refresh_token`.
-   - Je přidané plánování refresh krátce před expirací tokenu (timer), bez zásahu do UI architektury.
-   - Při nevalidním refresh tokenu proběhne fallback logout: vyčištění localStorage, emit `SIGNED_OUT` a redirect na `/prihlaseni` jen pokud je to potřeba.
-3. ✅ **Sjednocení error mappingu Supabase/DB chyb je hotové (N.4).**
-   - Vytvořena centrální mapovací vrstva pro create reservation flow.
-   - Konzistentní mapování na: kolize rezervace, chybějící oprávnění, nevalidní vstup, neočekávaná chyba.
-   - Zachovaná česká UX hláška pro kolizi: „Kolize rezervace. Vybraný termín je už obsazen.“
-4. ✅ **Cílené unit testy pro error mapper jsou hotové (N.5).**
-   - Přidané unit testy pro `mapReservationWriteError` pokrývají mapování `23P01`/`409`, `42501`/`403`, `22P02`/`422` i fallback neočekávané chyby.
-   - Přidán skript `npm run test:unit` (alias `npm run test`) s minimálním Node.js test setupem přes `node:test` + kompilace přes `tsc` do dočasného výstupu.
-   - Test je zapojený do CI build gate před `check:rls` a `build`.
-
-### Proč právě tento krok
-- Auditní stopa write operací je nyní pokrytá pro create i update/cancel.
-- Další postup může zůstat malý a bezpečný (session hardening bez zásahu do UI).
+### Test coverage
+- Reservation write error mapper: pokryto.
+- Admin role resolution / guard decision: pokryto.
+- Admin update status stale/unauthorized: pokryto.
+- History/pending endpoint construction: pokryto.
+- My reservations endpoint construction: pokryto.
+- User cancellation helper: pokryto.
+- Timezone/cancelability logika: pokryto.
+- Stale success message preservation: pokryto.
+- Reservation overview UX helpery: pokryto.
+- Availability overlap detection/query construction: pokryto.
 
 ---
 
-## UX poznámka (ne-blocker)
-- Lokalizovaný custom date picker je vhodný budoucí UX enhancement, ale není blocker pro aktuální milestone ani pro provoz MVP.
+## Otevřené milestone / dluh
+Žádný otevřený dluh už **není blockerem původního milestone plánu A–P**.
 
+---
 
-### Milestone O: Admin reservation overview + basic pending actions
-**Stav: O.10 HOTOVO (pending řazení podle stáří čekání)**
-- Route `/admin` už nepoužívá dočasný DEV guard.
-- Přidán lightweight helper `getCurrentUserRoleFromSession`, který přes REST (`/profiles`) načte roli aktuálního profilu podle `session.user.id`.
-- Guard na stránce `/admin` rozlišuje 3 stavy:
-  - anonymní uživatel: výzva k přihlášení,
-  - přihlášený bez admin role: „Nemáte oprávnění pro správu rezervací.“,
-  - admin: načtení pending rezervací.
-- Přidány development logy guardu: `admin guard: anonymous`, `admin guard: user`, `admin guard: admin`.
-- Header menu nyní zobrazuje položku `Admin` pouze uživateli s rolí `admin`; anonymní i běžný přihlášený uživatel položku nevidí.
-- Přidány development logy headeru: `header admin link visible` a `header admin link hidden`.
-- Role lookup je v klientu lightweight cachovaný (in-memory podle `session.user.id` + deduplikace in-flight lookupu), aby se při stabilní session neposílal zbytečný request navíc na každý render.
-- Admin přehled pending rezervací nově obsahuje dvě minimální akce pouze pro řádky se stavem `pending`:
-  - `Schválit` → `status='approved'`
-  - `Zrušit` → `status='cancelled'`
-- Akce jsou implementované lightweight přes REST `PATCH /rest/v1/reservations?id=eq.<id>&status=eq.pending` a pouze mění `status`.
-- Během requestu je řádková akce ve stavu loading/disabled a po úspěchu proběhne refresh seznamu pending rezervací.
-- Přidány dev logy akcí:
-  - `admin approve started`
-  - `admin approve success`
-  - `admin cancel started`
-  - `admin cancel success`
-  - `admin action failed`
-- Doplněn explicitní stale pending handling pro souběžný admin scénář (2 admini nad stejným řádkem):
-  - `updateReservationStatus` nyní detekuje „0 affected rows“ přes `return=representation,count=exact` a mapuje scénáře `empty array` / `Content-Range */0` na specializovanou chybu.
-  - V `/admin` se tato chyba mapuje na uživatelskou hlášku: `Rezervace už není ve stavu pending.`
-  - Po stale pending chybě se automaticky refreshne pending seznam, aby zastaralý řádek ihned zmizel z UI.
-- Přidány dev logy stale scénáře:
-  - `admin stale pending detected`
-  - `admin stale pending refresh`
-- Bez zásahu do create reservation flow, bez zásahu do auth/session orchestrace a bez zásahu do existujících audit triggerů.
-- O.6 test coverage: přidány cílené unit testy pro `updateReservationStatus` (stale pending: `[]`, `Content-Range */0`, úspěch pro neprázdné pole a mapování 403/42501 přes existující error mapper).
-- RLS/policy změna nebyla potřeba, existující owner/admin model v `profiles` + `reservations` enforcement pokrývá cílové chování.
-- O.7 small safe rozšíření `/admin`: pod existující pending sekci přidán read-only blok **„Poslední rezervace“** s posledními 20 záznamy (`order=created_at.desc&limit=20`) a sloupci datum, čas od/do, kurt, uživatel, status.
-- Status je vizuálně odlišen badge stylem pro `pending` / `approved` / `cancelled` bez přidání nových write akcí nebo filtrační/pagination logiky.
-- Přidán dev log `admin reservation history loaded` při načtení historie.
-- O.8 small safe rozšíření history overview: do tabulky **„Poslední rezervace“** přidán sloupec **„Vytvořeno“** čtený z `reservations.created_at` (bez navýšení limitu a bez nového requestu).
-- `created_at` je formátováno v `cs-CZ` jako datum + čas; pokud je hodnota `null`/invalid, UI zobrazí fallback `—`.
-- Přidán dev log `admin reservation history timestamp rendered` při renderu timestampu v history řádku.
+## Future / production readiness backlog
+Následující body jsou záměrně oddělené jako budoucí rozvoj mimo scope původního MVP plánu:
 
-- O.9 small safe rozšíření pending overview: do čekající tabulky v `/admin` přidán sloupec **„Vytvořeno“** využívající již načtené `created_at` (`createdAt`) bez nového requestu.
-- Formátování je sjednocené s history overview (`cs-CZ`, datum + čas) přes existující formatter; pro `null`/invalid hodnoty se zobrazuje fallback `—`.
-- Přidán dev log `admin pending timestamp rendered` při renderu timestampu v pending řádku.
-- O.10 small safe sjednocení pending prioritizace: pending rezervace jsou explicitně řazené jako **nejstarší čekající nahoře** přes `order=created_at.asc.nullslast,reservation_date.asc,time_from.asc`.
-- Fallback při chybějícím `created_at` je zajištěn sekundárním řazením `reservation_date.asc,time_from.asc` (deterministické pořadí bez nového requestu a bez změny approve/cancel flow).
-- Přidán dev log `admin pending ordered by oldest first` po načtení pending seznamu.
-- O.11 test coverage: přidán cílený unit test pro konstrukci pending endpointu, který hlídá ordering `created_at.asc.nullslast,reservation_date.asc,time_from.asc` bez testování Supabase backend řazení.
-- O.12 test coverage: přidán cílený unit test pro konstrukci history endpointu `getRecentReservationsReadOnly`, který hlídá `order=created_at.desc`, výchozí `limit=20` a clamp limitu na `50` při vysoké vstupní hodnotě (bez testování Supabase backend řazení).
-- O.13 test coverage: přidán cílený unit test pro validaci limitu v `getRecentReservationsReadOnly` (NaN/Infinity fallback na `20`, `0` a záporné hodnoty clamp na `1`) pouze přes kontrolu konstrukce URL query parametru `limit`.
+1. Rozšířená observabilita (strukturované logování, metriky, alerting).
+2. E2E smoke scénáře pro klíčové user/admin cesty nad runtime prostředím.
+3. Produktové UX enhancementy (např. pokročilejší lokalizovaný date/time picker).
+4. Operational playbook (incident checklist, release runbook).
 
-- O.14 security verification coverage: přidány lightweight unit testy pro resolution admin role (anonymous/user/admin, cache hit, in-flight dedupe), cílené testy admin guard decision flow (unauthorized/forbidden/allowed) a explicitní mapování unauthorized odpovědí `updateReservationStatus` (`403`, `42501`, prázdná unauthorized response) na admin-only forbidden kontrakt.
+---
 
-### Milestone P: My reservations overview
-**Stav: P.1 HOTOVO (small safe read-only scope)**
-- Přidána route `/moje-rezervace` s read-only přehledem rezervací aktuálně přihlášeného uživatele.
-- Přidán lightweight helper `getMyReservationsReadOnly`, který používá existující session/auth flow a filtruje pouze `user_id = session.user.id`.
-- Dotaz je bez pagination/limitu/filtrů navíc, s orderingem `reservation_date.asc,time_from.asc`.
-- Pro anonymního uživatele route zobrazí výzvu k přihlášení; pro přihlášeného uživatele renderuje tabulku.
-- Tabulka obsahuje sloupce Datum, Čas od, Čas do, Kurt, Stav, Vytvořeno.
-- `created_at` je formátováno stejně jako v `/admin` (`cs-CZ`, fallback `—` pro null/invalid).
-- Status badge používá stejný vizuální styl jako `/admin` pro `pending` / `approved` / `cancelled`.
-- Přidány development logy: `my reservations loading`, `my reservations loaded`, `my reservations unauthorized`.
-- P.1 read-only my reservations overview.
-- P.2 user cancellation flow: v `/moje-rezervace` je přidán sloupec `Akce` s tlačítkem `Zrušit` pouze pro vlastní budoucí rezervace ve stavech `pending`/`approved`; flow používá lightweight `PATCH` helper s filtrem `id + user_id + status in.(pending,approved)`, stale/no-op detekcí přes `return=representation,count=exact`, českými UX hláškami a dev logy bez zásahu do DB/RLS/admin flow.
-- P.2 follow-up hardening: cancellation flow nyní zachovává success confirmation i po refreshi seznamu a porovnání zrušitelnosti používá fixní business timezone `Europe/Prague` (nezávisle na timezone zařízení).
-- P.2 follow-up: opraven stale closure bug v `/moje-rezervace`, aby success confirmation `Rezervace byla zrušena.` zůstala zachovaná i při immediate reloadu po cancel flow (explicitní preserve parametr při reloadu).
-
-
-- P.4 reservation overview UX polish + cleanup
+## Závěr
+Původní MVP milestone plán **A–P je dokončený** a dokumentace je sjednocená s reálným stavem kódu. Další práce patří do odděleného **Future / production readiness backlogu**.
