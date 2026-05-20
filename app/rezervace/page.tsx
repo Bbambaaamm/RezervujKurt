@@ -68,7 +68,7 @@ export default function ReservationPage() {
 
   const reservationsReloadRequestRef = useRef(0);
 
-  const reloadReservations = useCallback(async (date: string, accessToken?: string | null) => {
+  const reloadReservations = useCallback(async (date: string) => {
     const requestId = ++reservationsReloadRequestRef.current;
 
     if (process.env.NODE_ENV === 'development') {
@@ -76,7 +76,7 @@ export default function ReservationPage() {
     }
 
     try {
-      const loadedReservations = await getReservationsReadOnly(date, accessToken);
+      const loadedReservations = await getReservationsReadOnly(date);
 
       if (requestId !== reservationsReloadRequestRef.current) {
         return;
@@ -103,8 +103,8 @@ export default function ReservationPage() {
   }, []);
 
   useEffect(() => {
-    void reloadReservations(selectedDate, sessionToken);
-  }, [reloadReservations, selectedDate, sessionToken]);
+    void reloadReservations(selectedDate);
+  }, [reloadReservations, selectedDate]);
 
   useEffect(() => {
     setSelectionReady(false);
@@ -187,7 +187,7 @@ export default function ReservationPage() {
 
     try {
       await createReservation({ accessToken: sessionToken, userId: sessionUserId, courtId: Number(courtId), reservationDate: selectedDate, timeFrom, timeTo, note });
-      await reloadReservations(selectedDate, sessionToken);
+      await reloadReservations(selectedDate);
       setSubmitMessage('Rezervace vytvořena.');
     } catch (error) {
       if (error instanceof ReservationConflictError) {

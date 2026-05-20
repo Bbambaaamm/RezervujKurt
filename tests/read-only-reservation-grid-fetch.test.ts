@@ -19,17 +19,19 @@ test.afterEach(() => {
   globalThis.fetch = originalFetch;
 });
 
-test('getReservationsReadOnly: používá session token a endpoint obsahuje date + status pending/approved + order', async () => {
-  const requested = { url: '', auth: '' };
+test('getReservationsReadOnly: používá anonymní read endpoint bez user filtru a načítá jen occupancy sloupce', async () => {
+  const requested = { url: '', auth: '', apikey: '' };
 
   globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     requested.url = String(input);
-    requested.auth = String(init?.headers && (init.headers as Record<string, string>).Authorization);
+    const headers = (init?.headers ?? {}) as Record<string, string>;
+    requested.auth = String(headers.Authorization ?? '');
+    requested.apikey = String(headers.apikey ?? '');
     return createJsonResponse('[]');
   };
 
   const { getReservationsReadOnly } = await import('../lib/services/read-only');
-  const result = await getReservationsReadOnly('2026-05-20', 'session-token');
+  const result = await getReservationsReadOnly('2026-05-20');
 
   assert.deepEqual(result, []);
 
@@ -37,5 +39,8 @@ test('getReservationsReadOnly: používá session token a endpoint obsahuje date
   assert.equal(parsedUrl.searchParams.get('reservation_date'), 'eq.2026-05-20');
   assert.equal(parsedUrl.searchParams.get('status'), 'in.(pending,approved)');
   assert.equal(parsedUrl.searchParams.get('order'), 'time_from.asc');
-  assert.equal(requested.auth, 'Bearer session-token');
+  assert.equal(parsedUrl.searchParams.get('select'), 'id,court_id,reservation_date,time_from,time_to,status,created_at');
+  assert.equal(parsedUrl.searchParams.get('user_id'), null);
+  assert.equal(requested.auth, 'Bearer anon-key');
+  assert.equal(requested.apikey, 'anon-key');
 });

@@ -17,7 +17,6 @@ type ReservationRow = {
   time_from: string;
   time_to: string;
   status: 'pending' | 'approved' | 'cancelled';
-  note: string | null;
   created_at: string;
 };
 
@@ -87,7 +86,6 @@ function mapReservation(row: ReservationRow): Reservation {
     name: 'Rezervace',
     email: '',
     phone: '',
-    note: row.note ?? undefined,
     paymentMethod: 'online_placeholder',
     createdAt: row.created_at,
   };
@@ -128,11 +126,9 @@ export async function getCourtsReadOnly() {
   return rows.map(mapCourt);
 }
 
-export async function getReservationsReadOnly(date: string, accessToken?: string | null) {
-  const endpoint = `reservations?select=id,court_id,reservation_date,time_from,time_to,status,note,created_at&reservation_date=eq.${date}&status=in.(pending,approved)&order=time_from.asc`;
-  const rows = accessToken
-    ? await supabaseSelectWithAccessToken<ReservationRow>(endpoint, accessToken)
-    : await supabaseSelect<ReservationRow>(endpoint);
+export async function getReservationsReadOnly(date: string) {
+  const endpoint = `reservations?select=id,court_id,reservation_date,time_from,time_to,status,created_at&reservation_date=eq.${date}&status=in.(pending,approved)&order=time_from.asc`;
+  const rows = await supabaseSelect<ReservationRow>(endpoint);
 
   return rows.map(mapReservation);
 }
