@@ -33,6 +33,14 @@ function getSlotStatus(courtId: number, time: number, date: string, reservations
   const reservation = reservations.find((item) => item.courtId === courtId && item.date === date && isReservationSlotOccupied(item, time, slotTo));
 
   if (!reservation) {
+    if (process.env.NODE_ENV === 'development') {
+      console.info('reservation grid occupancy no match for slot', {
+        courtId,
+        date,
+        slotFrom: formatTimeLabel(time),
+        slotTo: formatTimeLabel(slotTo),
+      });
+    }
     return { type: 'volno', label: 'Volno' };
   }
 
@@ -70,6 +78,10 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
   );
 
   const [isDragging, setIsDragging] = useState(false);
+
+  if (process.env.NODE_ENV === "development") {
+    console.info('reservation grid received reservations count', { count: reservations.length, selectedDate });
+  }
   const [dragState, setDragState] = useState<DragState>(null);
 
   const selectedSlots = useMemo(() => {

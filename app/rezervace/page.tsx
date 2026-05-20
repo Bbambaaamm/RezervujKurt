@@ -68,7 +68,7 @@ export default function ReservationPage() {
 
   const reservationsReloadRequestRef = useRef(0);
 
-  const reloadReservations = useCallback(async (date: string) => {
+  const reloadReservations = useCallback(async (date: string, accessToken?: string | null) => {
     const requestId = ++reservationsReloadRequestRef.current;
 
     if (process.env.NODE_ENV === 'development') {
@@ -76,7 +76,7 @@ export default function ReservationPage() {
     }
 
     try {
-      const loadedReservations = await getReservationsReadOnly(date);
+      const loadedReservations = await getReservationsReadOnly(date, accessToken);
 
       if (requestId !== reservationsReloadRequestRef.current) {
         return;
@@ -85,7 +85,8 @@ export default function ReservationPage() {
       setReservations(loadedReservations);
 
       if (process.env.NODE_ENV === 'development') {
-        console.info('reservation reload success', { date, requestId, count: loadedReservations.length });
+        console.info('reservation page loaded reservations count', { date, requestId, count: loadedReservations.length });
+        console.info('reservation page reservations sample', loadedReservations.slice(0, 3));
       }
     } catch (error) {
       if (requestId !== reservationsReloadRequestRef.current) {
@@ -102,8 +103,8 @@ export default function ReservationPage() {
   }, []);
 
   useEffect(() => {
-    void reloadReservations(selectedDate);
-  }, [reloadReservations, selectedDate]);
+    void reloadReservations(selectedDate, sessionToken);
+  }, [reloadReservations, selectedDate, sessionToken]);
 
   useEffect(() => {
     setSelectionReady(false);
@@ -186,7 +187,7 @@ export default function ReservationPage() {
 
     try {
       await createReservation({ accessToken: sessionToken, userId: sessionUserId, courtId: Number(courtId), reservationDate: selectedDate, timeFrom, timeTo, note });
-      await reloadReservations(selectedDate);
+      await reloadReservations(selectedDate, sessionToken);
       setSubmitMessage('Rezervace vytvořena.');
     } catch (error) {
       if (error instanceof ReservationConflictError) {
