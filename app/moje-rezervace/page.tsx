@@ -1,0 +1,134 @@
+"use client";
+
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { getMyReservationsReadOnly, type ReservationOverview } from '@/lib/services/read-only';
+import { ReservationUnauthorizedError } from '@/lib/services/supabase-error-mapping';
+import { supabaseAuthClient } from '@/lib/supabase/auth-client';
+
+function formatDate(date: string) {
+  const parsedDate = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(parsedDate.getTime())) return date;
+  return new Intl.DateTimeFormat('cs-CZ', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(parsedDate);
+}
+
+function formatCreatedAt(value: string | null) {
+  if (!value) return '—';
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) return '—';
+  return new Intl.DateTimeFormat('cs-CZ', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(parsedDate);
+}
+
+function getStatusBadgeClass(status: ReservationOverview['status']) {
+  if (status === 'approved') return 'border-emerald-200 bg-emerald-50 text-emerald-800';
+  if (status === 'cancelled') return 'border-rose-200 bg-rose-50 text-rose-800';
+  return 'border-amber-200 bg-amber-50 text-amber-800';
+}
+
+export default function MyReservationsPage() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [reservations, setReservations] = useState<ReservationOverview[]>([]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadMyReservations() {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const { data } = await supabaseAuthClient.auth.getSession();
+        const loadedReservations = await getMyReservationsReadOnly(data.session ?? null);
+
+        if (!active) return;
+        setReservations(loadedReservations);
+        setIsAuthorized(true);
+      } catch (loadError) {
+        if (!active) return;
+
+        if (loadError instanceof ReservationUnauthorizedError) {
+          setIsAuthorized(false);
+          return;
+        }
+
+        setError('Načtení rezervací se nepodařilo. Zkuste to prosím později.');
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    }
+
+    void loadMyReservations();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (isLoading) {
+    return <div className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600">Načítám vaše rezervace…</div>;
+  }
+
+  if (!isAuthorized) {
+    return (
+      <div className="space-y-4 rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+        <h1 className="text-2xl font-bold text-slate-900">Moje rezervace</h1>
+        <p>Pro zobrazení vašich rezervací se musíte přihlásit.</p>
+        <Link href="/prihlaseni" className="inline-flex rounded-md border border-amber-300 bg-white px-3 py-2 text-amber-900 hover:bg-amber-100">
+          Přejít na přihlášení
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <h1 className="text-3xl font-bold">Moje rezervace</h1>
+      {error && <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">{error}</p>}
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <table className="min-w-full text-sm">
+          <thead className="bg-slate-100 text-left text-slate-700">
+            <tr>
+              <th className="px-3 py-2">Datum</th>
+              <th className="px-3 py-2">Čas od</th>
+              <th className="px-3 py-2">Čas do</th>
+              <th className="px-3 py-2">Kurt</th>
+              <th className="px-3 py-2">Stav</th>
+              <th className="px-3 py-2">Vytvořeno</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reservations.map((reservation) => (
+              <tr key={reservation.id} className="border-t border-slate-100">
+                <td className="px-3 py-2">{formatDate(reservation.reservationDate)}</td>
+                <td className="px-3 py-2">{reservation.timeFrom}</td>
+                <td className="px-3 py-2">{reservation.timeTo}</td>
+                <td className="px-3 py-2">{reservation.courtName}</td>
+                <td className="px-3 py-2">
+                  <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-medium ${getStatusBadgeClass(reservation.status)}`}>
+                    {reservation.status}
+                  </span>
+                </td>
+                <td className="px-3 py-2">{formatCreatedAt(reservation.createdAt)}</td>
+              </tr>
+            ))}
+            {reservations.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-3 py-4 text-center text-slate-500">
+                  Zatím nemáte žádné rezervace.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
