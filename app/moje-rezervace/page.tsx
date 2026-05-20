@@ -40,9 +40,12 @@ export default function MyReservationsPage() {
   const [reservations, setReservations] = useState<ReservationOverview[]>([]);
   const [cancelingReservationId, setCancelingReservationId] = useState<string | null>(null);
 
-  async function loadMyReservations(activeGuard?: { active: boolean }) {
+  async function loadMyReservations(options?: { activeGuard?: { active: boolean }; preserveSuccessMessage?: string | null }) {
     setIsLoading(true);
-    const nextFeedback = getMyReservationsFeedbackOnReload(successMessage);
+    const nextFeedback = getMyReservationsFeedbackOnReload({
+      currentSuccessMessage: successMessage,
+      preservedSuccessMessage: options?.preserveSuccessMessage,
+    });
     setErrorMessage(nextFeedback.errorMessage);
     setSuccessMessage(nextFeedback.successMessage);
 
@@ -50,11 +53,11 @@ export default function MyReservationsPage() {
       const { data } = await supabaseAuthClient.auth.getSession();
       const loadedReservations = await getMyReservationsReadOnly(data.session ?? null);
 
-      if (activeGuard && !activeGuard.active) return;
+      if (options?.activeGuard && !options.activeGuard.active) return;
       setReservations(loadedReservations);
       setIsAuthorized(true);
     } catch (loadError) {
-      if (activeGuard && !activeGuard.active) return;
+      if (options?.activeGuard && !options.activeGuard.active) return;
 
       if (loadError instanceof ReservationUnauthorizedError) {
         setIsAuthorized(false);
@@ -63,13 +66,13 @@ export default function MyReservationsPage() {
 
       setErrorMessage('Načtení rezervací se nepodařilo. Zkuste to prosím později.');
     } finally {
-      if (!activeGuard || activeGuard.active) setIsLoading(false);
+      if (!options?.activeGuard || options.activeGuard.active) setIsLoading(false);
     }
   }
 
   useEffect(() => {
     const activeGuard = { active: true };
-    void loadMyReservations(activeGuard);
+    void loadMyReservations({ activeGuard });
 
     return () => {
       activeGuard.active = false;
@@ -90,8 +93,9 @@ export default function MyReservationsPage() {
     try {
       const { data } = await supabaseAuthClient.auth.getSession();
       await cancelMyReservation({ session: data.session ?? null, reservationId: reservation.id });
-      setSuccessMessage('Rezervace byla zrušena.');
-      await loadMyReservations();
+      const preservedSuccessMessage = 'Rezervace byla zrušena.';
+      setSuccessMessage(preservedSuccessMessage);
+      await loadMyReservations({ preserveSuccessMessage: preservedSuccessMessage });
     } catch (cancelError) {
       if (cancelError instanceof ReservationNoLongerPendingError) {
         setErrorMessage('Rezervaci už není možné zrušit.');

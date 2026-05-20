@@ -89,10 +89,15 @@ function getPragueReservationStartMs(reservationDate: string, timeFrom: string) 
   return baseUtcMs - offsetMs;
 }
 
-export function getMyReservationsFeedbackOnReload(currentSuccessMessage: string | null): MyReservationsFeedbackState {
+type GetMyReservationsFeedbackOnReloadInput = {
+  currentSuccessMessage: string | null;
+  preservedSuccessMessage?: string | null;
+};
+
+export function getMyReservationsFeedbackOnReload(input: GetMyReservationsFeedbackOnReloadInput): MyReservationsFeedbackState {
   return {
     errorMessage: null,
-    successMessage: currentSuccessMessage,
+    successMessage: input.preservedSuccessMessage ?? input.currentSuccessMessage,
   };
 }
 
