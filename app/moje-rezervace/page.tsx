@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { getMyReservationsReadOnly, type ReservationOverview } from '@/lib/services/read-only';
-import { ReservationUnauthorizedError } from '@/lib/services/supabase-error-mapping';
+import { cancelMyReservation, isMyReservationCancelable } from '@/lib/services/my-reservations';
+import { ReservationNoLongerPendingError, ReservationUnauthorizedError } from '@/lib/services/supabase-error-mapping';
 import { supabaseAuthClient } from '@/lib/supabase/auth-client';
 
 function formatDate(date: string) {
@@ -36,41 +37,74 @@ export default function MyReservationsPage() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reservations, setReservations] = useState<ReservationOverview[]>([]);
+  const [cancelingReservationId, setCancelingReservationId] = useState<string | null>(null);
+
+  async function loadMyReservations(activeGuard?: { active: boolean }) {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const { data } = await supabaseAuthClient.auth.getSession();
+      const loadedReservations = await getMyReservationsReadOnly(data.session ?? null);
+
+      if (activeGuard && !activeGuard.active) return;
+      setReservations(loadedReservations);
+      setIsAuthorized(true);
+    } catch (loadError) {
+      if (activeGuard && !activeGuard.active) return;
+
+      if (loadError instanceof ReservationUnauthorizedError) {
+        setIsAuthorized(false);
+        return;
+      }
+
+      setError('Načtení rezervací se nepodařilo. Zkuste to prosím později.');
+    } finally {
+      if (!activeGuard || activeGuard.active) setIsLoading(false);
+    }
+  }
 
   useEffect(() => {
-    let active = true;
-
-    async function loadMyReservations() {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const { data } = await supabaseAuthClient.auth.getSession();
-        const loadedReservations = await getMyReservationsReadOnly(data.session ?? null);
-
-        if (!active) return;
-        setReservations(loadedReservations);
-        setIsAuthorized(true);
-      } catch (loadError) {
-        if (!active) return;
-
-        if (loadError instanceof ReservationUnauthorizedError) {
-          setIsAuthorized(false);
-          return;
-        }
-
-        setError('Načtení rezervací se nepodařilo. Zkuste to prosím později.');
-      } finally {
-        if (active) setIsLoading(false);
-      }
-    }
-
-    void loadMyReservations();
+    const activeGuard = { active: true };
+    void loadMyReservations(activeGuard);
 
     return () => {
-      active = false;
+      activeGuard.active = false;
     };
   }, []);
+
+  async function handleCancelReservation(reservation: ReservationOverview) {
+    setError(null);
+
+    if (!isMyReservationCancelable(reservation)) {
+      setError('Rezervaci už není možné zrušit.');
+      return;
+    }
+
+    setCancelingReservationId(reservation.id);
+
+    try {
+      const { data } = await supabaseAuthClient.auth.getSession();
+      await cancelMyReservation({ session: data.session ?? null, reservationId: reservation.id });
+      setError('Rezervace byla zrušena.');
+      await loadMyReservations();
+    } catch (cancelError) {
+      if (cancelError instanceof ReservationNoLongerPendingError) {
+        setError('Rezervaci už není možné zrušit.');
+        await loadMyReservations();
+        return;
+      }
+
+      if (cancelError instanceof ReservationUnauthorizedError) {
+        setError('Nemáte oprávnění zrušit tuto rezervaci.');
+        return;
+      }
+
+      setError('Rezervaci se nepodařilo zrušit.');
+    } finally {
+      setCancelingReservationId(null);
+    }
+  }
 
   if (isLoading) {
     return <div className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600">Načítám vaše rezervace…</div>;
@@ -102,6 +136,7 @@ export default function MyReservationsPage() {
               <th className="px-3 py-2">Kurt</th>
               <th className="px-3 py-2">Stav</th>
               <th className="px-3 py-2">Vytvořeno</th>
+              <th className="px-3 py-2">Akce</th>
             </tr>
           </thead>
           <tbody>
@@ -117,11 +152,25 @@ export default function MyReservationsPage() {
                   </span>
                 </td>
                 <td className="px-3 py-2">{formatCreatedAt(reservation.createdAt)}</td>
+                <td className="px-3 py-2">
+                  {isMyReservationCancelable(reservation) ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleCancelReservation(reservation)}
+                      disabled={cancelingReservationId === reservation.id}
+                      className="rounded-md border border-rose-300 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {cancelingReservationId === reservation.id ? 'Ruším...' : 'Zrušit'}
+                    </button>
+                  ) : (
+                    '—'
+                  )}
+                </td>
               </tr>
             ))}
             {reservations.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-3 py-4 text-center text-slate-500">
+                <td colSpan={7} className="px-3 py-4 text-center text-slate-500">
                   Zatím nemáte žádné rezervace.
                 </td>
               </tr>
