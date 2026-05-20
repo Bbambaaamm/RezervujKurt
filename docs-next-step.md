@@ -199,3 +199,4 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
 - Přidán dev log `admin pending ordered by oldest first` po načtení pending seznamu.
 - O.11 test coverage: přidán cílený unit test pro konstrukci pending endpointu, který hlídá ordering `created_at.asc.nullslast,reservation_date.asc,time_from.asc` bez testování Supabase backend řazení.
 - O.12 test coverage: přidán cílený unit test pro konstrukci history endpointu `getRecentReservationsReadOnly`, který hlídá `order=created_at.desc`, výchozí `limit=20` a clamp limitu na `50` při vysoké vstupní hodnotě (bez testování Supabase backend řazení).
+- O.13 test coverage: přidán cílený unit test pro validaci limitu v `getRecentReservationsReadOnly` (NaN/Infinity fallback na `20`, `0` a záporné hodnoty clamp na `1`) pouze přes kontrolu konstrukce URL query parametru `limit`.
