@@ -9,6 +9,7 @@ import {
   type ReservationOverview,
 } from '@/lib/services/read-only';
 import { ReservationNoLongerPendingError, ReservationUnauthorizedError, ReservationValidationError } from '@/lib/services/supabase-error-mapping';
+import { resolveAdminGuardState } from '@/lib/services/admin-guard';
 import { getCurrentUserRoleFromSession, type CurrentUserRole } from '@/lib/services/profile';
 import { updateReservationStatus } from '@/lib/services/reservations';
 import { supabaseAuthClient } from '@/lib/supabase/auth-client';
@@ -88,6 +89,10 @@ export default function AdminPage() {
           console.info('admin guard: admin');
         } else {
           console.info('admin guard: user');
+        }
+
+        if (process.env.NODE_ENV === 'development') {
+          console.info('admin authorization verification passed', { state: resolveAdminGuardState(nextRole) });
         }
       } catch (guardError) {
         if (!active) return;
@@ -227,7 +232,9 @@ export default function AdminPage() {
     return <div className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600">Kontroluji přihlášení…</div>;
   }
 
-  if (userRole === 'anonymous') {
+  const guardState = resolveAdminGuardState(userRole);
+
+  if (guardState === 'unauthorized') {
     return (
       <div className="space-y-4 rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
         <h1 className="text-2xl font-bold text-slate-900">Administrace rezervací</h1>
@@ -239,7 +246,7 @@ export default function AdminPage() {
     );
   }
 
-  if (userRole !== 'admin') {
+  if (guardState === 'forbidden') {
     return (
       <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-700">
         <h1 className="text-2xl font-bold text-slate-900">Administrace rezervací</h1>

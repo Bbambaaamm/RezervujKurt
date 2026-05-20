@@ -1,5 +1,5 @@
-import { supabaseSelectWithAccessToken } from '@/lib/supabase/client';
-import type { AuthSession } from '@/lib/supabase/auth-client';
+import { supabaseSelectWithAccessToken } from '../supabase/client';
+import type { AuthSession } from '../supabase/auth-client';
 
 type ProfileRow = {
   id: string;
