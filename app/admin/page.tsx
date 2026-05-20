@@ -22,6 +22,7 @@ import {
   shouldRenderEmptyState,
   shouldRenderLoadingState,
 } from '@/lib/services/reservation-overview-ui';
+import { resolveStaleRecoveryAccessToken } from './stale-recovery';
 
 function formatDate(date: string) {
   const parsedDate = new Date(`${date}T00:00:00`);
@@ -217,13 +218,15 @@ export default function AdminPage() {
         const { data } = await supabaseAuthClient.auth.getSession();
         const refreshedAccessToken = data.session?.access_token;
 
-        if (!refreshedAccessToken) {
-          throw new ReservationUnauthorizedError('Pro obnovení administrace je potřeba přihlášení.');
+        const staleRecovery = resolveStaleRecoveryAccessToken(refreshedAccessToken);
+        if (!staleRecovery.ok) {
+          setError(staleRecovery.error);
+          return;
         }
 
         const [loadedReservations, loadedRecentReservations] = await Promise.all([
-          getPendingReservationsReadOnlyWithSession(refreshedAccessToken),
-          getRecentReservationsReadOnlyWithSession(refreshedAccessToken, 20),
+          getPendingReservationsReadOnlyWithSession(staleRecovery.token),
+          getRecentReservationsReadOnlyWithSession(staleRecovery.token, 20),
         ]);
         setReservations(loadedReservations);
         setRecentReservations(loadedRecentReservations);

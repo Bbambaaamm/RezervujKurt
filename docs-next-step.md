@@ -71,6 +71,7 @@ Předchozí verze dokumentu obsahovala interní rozpory (např. otevřené dluhy
 - Stale pending handling je implementovaný.
 - History přehled (read-only) je implementovaný.
 - Admin overview už nezobrazuje technické UUID uživatelů; používá fallback řetězec `display_name/full_name -> email -> Uživatel`.
+- Missing refreshed access token ve stale-pending recovery větvi je nyní obsloužen lokálně přes UI chybu a bezpečný návrat bez dalšího throw (prevence unhandled rejected promise při expiraci session).
 
 ### P: My reservations overview + user cancellation
 **Stav: SPLNĚNO**

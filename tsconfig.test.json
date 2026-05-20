@@ -17,6 +17,7 @@
   },
   "include": [
     "tests/**/*.ts",
+    "app/admin/stale-recovery.ts",
     "lib/services/supabase-error-mapping.ts",
     "lib/supabase/client.ts",
     "lib/services/reservations.ts",
