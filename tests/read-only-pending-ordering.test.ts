@@ -30,7 +30,7 @@ test.afterEach(() => {
   globalThis.fetch = originalFetch;
 });
 
-test('getPendingReservationsReadOnly: endpoint obsahuje stabilní ordering pending rezervací', async () => {
+test('getPendingReservationsReadOnlyWithSession: endpoint má pending filtr, ordering a bez user_id filtru', async () => {
   ensureTestAliasBridge();
 
   const requestedUrls: string[] = [];
@@ -39,23 +39,20 @@ test('getPendingReservationsReadOnly: endpoint obsahuje stabilní ordering pendi
     return createJsonResponse('[]');
   };
 
-  const { getPendingReservationsReadOnly } = await import('../lib/services/read-only');
+  const { getPendingReservationsReadOnlyWithSession } = await import('../lib/services/read-only');
 
-  const result = await getPendingReservationsReadOnly();
+  const result = await getPendingReservationsReadOnlyWithSession('access-token');
 
   assert.deepEqual(result, []);
   assert.equal(requestedUrls.length, 1);
 
   const pendingRequestUrl = new URL(requestedUrls[0]);
-  const orderParam = pendingRequestUrl.searchParams.get('order');
-
-  assert.equal(orderParam, 'created_at.asc.nullslast,reservation_date.asc,time_from.asc');
-
-  console.info('pending ordering test passed');
+  assert.equal(pendingRequestUrl.searchParams.get('status'), 'eq.pending');
+  assert.equal(pendingRequestUrl.searchParams.get('order'), 'created_at.asc.nullslast,reservation_date.asc,time_from.asc');
+  assert.equal(pendingRequestUrl.searchParams.has('user_id'), false);
 });
 
-
-test('getRecentReservationsReadOnly: endpoint obsahuje ordering created_at desc a limit', async () => {
+test('getRecentReservationsReadOnlyWithSession: endpoint obsahuje ordering created_at desc, limit a bez user_id filtru', async () => {
   ensureTestAliasBridge();
 
   const requestedUrls: string[] = [];
@@ -64,28 +61,26 @@ test('getRecentReservationsReadOnly: endpoint obsahuje ordering created_at desc 
     return createJsonResponse('[]');
   };
 
-  const { getRecentReservationsReadOnly } = await import('../lib/services/read-only');
+  const { getRecentReservationsReadOnlyWithSession } = await import('../lib/services/read-only');
 
-  const defaultResult = await getRecentReservationsReadOnly();
+  const defaultResult = await getRecentReservationsReadOnlyWithSession('access-token');
   assert.deepEqual(defaultResult, []);
 
   const defaultRequestUrl = new URL(requestedUrls[0]);
   assert.equal(defaultRequestUrl.searchParams.get('order'), 'created_at.desc');
   assert.equal(defaultRequestUrl.searchParams.get('limit'), '20');
+  assert.equal(defaultRequestUrl.searchParams.has('user_id'), false);
 
   requestedUrls.length = 0;
 
-  const clampedResult = await getRecentReservationsReadOnly(999);
+  const clampedResult = await getRecentReservationsReadOnlyWithSession('access-token', 999);
   assert.deepEqual(clampedResult, []);
 
   const clampedRequestUrl = new URL(requestedUrls[0]);
   assert.equal(clampedRequestUrl.searchParams.get('limit'), '50');
-
-  console.info('recent reservations ordering test passed');
 });
 
-
-test('getRecentReservationsReadOnly: endpoint validuje nevalidní a hraniční limity', async () => {
+test('getRecentReservationsReadOnlyWithSession: endpoint validuje nevalidní a hraniční limity', async () => {
   ensureTestAliasBridge();
 
   const requestedUrls: string[] = [];
@@ -94,7 +89,7 @@ test('getRecentReservationsReadOnly: endpoint validuje nevalidní a hraniční l
     return createJsonResponse('[]');
   };
 
-  const { getRecentReservationsReadOnly } = await import('../lib/services/read-only');
+  const { getRecentReservationsReadOnlyWithSession } = await import('../lib/services/read-only');
 
   const cases: Array<{ input: number; expectedLimit: string }> = [
     { input: Number.NaN, expectedLimit: '20' },
@@ -106,13 +101,32 @@ test('getRecentReservationsReadOnly: endpoint validuje nevalidní a hraniční l
   for (const { input, expectedLimit } of cases) {
     requestedUrls.length = 0;
 
-    const result = await getRecentReservationsReadOnly(input);
+    const result = await getRecentReservationsReadOnlyWithSession('access-token', input);
     assert.deepEqual(result, []);
     assert.equal(requestedUrls.length, 1);
 
     const requestUrl = new URL(requestedUrls[0]);
     assert.equal(requestUrl.searchParams.get('limit'), expectedLimit);
   }
+});
 
-  console.info('recent reservations invalid limit test passed');
+test('getPendingReservationsReadOnlyWithSession: mapper nezahodí rezervaci bez profilu a použije fallback Uživatel', async () => {
+  ensureTestAliasBridge();
+
+  const responses = [
+    [{ id: 'r1', reservation_date: '2026-05-20', time_from: '10:00:00', time_to: '11:00:00', created_at: '2026-05-20T09:00:00Z', status: 'pending', court_id: 1, user_id: 'user-1' }],
+    [{ id: 1, name: 'Kurt A' }],
+    [],
+  ];
+
+  globalThis.fetch = async () => createJsonResponse(JSON.stringify(responses.shift() ?? []));
+
+  const { getPendingReservationsReadOnlyWithSession } = await import('../lib/services/read-only');
+  const { getReservationUserLabel } = await import('../lib/services/reservation-overview-ui');
+
+  const result = await getPendingReservationsReadOnlyWithSession('access-token');
+
+  assert.equal(result.length, 1);
+  assert.equal(result[0].id, 'r1');
+  assert.equal(getReservationUserLabel(result[0]), 'Uživatel');
 });
