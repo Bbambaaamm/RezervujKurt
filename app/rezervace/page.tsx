@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ReservationGrid } from '@/components/reservation-grid';
 import { courts as fallbackCourts, mockReservations as fallbackReservations } from '@/lib/mockData';
@@ -66,8 +66,44 @@ export default function ReservationPage() {
 
   useEffect(() => { /* existing */ let active = true; async function loadCourts() { try { const loadedCourts = await getCourtsReadOnly(); if (active && loadedCourts.length > 0) { setCourts(loadedCourts); setCourtId(String(loadedCourts[0].id)); } } catch (error) { if (active) { setCourts(fallbackCourts); setSourceMode('mock fallback'); } if (error instanceof SupabaseRequestError) { console.error('Načtení kurtů ze Supabase selhalo, používám fallback data.', { endpoint: error.endpoint, status: error.status, response: error.responseBody, }); return; } console.error('Načtení kurtů ze Supabase selhalo, používám fallback data.', error); }} loadCourts(); return () => { active = false; }; }, []);
 
-  useEffect(() => { let active = true; async function loadReservations() { try { const loadedReservations = await getReservationsReadOnly(selectedDate); if (active) setReservations(loadedReservations);} catch (error) { if (active) { setReservations(fallbackReservations.filter((reservation) => reservation.date === selectedDate)); setSourceMode('mock fallback'); } }} loadReservations(); return () => { active = false; }; }, [selectedDate]);
+  const reservationsReloadRequestRef = useRef(0);
 
+  const reloadReservations = useCallback(async (date: string) => {
+    const requestId = ++reservationsReloadRequestRef.current;
+
+    if (process.env.NODE_ENV === 'development') {
+      console.info('reservation reload started', { date, requestId });
+    }
+
+    try {
+      const loadedReservations = await getReservationsReadOnly(date);
+
+      if (requestId !== reservationsReloadRequestRef.current) {
+        return;
+      }
+
+      setReservations(loadedReservations);
+
+      if (process.env.NODE_ENV === 'development') {
+        console.info('reservation reload success', { date, requestId, count: loadedReservations.length });
+      }
+    } catch (error) {
+      if (requestId !== reservationsReloadRequestRef.current) {
+        return;
+      }
+
+      setReservations(fallbackReservations.filter((reservation) => reservation.date === date));
+      setSourceMode('mock fallback');
+
+      if (process.env.NODE_ENV === 'development') {
+        console.info('reservation reload failed', { date, requestId, error });
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    void reloadReservations(selectedDate);
+  }, [reloadReservations, selectedDate]);
 
   useEffect(() => {
     setSelectionReady(false);
@@ -150,9 +186,8 @@ export default function ReservationPage() {
 
     try {
       await createReservation({ accessToken: sessionToken, userId: sessionUserId, courtId: Number(courtId), reservationDate: selectedDate, timeFrom, timeTo, note });
+      await reloadReservations(selectedDate);
       setSubmitMessage('Rezervace vytvořena.');
-      const loadedReservations = await getReservationsReadOnly(selectedDate);
-      setReservations(loadedReservations);
     } catch (error) {
       if (error instanceof ReservationConflictError) {
         setSubmitError('Kolize rezervace. Vybraný termín je už obsazen.');

@@ -128,3 +128,5 @@ Následující body jsou záměrně oddělené jako budoucí rozvoj mimo scope p
 
 ## Závěr
 Původní MVP milestone plán **A–P je dokončený** a dokumentace je sjednocená s reálným stavem kódu. Další práce patří do odděleného **Future / production readiness backlogu**.
+
+- Oprava regrese refresh flow na `/rezervace`: reload rezervací po create nyní používá explicitní parametr `date` a ochranu proti přepsání novějších dat starším requestem (stale closure/race condition).
