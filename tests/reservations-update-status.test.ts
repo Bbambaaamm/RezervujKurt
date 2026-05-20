@@ -74,13 +74,43 @@ test('updateReservationStatus: neprázdné pole je success', async () => {
   );
 });
 
-test('updateReservationStatus: 403/42501 mapuje na ReservationUnauthorizedError', async () => {
+test('updateReservationStatus: 403 mapuje na ReservationUnauthorizedError', async () => {
   const { updateReservationStatus } = await import('../lib/services/reservations');
 
   globalThis.fetch = async () => createResponse({
     status: 403,
     statusText: 'Forbidden',
+    body: JSON.stringify({ message: 'forbidden' }),
+  });
+
+  await assert.rejects(
+    () => updateReservationStatus({ accessToken: 'token', reservationId: 'res-1', status: 'approved' }),
+    (error: unknown) => error instanceof ReservationUnauthorizedError,
+  );
+});
+
+test('updateReservationStatus: 42501 mapuje na ReservationUnauthorizedError', async () => {
+  const { updateReservationStatus } = await import('../lib/services/reservations');
+
+  globalThis.fetch = async () => createResponse({
+    status: 500,
+    statusText: 'Internal Server Error',
     body: JSON.stringify({ code: '42501' }),
+  });
+
+  await assert.rejects(
+    () => updateReservationStatus({ accessToken: 'token', reservationId: 'res-1', status: 'approved' }),
+    (error: unknown) => error instanceof ReservationUnauthorizedError,
+  );
+});
+
+test('updateReservationStatus: prázdná unauthorized odpověď mapuje na ReservationUnauthorizedError', async () => {
+  const { updateReservationStatus } = await import('../lib/services/reservations');
+
+  globalThis.fetch = async () => createResponse({
+    status: 403,
+    statusText: 'Forbidden',
+    body: '',
   });
 
   await assert.rejects(
