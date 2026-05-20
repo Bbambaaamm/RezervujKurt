@@ -14,6 +14,14 @@ import { getCurrentUserRoleFromSession, type CurrentUserRole } from '@/lib/servi
 import { updateReservationStatus } from '@/lib/services/reservations';
 import { supabaseAuthClient } from '@/lib/supabase/auth-client';
 import { SupabaseRequestError } from '@/lib/supabase/client';
+import {
+  getAriaBusy,
+  getAriaDisabled,
+  getReservationStatusLabel,
+  getReservationUserLabel,
+  shouldRenderEmptyState,
+  shouldRenderLoadingState,
+} from '@/lib/services/reservation-overview-ui';
 
 function formatDate(date: string) {
   const parsedDate = new Date(`${date}T00:00:00`);
@@ -34,11 +42,6 @@ function formatCreatedAt(value: string | null) {
   }).format(parsedDate);
 }
 
-function formatIdentity(reservation: ReservationOverview) {
-  if (reservation.userDisplayName) return reservation.userDisplayName;
-  return reservation.userId;
-}
-
 function getErrorName(error: unknown) {
   if (error instanceof Error && error.name) return error.name;
   return 'UnknownError';
@@ -56,11 +59,6 @@ function getStatusBadgeClass(status: ReservationOverview['status']) {
   return 'border-amber-200 bg-amber-50 text-amber-800';
 }
 
-function getStatusLabel(status: ReservationOverview['status']) {
-  if (status === 'approved') return 'approved';
-  if (status === 'cancelled') return 'cancelled';
-  return 'pending';
-}
 
 export default function AdminPage() {
   const [isSessionChecked, setIsSessionChecked] = useState(false);
@@ -260,12 +258,12 @@ export default function AdminPage() {
       <h1 className="text-3xl font-bold">Administrace rezervací</h1>
       <p className="text-sm text-slate-600">Read-only přehled rezervací čekajících na schválení.</p>
 
-      {isLoading ? <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">Načítám čekající rezervace…</div> : null}
+      {shouldRenderLoadingState(isLoading) ? <div aria-busy={getAriaBusy(isLoading)} className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">Načítání rezervací...</div> : null}
 
-      {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{error}</div> : null}
+      {error ? <div role="status" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{error}</div> : null}
 
-      {!isLoading && !error && reservations.length === 0 ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">Aktuálně nejsou žádné rezervace ve stavu čekající.</div>
+      {shouldRenderEmptyState(isLoading, Boolean(error), reservations.length) ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">Žádné čekající rezervace.</div>
       ) : null}
 
       {!isLoading && !error && reservations.length > 0 ? (
@@ -296,10 +294,10 @@ export default function AdminPage() {
                   <td className="px-4 py-3">{reservation.timeTo}</td>
                   <td className="px-4 py-3">{formatCreatedAt(reservation.createdAt)}</td>
                   <td className="px-4 py-3">{reservation.courtName}</td>
-                  <td className="px-4 py-3">{formatIdentity(reservation)}</td>
+                  <td className="px-4 py-3">{getReservationUserLabel(reservation)}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-medium ${getStatusBadgeClass(reservation.status)}`}>
-                      {getStatusLabel(reservation.status)}
+                      {getReservationStatusLabel(reservation.status)}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -308,6 +306,7 @@ export default function AdminPage() {
                         type="button"
                         onClick={() => void handleReservationAction(reservation.id, 'approve')}
                         disabled={isActionLoadingById[reservation.id]}
+                        aria-disabled={getAriaDisabled(Boolean(isActionLoadingById[reservation.id]))}
                         className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-1 text-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {isActionLoadingById[reservation.id] ? 'Schvaluji…' : 'Schválit'}
@@ -316,6 +315,7 @@ export default function AdminPage() {
                         type="button"
                         onClick={() => void handleReservationAction(reservation.id, 'cancel')}
                         disabled={isActionLoadingById[reservation.id]}
+                        aria-disabled={getAriaDisabled(Boolean(isActionLoadingById[reservation.id]))}
                         className="rounded-md border border-rose-300 bg-rose-50 px-3 py-1 text-rose-800 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {isActionLoadingById[reservation.id] ? 'Ruším…' : 'Zrušit'}
@@ -335,7 +335,7 @@ export default function AdminPage() {
         <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
           <h2 className="text-lg font-semibold text-slate-900">Poslední rezervace</h2>
           {recentReservations.length === 0 ? (
-            <p className="text-sm text-slate-600">Zatím nejsou k dispozici žádné rezervace.</p>
+            <p className="text-sm text-slate-600">Historie rezervací je prázdná.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
@@ -363,10 +363,10 @@ export default function AdminPage() {
                         <td className="px-4 py-3">{reservation.timeTo}</td>
                         <td className="px-4 py-3">{formatCreatedAt(reservation.createdAt)}</td>
                         <td className="px-4 py-3">{reservation.courtName}</td>
-                        <td className="px-4 py-3">{formatIdentity(reservation)}</td>
+                        <td className="px-4 py-3">{getReservationUserLabel(reservation)}</td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-medium ${getStatusBadgeClass(reservation.status)}`}>
-                            {getStatusLabel(reservation.status)}
+                            {getReservationStatusLabel(reservation.status)}
                           </span>
                         </td>
                       </tr>

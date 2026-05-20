@@ -218,3 +218,5 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
 - P.2 follow-up hardening: cancellation flow nyní zachovává success confirmation i po refreshi seznamu a porovnání zrušitelnosti používá fixní business timezone `Europe/Prague` (nezávisle na timezone zařízení).
 - P.2 follow-up: opraven stale closure bug v `/moje-rezervace`, aby success confirmation `Rezervace byla zrušena.` zůstala zachovaná i při immediate reloadu po cancel flow (explicitní preserve parametr při reloadu).
 
+
+- P.4 reservation overview UX polish + cleanup
