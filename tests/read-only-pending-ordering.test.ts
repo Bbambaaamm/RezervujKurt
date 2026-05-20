@@ -83,3 +83,36 @@ test('getRecentReservationsReadOnly: endpoint obsahuje ordering created_at desc 
 
   console.info('recent reservations ordering test passed');
 });
+
+
+test('getRecentReservationsReadOnly: endpoint validuje nevalidní a hraniční limity', async () => {
+  ensureTestAliasBridge();
+
+  const requestedUrls: string[] = [];
+  globalThis.fetch = async (input: RequestInfo | URL) => {
+    requestedUrls.push(String(input));
+    return createJsonResponse('[]');
+  };
+
+  const { getRecentReservationsReadOnly } = await import('../lib/services/read-only');
+
+  const cases: Array<{ input: number; expectedLimit: string }> = [
+    { input: Number.NaN, expectedLimit: '20' },
+    { input: Number.POSITIVE_INFINITY, expectedLimit: '20' },
+    { input: 0, expectedLimit: '1' },
+    { input: -5, expectedLimit: '1' },
+  ];
+
+  for (const { input, expectedLimit } of cases) {
+    requestedUrls.length = 0;
+
+    const result = await getRecentReservationsReadOnly(input);
+    assert.deepEqual(result, []);
+    assert.equal(requestedUrls.length, 1);
+
+    const requestUrl = new URL(requestedUrls[0]);
+    assert.equal(requestUrl.searchParams.get('limit'), expectedLimit);
+  }
+
+  console.info('recent reservations invalid limit test passed');
+});
