@@ -16,6 +16,19 @@ test('getReservationUserLabel: fallback chain displayName -> email -> Uživatel'
   assert.equal(getReservationUserLabel({ userDisplayName: null, userEmail: null }), 'Uživatel');
 });
 
+test('getReservationUserLabel: UUID se nikdy nepoužije jako label', () => {
+  const uuid = '2f8f0a1c-d98f-4cfe-bd53-2a59507109f1';
+  assert.equal(getReservationUserLabel({ userDisplayName: uuid, userEmail: null }), 'Uživatel');
+  assert.equal(getReservationUserLabel({ userDisplayName: null, userEmail: uuid }), 'Uživatel');
+});
+
+test('getReservationUserLabel: display_name má prioritu před e-mailem', () => {
+  assert.equal(
+    getReservationUserLabel({ userDisplayName: '  Petra Svobodová  ', userEmail: 'petra@example.com' }),
+    'Petra Svobodová',
+  );
+});
+
 test('getReservationStatusLabel: mapuje statusy na sjednocené texty', () => {
   assert.equal(getReservationStatusLabel('pending'), 'Čeká na schválení');
   assert.equal(getReservationStatusLabel('approved'), 'Schváleno');

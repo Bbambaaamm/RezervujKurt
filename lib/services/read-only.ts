@@ -40,6 +40,7 @@ type PendingCourtRow = {
 type PendingProfileRow = {
   id: string;
   full_name: string | null;
+  email?: string | null;
 };
 
 export type ReservationOverview = {
@@ -51,6 +52,7 @@ export type ReservationOverview = {
   courtName: string;
   userId: string;
   userDisplayName: string | null;
+  userEmail?: string | null;
   status: 'pending' | 'approved' | 'cancelled';
 };
 
@@ -101,6 +103,7 @@ function mapReservationOverview(row: ReservationOverviewRow): ReservationOvervie
     courtName: `Kurt ${row.court_id}`,
     userId: row.user_id,
     userDisplayName: null,
+    userEmail: null,
     status: row.status,
   };
 }
@@ -152,24 +155,27 @@ async function getReservationsOverviewByEndpoint(endpoint: string) {
     const profileRows = userIds.length
       ? await (async () => {
           const quotedUserIds = userIds.map((id) => `"${id}"`).join(',');
-          const profilesEndpoint = `profiles?select=id,full_name&id=in.(${quotedUserIds})`;
+          const profilesEndpoint = `profiles?select=id,full_name,email&id=in.(${quotedUserIds})`;
           console.info('Admin profiles lookup request.', { endpoint: profilesEndpoint });
           return supabaseSelect<PendingProfileRow>(profilesEndpoint);
         })()
       : [];
 
     const courtsById = new Map(courtRows.map((row) => [row.id, row.name]));
-    const profilesById = new Map(profileRows.map((row) => [row.id, row.full_name]));
+    const profilesById = new Map(profileRows.map((row) => [row.id, row]));
 
     return reservations.map((row) => {
       const baseReservation = mapReservationOverview(row);
       const courtName = courtsById.get(row.court_id) ?? `${row.court_id}`;
-      const fullName = profilesById.get(row.user_id) ?? null;
+      const profileRow = profilesById.get(row.user_id);
+      const fullName = profileRow?.full_name ?? null;
+      const email = profileRow?.email ?? null;
 
       return {
         ...baseReservation,
         courtName,
-        userDisplayName: fullName ?? row.user_id,
+        userDisplayName: fullName,
+        userEmail: email,
       };
     });
   } catch (error) {
