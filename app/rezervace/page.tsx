@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 
 import { ReservationGrid } from '@/components/reservation-grid';
 import { courts as fallbackCourts, mockReservations as fallbackReservations } from '@/lib/mockData';
-import { createReservation } from '@/lib/services/reservations';
+import { checkReservationSlotAvailability, createReservation } from '@/lib/services/reservations';
 import { ReservationConflictError, ReservationUnauthorizedError, ReservationValidationError } from '@/lib/services/supabase-error-mapping';
 import { getCourtsReadOnly, getReservationsReadOnly } from '@/lib/services/read-only';
 import { supabaseAuthClient } from '@/lib/supabase/auth-client';
@@ -39,6 +39,7 @@ export default function ReservationPage() {
   const [note, setNote] = useState('');
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [availabilityWarning, setAvailabilityWarning] = useState<string | null>(null);
   const formattedSelectedDate = useMemo(() => formatCzechDate(selectedDate), [selectedDate]);
   const isAuthenticated = Boolean(sessionToken && sessionUserId);
 
@@ -82,6 +83,56 @@ export default function ReservationPage() {
     }
   }, [isAuthenticated]);
 
+
+  useEffect(() => {
+    if (!selectionReady || !sessionToken) {
+      setAvailabilityWarning(null);
+      return;
+    }
+
+    const token = sessionToken;
+    let active = true;
+
+    async function runAvailabilityCheck() {
+      if (process.env.NODE_ENV === 'development') {
+        console.info('reservation availability check started');
+      }
+
+      try {
+        const isAvailable = await checkReservationSlotAvailability({
+          accessToken: token,
+          courtId: Number(courtId),
+          reservationDate: selectedDate,
+          timeFrom,
+          timeTo,
+        });
+
+        if (!active) return;
+
+        if (isAvailable) {
+          if (process.env.NODE_ENV === 'development') {
+            console.info('reservation availability free');
+          }
+          setAvailabilityWarning(null);
+          return;
+        }
+
+        if (process.env.NODE_ENV === 'development') {
+          console.info('reservation availability conflict');
+        }
+        setAvailabilityWarning('Vybraný termín je pravděpodobně obsazen.');
+      } catch {
+        if (!active) return;
+        setAvailabilityWarning(null);
+      }
+    }
+
+    runAvailabilityCheck();
+
+    return () => {
+      active = false;
+    };
+  }, [courtId, selectedDate, selectionReady, sessionToken, timeFrom, timeTo]);
   async function handleCreateReservation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitMessage(null);
@@ -146,6 +197,11 @@ export default function ReservationPage() {
         <label className="flex flex-col gap-1 md:col-span-2">Poznámka<input value={note} onChange={(event) => setNote(event.target.value)} className="rounded-md border border-slate-300 px-2 py-1.5"/></label>
         <button type="submit" disabled={!selectionReady} className="rounded-md border border-slate-300 px-3 py-2 text-left disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 md:col-span-2">Rezervovat vybraný termín</button>
         {submitMessage && <p className="md:col-span-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-800">{submitMessage}</p>}
+        {availabilityWarning && (
+          <p role="status" aria-live="polite" className="md:col-span-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
+            {availabilityWarning}
+          </p>
+        )}
         {submitError && <p className="md:col-span-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-rose-800">{submitError}</p>}
       </form>
     ) : (

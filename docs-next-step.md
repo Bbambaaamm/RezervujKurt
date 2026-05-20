@@ -61,9 +61,9 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
 - Po úspěchu probíhá refresh dat aktuálního dne.
 
 ### Milestone J: Kolizní validace
-**Stav: ČÁSTEČNĚ SPLNĚNO**
+**Stav: SPLNĚNO**
 - DB-level ochrana proti kolizím je robustní.
-- Otevřené: sjednocenější mapování chybových kódů a případný lightweight pre-check dostupnosti slotu pro lepší UX.
+- J.2 lightweight availability pre-check je doplněný jako UX helper před submitem (bez zásahu do DB source-of-truth validace).
 
 ### Milestone K: Refresh gridu po vytvoření rezervace
 **Stav: SPLNĚNO (production-ready)**
