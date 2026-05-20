@@ -5,9 +5,25 @@ type ReservationIdentity = {
   userEmail?: string | null;
 };
 
+function isUuidValue(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function normalizeIdentityValue(value: string | null | undefined) {
+  if (!value) return null;
+  const trimmedValue = value.trim();
+  if (!trimmedValue) return null;
+  if (isUuidValue(trimmedValue)) return null;
+  return trimmedValue;
+}
+
 export function getReservationUserLabel(reservation: ReservationIdentity) {
-  if (reservation.userDisplayName) return reservation.userDisplayName;
-  if (reservation.userEmail) return reservation.userEmail;
+  const displayName = normalizeIdentityValue(reservation.userDisplayName);
+  if (displayName) return displayName;
+
+  const userEmail = normalizeIdentityValue(reservation.userEmail);
+  if (userEmail) return userEmail;
+
   return 'Uživatel';
 }
 

@@ -3,16 +3,34 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { supabaseAuthClient, type AuthSession } from '@/lib/supabase/auth-client';
+import { supabaseSelectWithAccessToken } from '@/lib/supabase/client';
+
+type ProfileRow = {
+  full_name: string | null;
+};
 
 export default function AccountPage() {
   const [session, setSession] = useState<AuthSession | null>(null);
+  const [displayName, setDisplayName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    supabaseAuthClient.auth.getSession().then(({ data }) => {
+    supabaseAuthClient.auth.getSession().then(async ({ data }) => {
       const nextSession = data.session ?? null;
       setSession(nextSession);
       console.info(nextSession ? '[auth] account page: session found' : '[auth] account page: session missing');
+
+      if (nextSession?.access_token && nextSession.user.id) {
+        const profileRows = await supabaseSelectWithAccessToken<ProfileRow>(
+          `profiles?select=full_name&id=eq.${nextSession.user.id}&limit=1`,
+          nextSession.access_token,
+        );
+        setDisplayName(profileRows[0]?.full_name ?? '');
+      } else {
+        setDisplayName('');
+      }
     });
 
     const {
@@ -36,6 +54,49 @@ export default function AccountPage() {
     }
   }
 
+  async function handleSaveDisplayName() {
+    if (!session?.access_token || !session.user.id) return;
+
+    const normalizedDisplayName = displayName.trim();
+    if (!normalizedDisplayName) {
+      setError('Jméno nesmí být prázdné.');
+      return;
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      setError('Nastavení aplikace je neúplné. Chybí Supabase konfigurace.');
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    const response = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${session.user.id}`, {
+      method: 'PATCH',
+      headers: {
+        apikey: supabaseAnonKey,
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({ full_name: normalizedDisplayName }),
+    });
+
+    if (!response.ok) {
+      setError('Uložení jména se nepodařilo. Zkuste to prosím znovu.');
+      setIsSaving(false);
+      return;
+    }
+
+    setDisplayName(normalizedDisplayName);
+    setSuccessMessage('Jméno bylo uloženo.');
+    setIsSaving(false);
+  }
+
   return (
     <div className="mx-auto max-w-xl space-y-5 rounded-xl border border-slate-200 bg-white p-6">
       <h1 className="text-2xl font-bold">Účet</h1>
@@ -45,9 +106,23 @@ export default function AccountPage() {
           <p className="text-sm text-slate-700">
             <span className="font-medium">E-mail:</span> {session.user.email ?? 'Není dostupný'}
           </p>
-          <p className="text-sm text-slate-700">
-            <span className="font-medium">User ID:</span> {session.user.id}
-          </p>
+          <label className="block text-sm text-slate-700">
+            <span className="mb-1 block font-medium">Jméno pro rezervace</span>
+            <input
+              type="text"
+              value={displayName}
+              onChange={(event) => setDisplayName(event.target.value)}
+              className="w-full rounded-md border border-slate-300 px-3 py-2"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => void handleSaveDisplayName()}
+            disabled={isSaving}
+            className="w-full rounded-md border border-slate-300 px-4 py-2 text-left disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isSaving ? 'Ukládám jméno…' : 'Uložit jméno'}
+          </button>
           <p className="text-sm text-emerald-700 font-medium">Stav: Přihlášen</p>
           <button onClick={handleLogout} className="w-full rounded-md border border-slate-300 px-4 py-2 text-left">
             Odhlásit se
@@ -63,6 +138,7 @@ export default function AccountPage() {
         </p>
       )}
 
+      {successMessage && <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{successMessage}</p>}
       {error && <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">{error}</p>}
     </div>
   );

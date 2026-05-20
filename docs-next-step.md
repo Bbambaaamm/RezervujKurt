@@ -70,6 +70,7 @@ Předchozí verze dokumentu obsahovala interní rozpory (např. otevřené dluhy
 - Pending přehled + approve/cancel akce fungují.
 - Stale pending handling je implementovaný.
 - History přehled (read-only) je implementovaný.
+- Admin overview už nezobrazuje technické UUID uživatelů; používá fallback řetězec `display_name/full_name -> email -> Uživatel`.
 
 ### P: My reservations overview + user cancellation
 **Stav: SPLNĚNO**
