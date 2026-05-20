@@ -95,6 +95,7 @@ Předchozí verze dokumentu obsahovala interní rozpory (např. otevřené dluhy
 - Stale success message fix: přítomen.
 - UX polish helpery: přítomny.
 - Lightweight availability pre-check: přítomen.
+- `/ucet` profile save flow: doplněný robustní transport-failure handling (try/catch/finally), takže se vždy ukončí loading state a zobrazí se srozumitelná chyba při síťovém výpadku.
 
 ### Test coverage
 - Reservation write error mapper: pokryto.

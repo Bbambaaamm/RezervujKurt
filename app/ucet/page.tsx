@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { supabaseAuthClient, type AuthSession } from '@/lib/supabase/auth-client';
 import { supabaseSelectWithAccessToken } from '@/lib/supabase/client';
+import { resolveProfileSaveErrorMessage } from '@/lib/services/profile-save-error';
 
 type ProfileRow = {
   full_name: string | null;
@@ -75,26 +76,36 @@ export default function AccountPage() {
     setError(null);
     setSuccessMessage(null);
 
-    const response = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${session.user.id}`, {
-      method: 'PATCH',
-      headers: {
-        apikey: supabaseAnonKey,
-        Authorization: `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json',
-        Prefer: 'return=minimal',
-      },
-      body: JSON.stringify({ full_name: normalizedDisplayName }),
-    });
+    try {
+      const response = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${session.user.id}`, {
+        method: 'PATCH',
+        headers: {
+          apikey: supabaseAnonKey,
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+          Prefer: 'return=minimal',
+        },
+        body: JSON.stringify({ full_name: normalizedDisplayName }),
+      });
 
-    if (!response.ok) {
-      setError('Uložení jména se nepodařilo. Zkuste to prosím znovu.');
+      if (!response.ok) {
+        const responseError = resolveProfileSaveErrorMessage(null, response.ok);
+        if (responseError) {
+          setError(responseError);
+        }
+        return;
+      }
+
+      setDisplayName(normalizedDisplayName);
+      setSuccessMessage('Jméno bylo uloženo.');
+    } catch (transportError) {
+      const transportErrorMessage = resolveProfileSaveErrorMessage(transportError);
+      if (transportErrorMessage) {
+        setError(transportErrorMessage);
+      }
+    } finally {
       setIsSaving(false);
-      return;
     }
-
-    setDisplayName(normalizedDisplayName);
-    setSuccessMessage('Jméno bylo uloženo.');
-    setIsSaving(false);
   }
 
   return (
