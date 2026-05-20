@@ -53,3 +53,33 @@ test('getPendingReservationsReadOnly: endpoint obsahuje stabilní ordering pendi
 
   console.info('pending ordering test passed');
 });
+
+
+test('getRecentReservationsReadOnly: endpoint obsahuje ordering created_at desc a limit', async () => {
+  ensureTestAliasBridge();
+
+  const requestedUrls: string[] = [];
+  globalThis.fetch = async (input: RequestInfo | URL) => {
+    requestedUrls.push(String(input));
+    return createJsonResponse('[]');
+  };
+
+  const { getRecentReservationsReadOnly } = await import('../lib/services/read-only');
+
+  const defaultResult = await getRecentReservationsReadOnly();
+  assert.deepEqual(defaultResult, []);
+
+  const defaultRequestUrl = new URL(requestedUrls[0]);
+  assert.equal(defaultRequestUrl.searchParams.get('order'), 'created_at.desc');
+  assert.equal(defaultRequestUrl.searchParams.get('limit'), '20');
+
+  requestedUrls.length = 0;
+
+  const clampedResult = await getRecentReservationsReadOnly(999);
+  assert.deepEqual(clampedResult, []);
+
+  const clampedRequestUrl = new URL(requestedUrls[0]);
+  assert.equal(clampedRequestUrl.searchParams.get('limit'), '50');
+
+  console.info('recent reservations ordering test passed');
+});
