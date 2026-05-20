@@ -4,20 +4,16 @@ import { useMemo, useState } from 'react';
 
 import { courts as fallbackCourts, mockReservations as fallbackReservations, openHours } from '@/lib/mockData';
 import type { Court, Reservation } from '@/lib/types/domain';
-import { isReservationSlotOccupied } from '@/lib/services/reservation-occupancy';
+import { getReservationSlotClassName, getReservationSlotState } from '@/lib/services/reservation-slot-state';
 
-const statusClasses: Record<string, string> = {
-  volno: 'bg-white',
-  potvrzeno: 'bg-emerald-200 text-emerald-900',
-  cekajici: 'bg-amber-200 text-amber-900',
-  blokace: 'bg-rose-200 text-rose-900',
-};
+
+type ReservationSelection = { courtId: number; timeFrom: string; timeTo: string };
 
 type ReservationGridProps = {
   selectedDate: string;
   courts?: Court[];
   reservations?: Reservation[];
-  onSelectionChange?: (selection: { courtId: number; timeFrom: string; timeTo: string } | null) => void;
+  onSelectionChange?: (selection: ReservationSelection | null) => void;
 };
 
 type SlotKey = `${number}-${number}`;
@@ -27,39 +23,6 @@ type DragState = {
   startTime: number;
   endTime: number;
 } | null;
-
-function getSlotStatus(courtId: number, time: number, date: string, reservations: Reservation[]) {
-  const slotTo = time + 0.5;
-  const reservation = reservations.find((item) => item.courtId === courtId && item.date === date && isReservationSlotOccupied(item, time, slotTo));
-
-  if (!reservation) {
-    if (process.env.NODE_ENV === 'development') {
-      console.info('reservation grid occupancy no match for slot', {
-        courtId,
-        date,
-        slotFrom: formatTimeLabel(time),
-        slotTo: formatTimeLabel(slotTo),
-      });
-    }
-    return { type: 'volno', label: 'Volno' };
-  }
-
-  if (process.env.NODE_ENV === 'development') {
-    console.info('reservation grid occupancy matched', {
-      reservationId: reservation.id,
-      courtId,
-      date,
-      slotFrom: formatTimeLabel(time),
-      slotTo: formatTimeLabel(slotTo),
-      status: reservation.status,
-    });
-  }
-
-  return {
-    type: reservation.status,
-    label: reservation.status === 'cekajici' ? 'Čeká na schválení' : 'Obsazeno',
-  };
-}
 
 function formatTimeLabel(time: number) {
   const hour = Math.floor(time);
@@ -99,8 +62,8 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
         return;
       }
 
-      const slot = getSlotStatus(dragState.courtId, time, selectedDate, reservations);
-      if (slot.type === 'volno') {
+      const slot = getReservationSlotState(reservations, dragState.courtId, selectedDate, time, time + 0.5);
+      if (!slot.isOccupied) {
         slots.add(`${dragState.courtId}-${time}`);
       }
     });
@@ -134,7 +97,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
           return false;
         }
 
-        return getSlotStatus(dragState.courtId, time, selectedDate, reservations).type !== 'volno';
+        return getReservationSlotState(reservations, dragState.courtId, selectedDate, time, time + 0.5).isOccupied;
       });
 
       if (hasBlockedSlot) {
@@ -171,7 +134,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
               {formatTimeLabel(time)} - {formatTimeLabel(time + 0.5)}
             </div>
             {courts.map((court) => {
-              const slot = getSlotStatus(court.id, time, selectedDate, reservations);
+              const slot = getReservationSlotState(reservations, court.id, selectedDate, time, time + 0.5);
               const slotKey = `${court.id}-${time}` as SlotKey;
               const isSelected = selectedSlots.has(slotKey);
 
@@ -179,12 +142,12 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
                 <button
                   key={slotKey}
                   type="button"
-                  onPointerDown={() => handlePointerDown(court.id, time, slot.type)}
+                  onPointerDown={() => handlePointerDown(court.id, time, slot.isOccupied ? 'obsazeno' : 'volno')}
                   onPointerEnter={() => handlePointerEnter(court.id, time)}
-                  className={`border-b border-r border-slate-200 p-3 text-left text-xs transition hover:brightness-95 last:border-r-0 ${statusClasses[slot.type]} ${isSelected ? 'ring-2 ring-inset ring-blue-500' : ''}`}
+                  className={getReservationSlotClassName(slot.type, isSelected)}
                 >
                   <span className="font-semibold">{slot.label}</span>
-                  {slot.type === 'volno' && <p className="mt-1 text-slate-500">Klikněte a tahem vyberte úsek</p>}
+                  {!slot.isOccupied && <p className="mt-1 text-slate-500">Klikněte a tahem vyberte úsek</p>}
                 </button>
               );
             })}
