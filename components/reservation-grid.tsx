@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 
 import { courts as fallbackCourts, mockReservations as fallbackReservations, openHours } from '@/lib/mockData';
 import type { Court, Reservation } from '@/lib/types/domain';
+import { isReservationSlotOccupied } from '@/lib/services/reservation-occupancy';
 
 const statusClasses: Record<string, string> = {
   volno: 'bg-white',
@@ -28,22 +29,27 @@ type DragState = {
 } | null;
 
 function getSlotStatus(courtId: number, time: number, date: string, reservations: Reservation[]) {
-  const reservation = reservations.find(
-    (item) => item.courtId === courtId && item.date === date && time >= item.fromHour && time < item.toHour,
-  );
+  const slotTo = time + 0.5;
+  const reservation = reservations.find((item) => item.courtId === courtId && item.date === date && isReservationSlotOccupied(item, time, slotTo));
 
   if (!reservation) {
     return { type: 'volno', label: 'Volno' };
   }
 
+  if (process.env.NODE_ENV === 'development') {
+    console.info('reservation grid occupancy matched', {
+      reservationId: reservation.id,
+      courtId,
+      date,
+      slotFrom: formatTimeLabel(time),
+      slotTo: formatTimeLabel(slotTo),
+      status: reservation.status,
+    });
+  }
+
   return {
     type: reservation.status,
-    label:
-      reservation.status === 'cekajici'
-        ? 'Čeká na schválení'
-        : reservation.status === 'potvrzeno'
-          ? 'Obsazeno'
-          : 'Blokace',
+    label: reservation.status === 'cekajici' ? 'Čeká na schválení' : 'Obsazeno',
   };
 }
 
