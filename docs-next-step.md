@@ -215,4 +215,5 @@ Projekt je nyní stabilní na úrovni produkčního základu pro core rezervačn
 - Přidány development logy: `my reservations loading`, `my reservations loaded`, `my reservations unauthorized`.
 - P.1 read-only my reservations overview.
 - P.2 user cancellation flow: v `/moje-rezervace` je přidán sloupec `Akce` s tlačítkem `Zrušit` pouze pro vlastní budoucí rezervace ve stavech `pending`/`approved`; flow používá lightweight `PATCH` helper s filtrem `id + user_id + status in.(pending,approved)`, stale/no-op detekcí přes `return=representation,count=exact`, českými UX hláškami a dev logy bez zásahu do DB/RLS/admin flow.
+- P.2 follow-up hardening: cancellation flow nyní zachovává success confirmation i po refreshi seznamu a porovnání zrušitelnosti používá fixní business timezone `Europe/Prague` (nezávisle na timezone zařízení).
 
