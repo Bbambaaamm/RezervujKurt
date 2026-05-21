@@ -1,10 +1,10 @@
 project_id = "rezervujkurt"
 
 [auth]
-site_url = "https://<CODESPACE_NAME>-3000.app.github.dev"
+site_url = "http://localhost:3000"
 additional_redirect_urls = [
-  "https://<CODESPACE_NAME>-3000.app.github.dev",
-  "https://<CODESPACE_NAME>-3000.app.github.dev/rezervace",
+  "http://localhost:3000",
+  "http://localhost:3000/rezervace",
   "http://localhost:3000",
   "http://localhost:3000/rezervace"
 ]
