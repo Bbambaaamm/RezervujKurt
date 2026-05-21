@@ -11,12 +11,39 @@ export function getReservationSlotState(
   slotFrom: number,
   slotTo: number,
 ) {
-  const reservation = reservations.find(
-    (item) => item.courtId === courtId && item.date === date && isReservationSlotOccupied(item, slotFrom, slotTo),
-  );
+  const reservation = reservations.find((item) => {
+    const isSameCourt = item.courtId === courtId;
+    const isSameDate = item.date === date;
+    const isOccupied = isReservationSlotOccupied(item, slotFrom, slotTo);
+
+    if (process.env.NODE_ENV === 'development') {
+      console.info('slot reservation compare', {
+        slot: { courtId, date, slotFrom, slotTo },
+        reservation: {
+          id: item.id,
+          courtId: item.courtId,
+          date: item.date,
+          fromHour: item.fromHour,
+          toHour: item.toHour,
+          status: item.status,
+        },
+        result: { isSameCourt, isSameDate, isOccupied },
+      });
+    }
+
+    return isSameCourt && isSameDate && isOccupied;
+  });
 
   if (!reservation) {
+    if (process.env.NODE_ENV === 'development') {
+      console.info('slot final status', { courtId, date, slotFrom, slotTo, status: 'volno' });
+    }
+
     return { type: 'volno' as const, label: 'Volno', isOccupied: false };
+  }
+
+  if (process.env.NODE_ENV === 'development') {
+    console.info('slot final status', { courtId, date, slotFrom, slotTo, status: reservation.status });
   }
 
   return {
