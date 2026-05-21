@@ -1,0 +1,56 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import {
+  buildOtpPayload,
+  getSupabaseOtpRequestConfig,
+  shouldUseOtpProxyForRuntime,
+  resolveOtpEndpoint,
+} from '../lib/supabase/otp-proxy';
+
+test('getSupabaseOtpRequestConfig používá anon klíč a endpoint /auth/v1/otp', () => {
+  process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.local';
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'anon-key';
+  process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-key';
+
+  const config = getSupabaseOtpRequestConfig();
+
+  assert.equal(config.endpoint, 'https://example.supabase.local/auth/v1/otp');
+  assert.equal(config.headers.apikey, 'anon-key');
+  assert.equal('Authorization' in config.headers, false);
+  assert.notEqual(config.headers.apikey, process.env.SUPABASE_SERVICE_ROLE_KEY);
+});
+
+test('buildOtpPayload předává redirect_to', () => {
+  const payload = buildOtpPayload('user@example.com', 'https://example.com/rezervace');
+
+  assert.equal(payload.email, 'user@example.com');
+  assert.equal(payload.create_user, true);
+  assert.equal(payload.redirect_to, 'https://example.com/rezervace');
+});
+
+test('diagnostika non-2xx čte status a body response', async () => {
+  const response = new Response('{"error":"denied"}', {
+    status: 400,
+    headers: { 'content-type': 'application/json' },
+  });
+
+  const responseBody = await response.text();
+
+  assert.equal(response.ok, false);
+  assert.equal(response.status, 400);
+  assert.equal(responseBody, '{"error":"denied"}');
+});
+
+test('v Codespaces development runtime se aktivuje OTP proxy', () => {
+  process.env.NODE_ENV = 'development';
+
+  assert.equal(shouldUseOtpProxyForRuntime('https://space-3000.app.github.dev'), true);
+  assert.equal(shouldUseOtpProxyForRuntime('http://localhost:3000'), false);
+});
+
+test('klient v Codespaces dev nepoužije cross-origin endpoint přímo', () => {
+  process.env.NODE_ENV = 'development';
+  const endpoint = resolveOtpEndpoint('https://example.supabase.local/auth/v1/otp', 'https://space-3000.app.github.dev');
+  assert.equal(endpoint, '/api/auth/otp');
+});

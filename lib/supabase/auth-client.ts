@@ -1,3 +1,5 @@
+import { buildOtpPayload, getSupabaseOtpRequestConfig, resolveOtpEndpoint } from '@/lib/supabase/otp-proxy';
+
 export type AuthSession = {
   access_token: string;
   refresh_token?: string;
@@ -291,14 +293,13 @@ export const supabaseAuthClient = {
       return { data: { subscription: { unsubscribe() { listeners.delete(callback); } } } };
     },
     async signInWithOtp({ email, options }: { email: string; options?: { emailRedirectTo?: string } }) {
+      const payload = buildOtpPayload(email, options?.emailRedirectTo);
       const config = getSupabaseConfig();
       if (!config) return { error: new Error('Chybí NEXT_PUBLIC_SUPABASE_URL nebo NEXT_PUBLIC_SUPABASE_ANON_KEY.') };
-      const endpoint = `${config.url}/auth/v1/otp`;
-      const payload = {
-        email,
-        create_user: true,
-        ...(options?.emailRedirectTo ? { redirect_to: options.emailRedirectTo } : {}),
-      };
+      const directEndpoint = `${config.url}/auth/v1/otp`;
+      const windowOrigin = typeof window !== 'undefined' ? window.location.origin : undefined;
+      const endpoint = resolveOtpEndpoint(directEndpoint, windowOrigin);
+      const useProxy = endpoint === '/api/auth/otp';
 
       if (process.env.NODE_ENV === 'development') {
         console.info('[auth] Supabase OTP endpoint:', endpoint);
@@ -312,7 +313,7 @@ export const supabaseAuthClient = {
       try {
         const response = await fetch(endpoint, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', apikey: config.anonKey },
+          headers: useProxy ? { 'Content-Type': 'application/json' } : getSupabaseOtpRequestConfig().headers,
           body: JSON.stringify(payload),
         });
         if (!response.ok) {
