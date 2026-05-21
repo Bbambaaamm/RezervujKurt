@@ -45,26 +45,26 @@ test('getReservationsReadOnly: používá anonymní read endpoint bez user filtr
   assert.equal(requested.apikey, 'anon-key');
 });
 
-test('getReservationsReadOnly: mapuje occupancy shape pro grid a nezávisí na profile datech', async () => {
+test('getReservationsReadOnly: mapuje pending occupancy pro grid a nezávisí na profile datech', async () => {
   globalThis.fetch = async () => createJsonResponse(JSON.stringify([
     {
       id: 'res-1',
       court_id: 2,
-      reservation_date: '2026-05-20',
-      time_from: '09:00',
-      time_to: '10:30',
-      status: 'approved',
+      reservation_date: '2026-05-21',
+      time_from: '16:00:00',
+      time_to: '18:00:00',
+      status: 'pending',
       created_at: '2026-05-20T08:00:00Z',
     },
   ]));
 
   const { getReservationsReadOnly } = await import('../lib/services/read-only');
-  const [result] = await getReservationsReadOnly('2026-05-20');
+  const [result] = await getReservationsReadOnly('2026-05-21');
 
   assert.equal(result.id, 'res-1');
   assert.equal(result.courtId, 2);
-  assert.equal(result.date, '2026-05-20');
-  assert.equal(result.fromHour, 9);
-  assert.equal(result.toHour, 10.5);
-  assert.equal(result.status, 'potvrzeno');
+  assert.equal(result.date, '2026-05-21');
+  assert.equal(result.fromHour, 16);
+  assert.equal(result.toHour, 18);
+  assert.equal(result.status, 'cekajici');
 });
