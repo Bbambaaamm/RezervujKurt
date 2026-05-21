@@ -169,6 +169,23 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
                 });
               }
 
+              if (
+                process.env.NODE_ENV === 'development' &&
+                selectedDate === '2026-05-21' &&
+                court.id === 2 &&
+                time >= 15.5 &&
+                time <= 18
+              ) {
+                console.info('reservation grid slot final targeted', {
+                  selectedDate,
+                  courtId: court.id,
+                  slot: { timeFrom: time, timeTo: time + 0.5 },
+                  isOccupied: slot.isOccupied,
+                  slotType: slot.type,
+                  className: slotClassName,
+                });
+              }
+
               return (
                 <button
                   key={slotKey}

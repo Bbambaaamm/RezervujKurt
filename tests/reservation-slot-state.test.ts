@@ -126,6 +126,23 @@ test('integrační denní scénář: 3 kurty, pending na Kurtu 2 od 16:00 do 18:
   assert.equal(slotKurt3_17.isOccupied, false);
 });
 
+test('recovery G: kurt 2 dne 2026-05-21 s pending 16:00:00–18:00:00 blokuje správné půlhodiny', () => {
+  const reservations = [
+    createReservation({
+      id: 'recovery-g-1',
+      courtId: 2,
+      date: '2026-05-21',
+      fromHour: 16,
+      toHour: 18,
+      status: 'cekajici',
+    }),
+  ];
+
+  assert.equal(getReservationSlotState(reservations, 2, '2026-05-21', 16, 16.5).isOccupied, true);
+  assert.equal(getReservationSlotState(reservations, 2, '2026-05-21', 17.5, 18).isOccupied, true);
+  assert.equal(getReservationSlotState(reservations, 2, '2026-05-21', 18, 18.5).isOccupied, false);
+});
+
 
 test('hlavní slot container dostane plné rozměry i pro čekající slot', () => {
   const className = getReservationSlotCellClassName('cekajici', false);
