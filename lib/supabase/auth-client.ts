@@ -306,7 +306,17 @@ export const supabaseAuthClient = {
           headers: { 'Content-Type': 'application/json', apikey: config.anonKey },
           body: JSON.stringify(payload),
         });
-        if (!response.ok) return { error: new Error(`Supabase Auth OTP selhalo (${response.status}).`) };
+        if (!response.ok) {
+          const responseBody = await response.text();
+          if (process.env.NODE_ENV === 'development') {
+            console.info('[auth] Supabase OTP failed response:', {
+              status: response.status,
+              statusText: response.statusText,
+              body: responseBody,
+            });
+          }
+          return { error: new Error(`Supabase Auth OTP selhalo (${response.status}).`) };
+        }
         return { error: null };
       } catch {
         return { error: new Error('Síťová chyba při volání Supabase Auth OTP.') };

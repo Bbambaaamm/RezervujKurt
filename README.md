@@ -144,7 +144,7 @@ Poté:
 Poznámka: v tomto repozitáři je magic link šablona explicitně nastavena v `supabase/config.toml` přes `[auth.email.template.magic_link]` a HTML šablonu `supabase/templates/magic_link.html`.
 
 ### Codespaces poznámka k magic link hostu
-V GitHub Codespaces musí magic link v e-mailové šabloně používat veřejný Supabase API host na portu `54321` (např. `https://reimagined-space-tribble-7vp7vq5jrp9pcr545-54321.app.github.dev`), ne lokální `127.0.0.1`.
+V GitHub Codespaces musí magic link v e-mailové šabloně používat veřejný Supabase API host na portu `54321` (např. `https://<CODESPACE_NAME>-54321.app.github.dev`), ne lokální `127.0.0.1`.
 
 Pokud by link mířil na `127.0.0.1`, e-mail otevřený mimo kontejner nedokončí ověření, protože localhost adresa je dostupná jen uvnitř Codespace kontejneru.
 
@@ -160,3 +160,32 @@ curl \
 ```
 
 Očekávání: odpověď obsahuje `pending` rezervaci pro daný den (např. `court_id=2`, `time_from=16:00:00`, `time_to=18:00:00`).
+
+
+## Codespace host rotation
+
+Při vytvoření nového Codespace se změní veřejný host. Aby fungovalo přihlášení přes magic link, je potřeba sjednotit host ve frontend env i v Supabase konfiguraci.
+
+1. Zjisti `CODESPACE_NAME`:
+   - v aktivním Codespace obvykle `echo $CODESPACE_NAME`,
+   - případně z URL otevřeného portu (část před `-3000.app.github.dev`).
+2. Nastav `.env.local`:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://<CODESPACE_NAME>-54321.app.github.dev
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<publishable key z npx supabase status>
+NEXT_PUBLIC_SUPABASE_REDIRECT_URL=https://<CODESPACE_NAME>-3000.app.github.dev
+```
+
+3. Uprav `supabase/config.toml`:
+   - `auth.site_url` na `https://<CODESPACE_NAME>-3000.app.github.dev`,
+   - `auth.additional_redirect_urls` minimálně pro root a `/rezervace` na stejném hostu.
+4. Uprav `supabase/templates/magic_link.html`:
+   - odkaz musí mířit na `https://<CODESPACE_NAME>-54321.app.github.dev/auth/v1/verify?...`.
+5. Po změně konfigurace proveď restart Supabase:
+
+```bash
+npx supabase stop && npx supabase start
+```
+
+6. Odešli nový magic link. Staré magic linky po změně hostu/configu už nejsou validní.
