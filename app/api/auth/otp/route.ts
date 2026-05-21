@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildOtpPayload, getSupabaseOtpRequestConfig, isValidOtpEmail } from '@/lib/supabase/otp-proxy';
+import { resolveOtpRouteRedirectTo } from '@/lib/supabase/otp-route-payload';
 
 export async function POST(request: NextRequest) {
   let body: unknown;
@@ -17,24 +18,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Pole email musí být validní řetězec.' }, { status: 400 });
   }
 
-  const redirectToRaw = typeof payload.redirect_to === 'string'
-    ? payload.redirect_to
-    : typeof payload.emailRedirectTo === 'string'
-      ? payload.emailRedirectTo
-      : undefined;
-
-  const redirectTo = redirectToRaw?.trim() || undefined;
+  const redirectTo = resolveOtpRouteRedirectTo(payload);
   const supabasePayload = buildOtpPayload(email, redirectTo);
 
   try {
     const { endpoint, headers } = getSupabaseOtpRequestConfig();
 
     if (process.env.NODE_ENV === 'development') {
-      console.info('[auth] OTP proxy request:', {
-        endpoint,
-        email_domain: email.includes('@') ? email.split('@')[1] : null,
+      console.info('[auth] otp proxy redirect_to:', {
         redirect_to: supabasePayload.redirect_to ?? null,
       });
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.info('[auth] otp proxy supabase payload:', supabasePayload);
     }
 
     const response = await fetch(endpoint, {

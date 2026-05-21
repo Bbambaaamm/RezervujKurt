@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { supabaseAuthClient, type AuthSession } from '@/lib/supabase/auth-client';
+import { buildEmailRedirectTo } from '@/lib/supabase/auth-redirect';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -44,26 +45,21 @@ export default function LoginPage() {
   }, []);
 
   function getMagicLinkRedirectUrl(): string {
-    const redirectBase = process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL?.trim() || process.env.NEXT_PUBLIC_SUPABASE_AUTH_REDIRECT_URL?.trim();
-    const fallbackBase = typeof window !== 'undefined' ? window.location.origin : '';
-    const baseUrl = redirectBase || fallbackBase;
+    const emailRedirectTo = buildEmailRedirectTo({
+      envRedirectUrl: process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL,
+      envAuthRedirectUrl: process.env.NEXT_PUBLIC_SUPABASE_AUTH_REDIRECT_URL,
+      windowOrigin: typeof window !== 'undefined' ? window.location.origin : undefined,
+    });
 
     if (process.env.NODE_ENV === 'development') {
       console.info('[auth] Redirect base source:', {
         from_env_redirect_url: Boolean(process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL?.trim()),
         from_env_auth_redirect_url: Boolean(process.env.NEXT_PUBLIC_SUPABASE_AUTH_REDIRECT_URL?.trim()),
-        from_window_origin: !redirectBase && Boolean(fallbackBase),
+        from_window_origin: !(process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL?.trim() || process.env.NEXT_PUBLIC_SUPABASE_AUTH_REDIRECT_URL?.trim()) && Boolean(typeof window !== 'undefined' ? window.location.origin : ''),
       });
     }
 
-    if (!baseUrl) return '/rezervace';
-
-    try {
-      const redirectUrl = new URL('/rezervace', baseUrl);
-      return redirectUrl.toString();
-    } catch {
-      return '/rezervace';
-    }
+    return emailRedirectTo;
   }
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
