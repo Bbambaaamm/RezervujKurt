@@ -55,7 +55,7 @@ export function getReservationSlotState(
 
 export function getReservationSlotClassName(slotType: ReservationSlotType, isSelected: boolean) {
   const baseClass =
-    'h-full w-full border-b border-r p-3 text-left text-xs transition last:border-r-0';
+    'border-b border-r p-0 transition last:border-r-0';
 
   if (slotType === 'potvrzeno') {
     return `${baseClass} border-emerald-300 bg-emerald-100 text-emerald-900`;
@@ -74,4 +74,26 @@ export function getReservationSlotClassName(slotType: ReservationSlotType, isSel
   }
 
   return `${baseClass} border-slate-200 bg-white text-slate-900 hover:bg-slate-50`;
+}
+
+export function getReservationSlotCellClassName(slotType: ReservationSlotType, isSelected: boolean) {
+  const baseClass = 'block h-full w-full p-3 text-left text-xs';
+
+  if (slotType === 'potvrzeno') {
+    return `${baseClass} text-emerald-900`;
+  }
+
+  if (slotType === 'cekajici') {
+    return `${baseClass} text-amber-900`;
+  }
+
+  if (slotType === 'blokace') {
+    return `${baseClass} text-rose-900`;
+  }
+
+  if (isSelected && slotType === 'volno') {
+    return `${baseClass} text-blue-900`;
+  }
+
+  return `${baseClass} text-slate-900`;
 }

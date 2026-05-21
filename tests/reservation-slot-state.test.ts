@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { getReservationSlotClassName, getReservationSlotState } from '../lib/services/reservation-slot-state';
+import { getReservationSlotCellClassName, getReservationSlotClassName, getReservationSlotState } from '../lib/services/reservation-slot-state';
 import type { Reservation } from '../lib/types/domain';
 
 function createReservation(overrides: Partial<Reservation>): Reservation {
@@ -124,4 +124,18 @@ test('integrační denní scénář: 3 kurty, pending na Kurtu 2 od 16:00 do 18:
   assert.equal(slotKurt2_17.isOccupied, true);
   assert.equal(slotKurt1_16.isOccupied, false);
   assert.equal(slotKurt3_17.isOccupied, false);
+});
+
+
+test('hlavní slot container dostane plné rozměry i pro čekající slot', () => {
+  const className = getReservationSlotCellClassName('cekajici', false);
+  assert.match(className, /block/);
+  assert.match(className, /h-full/);
+  assert.match(className, /w-full/);
+});
+
+test('hlavní slot container dostane selected text styl bez konfliktu hoveru', () => {
+  const className = getReservationSlotCellClassName('volno', true);
+  assert.match(className, /text-blue-900/);
+  assert.doesNotMatch(className, /hover:bg-slate-50/);
 });
