@@ -76,6 +76,12 @@ export function getReservationSlotClassName(slotType: ReservationSlotType, isSel
   return `${baseClass} border-slate-200 bg-white text-slate-900 hover:bg-slate-50`;
 }
 
+
+export function buildReservationSlotRenderClassName(slotType: ReservationSlotType, isSelected: boolean, extraClassName?: string) {
+  const classNames = [getReservationSlotClassName(slotType, isSelected), extraClassName].filter(Boolean);
+  return classNames.join(' ');
+}
+
 export function getReservationSlotCellClassName(slotType: ReservationSlotType, isSelected: boolean) {
   const baseClass = 'block h-full w-full p-3 text-left text-xs';
 

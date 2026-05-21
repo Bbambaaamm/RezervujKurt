@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { getReservationSlotCellClassName, getReservationSlotClassName, getReservationSlotState } from '../lib/services/reservation-slot-state';
+import { buildReservationSlotRenderClassName, getReservationSlotCellClassName, getReservationSlotClassName, getReservationSlotState } from '../lib/services/reservation-slot-state';
 import type { Reservation } from '../lib/types/domain';
 
 function createReservation(overrides: Partial<Reservation>): Reservation {
@@ -138,4 +138,27 @@ test('hlavní slot container dostane selected text styl bez konfliktu hoveru', (
   const className = getReservationSlotCellClassName('volno', true);
   assert.match(className, /text-blue-900/);
   assert.doesNotMatch(className, /hover:bg-slate-50/);
+});
+
+
+test('helper pro render root elementu čekajícího slotu obsahuje background class', () => {
+  const className = buildReservationSlotRenderClassName('cekajici', false);
+  assert.match(className, /bg-amber-100/);
+  assert.match(className, /border-amber-300/);
+});
+
+test('helper pro render root elementu selected slotu obsahuje selected background', () => {
+  const className = buildReservationSlotRenderClassName('volno', true);
+  assert.match(className, /bg-blue-100/);
+  assert.match(className, /hover:bg-blue-100/);
+});
+
+test('status text class není jediný zdroj stylu root elementu', () => {
+  const rootClassName = buildReservationSlotRenderClassName('cekajici', false);
+  const textClassName = getReservationSlotCellClassName('cekajici', false);
+
+  assert.match(rootClassName, /bg-/);
+  assert.doesNotMatch(rootClassName, /text-xs text-left/);
+  assert.match(textClassName, /text-xs/);
+  assert.match(textClassName, /text-left/);
 });
