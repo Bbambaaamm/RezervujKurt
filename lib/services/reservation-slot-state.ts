@@ -54,17 +54,24 @@ export function getReservationSlotState(
 }
 
 export function getReservationSlotClassName(slotType: ReservationSlotType, isSelected: boolean) {
-  const baseClass = 'border-b border-r border-slate-200 p-3 text-left text-xs transition last:border-r-0';
+  const baseClass =
+    'h-full w-full border-b border-r p-3 text-left text-xs transition last:border-r-0';
 
-  const statusClasses: Record<ReservationSlotType, string> = {
-    volno: 'bg-white text-slate-900 hover:bg-slate-50',
-    potvrzeno: 'bg-emerald-300 text-emerald-950',
-    cekajici: 'bg-amber-300 text-amber-950',
-    blokace: 'bg-rose-300 text-rose-950',
-    zruseno: 'bg-white text-slate-900 hover:bg-slate-50',
-    'zamítnuto': 'bg-white text-slate-900 hover:bg-slate-50',
-  };
+  if (slotType === 'potvrzeno') {
+    return `${baseClass} border-emerald-300 bg-emerald-100 text-emerald-900`;
+  }
 
-  const selectedClass = isSelected && slotType === 'volno' ? 'ring-2 ring-inset ring-blue-600 bg-blue-100 text-blue-950' : '';
-  return `${baseClass} ${statusClasses[slotType]} ${selectedClass}`;
+  if (slotType === 'cekajici') {
+    return `${baseClass} border-amber-300 bg-amber-100 text-amber-900`;
+  }
+
+  if (slotType === 'blokace') {
+    return `${baseClass} border-rose-300 bg-rose-100 text-rose-900`;
+  }
+
+  if (isSelected && slotType === 'volno') {
+    return `${baseClass} border-blue-300 bg-blue-100 text-blue-900 ring-2 ring-inset ring-blue-600 hover:bg-blue-100`;
+  }
+
+  return `${baseClass} border-slate-200 bg-white text-slate-900 hover:bg-slate-50`;
 }
