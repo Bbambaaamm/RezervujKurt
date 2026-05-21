@@ -35,6 +35,7 @@ function normalizeRange(start: number, end: number) {
 }
 
 export function ReservationGrid({ selectedDate, courts = fallbackCourts, reservations = fallbackReservations, onSelectionChange }: ReservationGridProps) {
+  console.info('reservation grid component render active', { selectedDate, reservationsCount: reservations.length, courtsCount: courts.length });
   const halfHourSlots = useMemo(
     () => Array.from({ length: (openHours.end - openHours.start) * 2 }, (_, i) => openHours.start + i * 0.5),
     [],
@@ -120,6 +121,9 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
     >
+      {process.env.NODE_ENV === 'development' && (
+        <div className="border-b border-slate-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">GRID DEBUG ACTIVE</div>
+      )}
       <div className="grid min-w-[760px] grid-cols-4">
         <div className="border-b border-r border-slate-200 bg-slate-100 p-3 text-sm font-semibold">Čas</div>
         {courts.map((court) => (
@@ -155,7 +159,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
                   cellClassName: slotCellClassName,
                 });
               }
-              if (process.env.NODE_ENV === 'development' && slot.isOccupied) {
+              if (process.env.NODE_ENV === 'development') {
                 console.info('reservation grid rendered slot className', {
                   selectedDate,
                   courtId: court.id,
