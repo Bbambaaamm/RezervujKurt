@@ -44,7 +44,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
 
   if (process.env.NODE_ENV === "development") {
     console.info('reservation grid received reservations count', { count: reservations.length, selectedDate });
-    console.info('grid received reservations sample', reservations.slice(0, 3));
+    console.info('reservation grid received reservations sample', reservations.slice(0, 3));
   }
   const [dragState, setDragState] = useState<DragState>(null);
 
@@ -135,6 +135,9 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
             </div>
             {courts.map((court) => {
               const slot = getReservationSlotState(reservations, court.id, selectedDate, time, time + 0.5);
+              if (process.env.NODE_ENV === 'development' && time === halfHourSlots[0]) {
+                console.info('reservation grid slot state', { selectedDate, courtId: court.id, timeFrom: time, timeTo: time + 0.5, slotType: slot.type, isOccupied: slot.isOccupied });
+              }
               const slotKey = `${court.id}-${time}` as SlotKey;
               const isSelected = selectedSlots.has(slotKey);
 
