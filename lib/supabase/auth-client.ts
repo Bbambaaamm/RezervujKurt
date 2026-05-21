@@ -26,6 +26,15 @@ let refreshInFlight: Promise<AuthSession | null> | null = null;
 function getSupabaseConfig(): { url: string; anonKey: string } | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (process.env.NODE_ENV === 'development') {
+    console.info('[auth] Supabase runtime env:', {
+      has_url: Boolean(url),
+      url_preview: url ? `${url.slice(0, 48)}${url.length > 48 ? '…' : ''}` : null,
+      has_anon_key: Boolean(anonKey),
+      anon_key_prefix: anonKey ? anonKey.slice(0, 12) : null,
+      anon_key_length: anonKey?.length ?? 0,
+    });
+  }
   if (!url || !anonKey) return null;
   return { url, anonKey };
 }
@@ -316,6 +325,14 @@ export const supabaseAuthClient = {
             });
           }
           return { error: new Error(`Supabase Auth OTP selhalo (${response.status}).`) };
+        }
+        if (process.env.NODE_ENV === 'development') {
+          const responseBody = await response.text();
+          console.info('[auth] Supabase OTP success response:', {
+            status: response.status,
+            statusText: response.statusText,
+            body: responseBody || null,
+          });
         }
         return { error: null };
       } catch {
