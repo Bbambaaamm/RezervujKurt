@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 
 import { courts as fallbackCourts, mockReservations as fallbackReservations, openHours } from '@/lib/mockData';
 import type { Court, Reservation } from '@/lib/types/domain';
-import { getReservationSlotCellClassName, getReservationSlotClassName, getReservationSlotState } from '@/lib/services/reservation-slot-state';
+import { buildReservationSlotRenderClassName, getReservationSlotCellClassName, getReservationSlotState } from '@/lib/services/reservation-slot-state';
 
 
 type ReservationSelection = { courtId: number; timeFrom: string; timeTo: string };
@@ -140,7 +140,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
               }
               const slotKey = `${court.id}-${time}` as SlotKey;
               const isSelected = selectedSlots.has(slotKey);
-              const slotClassName = getReservationSlotClassName(slot.type, isSelected);
+              const slotClassName = buildReservationSlotRenderClassName(slot.type, isSelected);
               const slotCellClassName = getReservationSlotCellClassName(slot.type, isSelected);
 
               if (process.env.NODE_ENV === 'development' && time <= halfHourSlots[2]) {
@@ -153,6 +153,15 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
                   isSelected,
                   className: slotClassName,
                   cellClassName: slotCellClassName,
+                });
+              }
+              if (process.env.NODE_ENV === 'development' && slot.isOccupied) {
+                console.info('reservation grid rendered slot className', {
+                  selectedDate,
+                  courtId: court.id,
+                  timeFrom: time,
+                  slotType: slot.type,
+                  className: slotClassName,
                 });
               }
 
