@@ -27,7 +27,7 @@ test('obsazený slot má occupied state i styl', () => {
   assert.equal(slot.isOccupied, true);
 
   const className = getReservationSlotClassName(slot.type, false);
-  assert.match(className, /bg-emerald-300/);
+  assert.match(className, /bg-emerald-100/);
 });
 
 test('volný slot zůstává volný', () => {
@@ -49,25 +49,42 @@ test('zrušená rezervace se netváří jako obsazená', () => {
 test('selected stav nepřebije occupied slot', () => {
   const className = getReservationSlotClassName('cekajici', true);
   assert.doesNotMatch(className, /ring-2/);
-  assert.match(className, /bg-amber-300/);
+  assert.match(className, /bg-amber-100/);
 });
 
 test('selected volný slot dostane viditelnou selected class', () => {
   const className = getReservationSlotClassName('volno', true);
   assert.match(className, /ring-2/);
   assert.match(className, /bg-blue-100/);
+  assert.match(className, /hover:bg-blue-100/);
 });
 
 test('obsazený slot má prioritu před selected', () => {
   const className = getReservationSlotClassName('potvrzeno', true);
-  assert.match(className, /bg-emerald-300/);
+  assert.match(className, /bg-emerald-100/);
   assert.doesNotMatch(className, /bg-blue-100/);
 });
 
 test('free slot nemá occupied ani selected class bez výběru', () => {
   const className = getReservationSlotClassName('volno', false);
-  assert.doesNotMatch(className, /bg-emerald-300|bg-amber-300|bg-rose-300/);
+  assert.doesNotMatch(className, /bg-emerald-100|bg-amber-100|bg-rose-100/);
   assert.doesNotMatch(className, /ring-2/);
+  assert.match(className, /hover:bg-slate-50/);
+});
+
+test('čekající slot má viditelné barevné pozadí', () => {
+  const className = getReservationSlotClassName('cekajici', false);
+  assert.match(className, /bg-amber-100/);
+});
+
+test('potvrzený slot má viditelné barevné pozadí', () => {
+  const className = getReservationSlotClassName('potvrzeno', false);
+  assert.match(className, /bg-emerald-100/);
+});
+
+test('selected free slot nepoužívá hover, který by přebil selected', () => {
+  const className = getReservationSlotClassName('volno', true);
+  assert.doesNotMatch(className, /hover:bg-slate-50/);
 });
 
 test('cancelled není occupied a má free vzhled', () => {

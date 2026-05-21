@@ -31,7 +31,7 @@ test('grid označí slot jako occupied z public reservations a použije occupied
   assert.notEqual(slot.type, 'volno');
 
   const className = getReservationSlotClassName(slot.type, false);
-  assert.match(className, /(bg-emerald-300|bg-amber-300)/);
+  assert.match(className, /(bg-emerald-100|bg-amber-100)/);
 });
 
 test('occupied slot není selectable (slot state není volno)', () => {
