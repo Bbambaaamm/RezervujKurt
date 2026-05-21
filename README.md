@@ -143,10 +143,10 @@ Poté:
 
 Poznámka: v tomto repozitáři je magic link šablona explicitně nastavena v `supabase/config.toml` přes `[auth.email.template.magic_link]` a HTML šablonu `supabase/templates/magic_link.html`.
 
-### Codespaces poznámka k magic link hostu
-V GitHub Codespaces musí magic link v e-mailové šabloně používat veřejný Supabase API host na portu `54321` (např. `https://<CODESPACE_NAME>-54321.app.github.dev`), ne lokální `127.0.0.1`.
-
-Pokud by link mířil na `127.0.0.1`, e-mail otevřený mimo kontejner nedokončí ověření, protože localhost adresa je dostupná jen uvnitř Codespace kontejneru.
+### Důležité pravidlo pro šablonu magic linku
+Šablona `supabase/templates/magic_link.html` musí obsahovat pouze `{{ .ConfirmationURL }}`.
+Do šablony nepatří žádný hardcoded host (`app.github.dev`, `localhost`, `auth/v1/verify` apod.).
+Host a redirecty se řídí konfigurací Supabase a frontend env, ne HTML šablonou.
 
 ## Debug veřejného occupancy čtení pro `/rezervace`
 
@@ -178,10 +178,10 @@ NEXT_PUBLIC_SUPABASE_REDIRECT_URL=https://<CODESPACE_NAME>-3000.app.github.dev
 ```
 
 3. Uprav `supabase/config.toml`:
-   - `auth.site_url` na `https://<CODESPACE_NAME>-3000.app.github.dev`,
+   - `auth.site_url` na aktuální frontend host (např. `https://<CODESPACE_NAME>-3000.app.github.dev`),
    - `auth.additional_redirect_urls` minimálně pro root a `/rezervace` na stejném hostu.
-4. Uprav `supabase/templates/magic_link.html`:
-   - odkaz musí mířit na `https://<CODESPACE_NAME>-54321.app.github.dev/auth/v1/verify?...`.
+   - v commitu drž bezpečný výchozí stav (`localhost`) a runtime host nastavuj lokálně podle runbooku.
+4. Ověř, že `supabase/templates/magic_link.html` stále používá pouze `{{ .ConfirmationURL }}`.
 5. Po změně konfigurace proveď restart Supabase:
 
 ```bash
