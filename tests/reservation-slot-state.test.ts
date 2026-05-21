@@ -27,7 +27,7 @@ test('obsazený slot má occupied state i styl', () => {
   assert.equal(slot.isOccupied, true);
 
   const className = getReservationSlotClassName(slot.type, false);
-  assert.match(className, /bg-emerald-200/);
+  assert.match(className, /bg-emerald-300/);
 });
 
 test('volný slot zůstává volný', () => {
@@ -46,10 +46,35 @@ test('zrušená rezervace se netváří jako obsazená', () => {
   assert.match(className, /bg-white/);
 });
 
-test('selected stav přidá ring i u obsazeného slotu', () => {
+test('selected stav nepřebije occupied slot', () => {
   const className = getReservationSlotClassName('cekajici', true);
+  assert.doesNotMatch(className, /ring-2/);
+  assert.match(className, /bg-amber-300/);
+});
+
+test('selected volný slot dostane viditelnou selected class', () => {
+  const className = getReservationSlotClassName('volno', true);
   assert.match(className, /ring-2/);
-  assert.match(className, /bg-amber-200/);
+  assert.match(className, /bg-blue-100/);
+});
+
+test('obsazený slot má prioritu před selected', () => {
+  const className = getReservationSlotClassName('potvrzeno', true);
+  assert.match(className, /bg-emerald-300/);
+  assert.doesNotMatch(className, /bg-blue-100/);
+});
+
+test('free slot nemá occupied ani selected class bez výběru', () => {
+  const className = getReservationSlotClassName('volno', false);
+  assert.doesNotMatch(className, /bg-emerald-300|bg-amber-300|bg-rose-300/);
+  assert.doesNotMatch(className, /ring-2/);
+});
+
+test('cancelled není occupied a má free vzhled', () => {
+  const slot = getReservationSlotState([createReservation({ status: 'zruseno' })], 1, '2026-05-20', 9, 9.5);
+  assert.equal(slot.isOccupied, false);
+  const className = getReservationSlotClassName(slot.type, false);
+  assert.match(className, /bg-white/);
 });
 
 test('rezervace 16:00–18:00 blokuje 16:00 a 17:00, ale ne 15:00 ani 18:00', () => {
