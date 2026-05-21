@@ -51,3 +51,35 @@ test('selected stav přidá ring i u obsazeného slotu', () => {
   assert.match(className, /ring-2/);
   assert.match(className, /bg-amber-200/);
 });
+
+test('rezervace 16:00–18:00 blokuje 16:00 a 17:00, ale ne 15:00 ani 18:00', () => {
+  const reservations = [createReservation({ fromHour: 16, toHour: 18, status: 'cekajici' })];
+
+  assert.equal(getReservationSlotState(reservations, 1, '2026-05-20', 16, 17).isOccupied, true);
+  assert.equal(getReservationSlotState(reservations, 1, '2026-05-20', 17, 18).isOccupied, true);
+  assert.equal(getReservationSlotState(reservations, 1, '2026-05-20', 15, 16).isOccupied, false);
+  assert.equal(getReservationSlotState(reservations, 1, '2026-05-20', 18, 19).isOccupied, false);
+});
+
+test('integrační denní scénář: 3 kurty, pending na Kurtu 2 od 16:00 do 18:00', () => {
+  const reservations = [
+    createReservation({
+      id: 'day-res-1',
+      courtId: 2,
+      date: '2026-05-22',
+      fromHour: 16,
+      toHour: 18,
+      status: 'cekajici',
+    }),
+  ];
+
+  const slotKurt2_16 = getReservationSlotState(reservations, 2, '2026-05-22', 16, 17);
+  const slotKurt2_17 = getReservationSlotState(reservations, 2, '2026-05-22', 17, 18);
+  const slotKurt1_16 = getReservationSlotState(reservations, 1, '2026-05-22', 16, 17);
+  const slotKurt3_17 = getReservationSlotState(reservations, 3, '2026-05-22', 17, 18);
+
+  assert.equal(slotKurt2_16.isOccupied, true);
+  assert.equal(slotKurt2_17.isOccupied, true);
+  assert.equal(slotKurt1_16.isOccupied, false);
+  assert.equal(slotKurt3_17.isOccupied, false);
+});
