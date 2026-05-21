@@ -44,9 +44,17 @@ export default function LoginPage() {
   }, []);
 
   function getMagicLinkRedirectUrl(): string {
-    const redirectBase = process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL?.trim();
+    const redirectBase = process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL?.trim() || process.env.NEXT_PUBLIC_SUPABASE_AUTH_REDIRECT_URL?.trim();
     const fallbackBase = typeof window !== 'undefined' ? window.location.origin : '';
     const baseUrl = redirectBase || fallbackBase;
+
+    if (process.env.NODE_ENV === 'development') {
+      console.info('[auth] Redirect base source:', {
+        from_env_redirect_url: Boolean(process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL?.trim()),
+        from_env_auth_redirect_url: Boolean(process.env.NEXT_PUBLIC_SUPABASE_AUTH_REDIRECT_URL?.trim()),
+        from_window_origin: !redirectBase && Boolean(fallbackBase),
+      });
+    }
 
     if (!baseUrl) return '/rezervace';
 
