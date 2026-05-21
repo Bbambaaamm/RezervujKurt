@@ -128,6 +128,11 @@ export async function getCourtsReadOnly() {
 
 export async function getReservationsReadOnly(date: string) {
   const endpoint = `reservations?select=id,court_id,reservation_date,time_from,time_to,status,created_at&reservation_date=eq.${date}&status=in.(pending,approved)&order=time_from.asc`;
+  if (process.env.NODE_ENV === 'development') {
+    console.info('public reservations endpoint', {
+      url: endpoint,
+    });
+  }
   const rows = await supabaseSelect<ReservationRow>(endpoint);
   if (process.env.NODE_ENV === 'development') {
     console.info('public reservations raw count', { count: rows.length, date });

@@ -148,3 +148,15 @@ V GitHub Codespaces musí magic link v e-mailové šabloně používat veřejný
 
 Pokud by link mířil na `127.0.0.1`, e-mail otevřený mimo kontejner nedokončí ověření, protože localhost adresa je dostupná jen uvnitř Codespace kontejneru.
 
+## Debug veřejného occupancy čtení pro `/rezervace`
+
+Rychlý anonymní REST test (bez osobních údajů), který má vrátit i `pending` rezervace:
+
+```bash
+curl \
+  -H "apikey: $NEXT_PUBLIC_SUPABASE_ANON_KEY" \
+  -H "Authorization: Bearer $NEXT_PUBLIC_SUPABASE_ANON_KEY" \
+  "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/reservations?select=id,court_id,reservation_date,time_from,time_to,status&reservation_date=eq.2026-05-21&status=in.(pending,approved)"
+```
+
+Očekávání: odpověď obsahuje `pending` rezervaci pro daný den (např. `court_id=2`, `time_from=16:00:00`, `time_to=18:00:00`).

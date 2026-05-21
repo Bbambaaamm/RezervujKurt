@@ -12,14 +12,15 @@ const requiredPolicies = [
     table: 'public.reservations',
     name: 'reservations_select_owner_or_admin',
     reason: 'Admin musí mít SELECT na reservations přes policy owner_or_admin i po db resetu.'
+  },
+  {
+    table: 'public.reservations',
+    name: 'reservations_select_public_occupancy_anon',
+    reason: 'Anonymní occupancy read musí povolit pending/approved pro veřejný grid.'
   }
 ];
 
 const devOnlyPolicies = [
-  {
-    name: 'reservations_select_public_overview_anon',
-    reason: 'Anonymní SELECT na reservations nesmí být aktivní v produkci.'
-  }
 ];
 
 function readMigrationFiles() {
