@@ -8,11 +8,25 @@ export function isValidOtpEmail(email: unknown): email is string {
   return typeof email === 'string' && email.trim().length > 3 && email.includes('@');
 }
 
+export function normalizeOtpRedirectTo(redirectTo?: string): string | undefined {
+  if (!redirectTo) return undefined;
+  const trimmed = redirectTo.trim();
+  if (!trimmed) return undefined;
+
+  try {
+    return new URL(trimmed).toString();
+  } catch {
+    return trimmed;
+  }
+}
+
 export function buildOtpPayload(email: string, emailRedirectTo?: string): OtpRequestPayload {
+  const redirectTo = normalizeOtpRedirectTo(emailRedirectTo);
+
   return {
     email,
     create_user: true,
-    ...(emailRedirectTo ? { redirect_to: emailRedirectTo } : {}),
+    ...(redirectTo ? { redirect_to: redirectTo } : {}),
   };
 }
 

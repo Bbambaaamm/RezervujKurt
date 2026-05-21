@@ -6,6 +6,7 @@ import {
   getSupabaseOtpRequestConfig,
   shouldUseOtpProxyForRuntime,
   resolveOtpEndpoint,
+  normalizeOtpRedirectTo,
 } from '../lib/supabase/otp-proxy';
 
 test('getSupabaseOtpRequestConfig používá anon klíč a endpoint /auth/v1/otp', () => {
@@ -29,6 +30,11 @@ test('buildOtpPayload předává redirect_to', () => {
   assert.equal(payload.redirect_to, 'https://example.com/rezervace');
 });
 
+
+test('normalizeOtpRedirectTo zachová pathname /rezervace', () => {
+  const redirectTo = normalizeOtpRedirectTo('https://example.app.github.dev/rezervace');
+  assert.equal(redirectTo, 'https://example.app.github.dev/rezervace');
+});
 test('diagnostika non-2xx čte status a body response', async () => {
   const response = new Response('{"error":"denied"}', {
     status: 400,
