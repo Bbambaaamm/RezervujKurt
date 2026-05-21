@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 
 import { courts as fallbackCourts, mockReservations as fallbackReservations, openHours } from '@/lib/mockData';
 import type { Court, Reservation } from '@/lib/types/domain';
-import { getReservationSlotClassName, getReservationSlotState } from '@/lib/services/reservation-slot-state';
+import { getReservationSlotCellClassName, getReservationSlotClassName, getReservationSlotState } from '@/lib/services/reservation-slot-state';
 
 
 type ReservationSelection = { courtId: number; timeFrom: string; timeTo: string };
@@ -141,6 +141,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
               const slotKey = `${court.id}-${time}` as SlotKey;
               const isSelected = selectedSlots.has(slotKey);
               const slotClassName = getReservationSlotClassName(slot.type, isSelected);
+              const slotCellClassName = getReservationSlotCellClassName(slot.type, isSelected);
 
               if (process.env.NODE_ENV === 'development' && time <= halfHourSlots[2]) {
                 console.info('reservation grid visual state', {
@@ -151,6 +152,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
                   isOccupied: slot.isOccupied,
                   isSelected,
                   className: slotClassName,
+                  cellClassName: slotCellClassName,
                 });
               }
 
@@ -162,8 +164,10 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
                   onPointerEnter={() => handlePointerEnter(court.id, time)}
                   className={slotClassName}
                 >
-                  <span className="font-semibold">{slot.label}</span>
-                  {!slot.isOccupied && <p className="mt-1 text-slate-500">Klikněte a tahem vyberte úsek</p>}
+                  <span className={slotCellClassName}>
+                    <span className="font-semibold">{slot.label}</span>
+                    {!slot.isOccupied && <p className="mt-1 text-slate-500">Klikněte a tahem vyberte úsek</p>}
+                  </span>
                 </button>
               );
             })}
