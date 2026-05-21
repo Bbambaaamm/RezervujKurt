@@ -140,6 +140,19 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
               }
               const slotKey = `${court.id}-${time}` as SlotKey;
               const isSelected = selectedSlots.has(slotKey);
+              const slotClassName = getReservationSlotClassName(slot.type, isSelected);
+
+              if (process.env.NODE_ENV === 'development' && time <= halfHourSlots[2]) {
+                console.info('reservation grid visual state', {
+                  selectedDate,
+                  courtId: court.id,
+                  timeFrom: time,
+                  slotType: slot.type,
+                  isOccupied: slot.isOccupied,
+                  isSelected,
+                  className: slotClassName,
+                });
+              }
 
               return (
                 <button
@@ -147,7 +160,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
                   type="button"
                   onPointerDown={() => handlePointerDown(court.id, time, slot.isOccupied ? 'obsazeno' : 'volno')}
                   onPointerEnter={() => handlePointerEnter(court.id, time)}
-                  className={getReservationSlotClassName(slot.type, isSelected)}
+                  className={slotClassName}
                 >
                   <span className="font-semibold">{slot.label}</span>
                   {!slot.isOccupied && <p className="mt-1 text-slate-500">Klikněte a tahem vyberte úsek</p>}

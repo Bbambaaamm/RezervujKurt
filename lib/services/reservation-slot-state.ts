@@ -54,15 +54,17 @@ export function getReservationSlotState(
 }
 
 export function getReservationSlotClassName(slotType: ReservationSlotType, isSelected: boolean) {
+  const baseClass = 'border-b border-r border-slate-200 p-3 text-left text-xs transition last:border-r-0';
+
   const statusClasses: Record<ReservationSlotType, string> = {
-    volno: 'bg-white',
-    potvrzeno: 'bg-emerald-200 text-emerald-900',
-    cekajici: 'bg-amber-200 text-amber-900',
-    blokace: 'bg-rose-200 text-rose-900',
-    zruseno: 'bg-white',
-    'zamítnuto': 'bg-white',
+    volno: 'bg-white text-slate-900 hover:bg-slate-50',
+    potvrzeno: 'bg-emerald-300 text-emerald-950',
+    cekajici: 'bg-amber-300 text-amber-950',
+    blokace: 'bg-rose-300 text-rose-950',
+    zruseno: 'bg-white text-slate-900 hover:bg-slate-50',
+    'zamítnuto': 'bg-white text-slate-900 hover:bg-slate-50',
   };
 
-  const selectedClass = isSelected ? 'ring-2 ring-inset ring-blue-500' : '';
-  return `border-b border-r border-slate-200 p-3 text-left text-xs transition hover:brightness-95 last:border-r-0 ${statusClasses[slotType]} ${selectedClass}`;
+  const selectedClass = isSelected && slotType === 'volno' ? 'ring-2 ring-inset ring-blue-600 bg-blue-100 text-blue-950' : '';
+  return `${baseClass} ${statusClasses[slotType]} ${selectedClass}`;
 }
