@@ -143,10 +143,10 @@ Poté:
 
 Poznámka: v tomto repozitáři je magic link šablona explicitně nastavena v `supabase/config.toml` přes `[auth.email.template.magic_link]` a HTML šablonu `supabase/templates/magic_link.html`.
 
-### Důležité pravidlo pro šablonu magic linku
-Šablona `supabase/templates/magic_link.html` musí obsahovat pouze `{{ .ConfirmationURL }}`.
-Do šablony nepatří žádný hardcoded host (`app.github.dev`, `localhost`, `auth/v1/verify` apod.).
-Host a redirecty se řídí konfigurací Supabase a frontend env, ne HTML šablonou.
+### Codespaces poznámka k magic link hostu
+V GitHub Codespaces musí magic link v e-mailové šabloně používat veřejný Supabase API host na portu `54321` (např. `https://reimagined-space-tribble-7vp7vq5jrp9pcr545-54321.app.github.dev`), ne lokální `127.0.0.1`.
+
+Pokud by link mířil na `127.0.0.1`, e-mail otevřený mimo kontejner nedokončí ověření, protože localhost adresa je dostupná jen uvnitř Codespace kontejneru.
 
 ## Debug veřejného occupancy čtení pro `/rezervace`
 
