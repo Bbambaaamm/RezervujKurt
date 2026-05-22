@@ -155,11 +155,15 @@ export async function checkReservationSlotAvailability(input: ReservationAvailab
     throw new Error('Chybí konfigurace Supabase proměnných prostředí.');
   }
 
-  const endpoint = new URL(`${supabaseUrl}/rest/v1/reservations`);
-  endpoint.searchParams.set('select', 'time_from,time_to,status');
+  const endpoint = new URL(`${supabaseUrl}/rest/v1/reservation_public_occupancy`);
+  endpoint.searchParams.set('select', 'court_id,reservation_date,time_from,time_to,status');
   endpoint.searchParams.set('court_id', `eq.${input.courtId}`);
   endpoint.searchParams.set('reservation_date', `eq.${input.reservationDate}`);
   endpoint.searchParams.set('status', 'in.(pending,approved)');
+
+  if (process.env.NODE_ENV === 'development') {
+    console.info('public occupancy request started', { courtId: input.courtId, reservationDate: input.reservationDate });
+  }
 
   const response = await fetch(endpoint.toString(), {
     method: 'GET',
@@ -172,6 +176,9 @@ export async function checkReservationSlotAvailability(input: ReservationAvailab
 
   if (!response.ok) {
     const responseBody = await response.text();
+    if (process.env.NODE_ENV === 'development') {
+      console.info('public occupancy request failed', { status: response.status, reservationDate: input.reservationDate });
+    }
     throw mapReservationWriteError({
       status: response.status,
       statusText: response.statusText,
@@ -188,8 +195,7 @@ export async function checkReservationSlotAvailability(input: ReservationAvailab
   const rows = JSON.parse(responseBody) as ReservationAvailabilityRow[];
 
   if (process.env.NODE_ENV === 'development') {
-    console.info('availability raw count', { count: rows.length, reservationDate: input.reservationDate, courtId: input.courtId });
-    console.info('availability mapped count', { count: rows.length });
+    console.info('public occupancy loaded', { courtId: input.courtId, reservationDate: input.reservationDate, count: rows.length });
   }
 
   const hasConflict = rows.some((row) => doesReservationIntervalOverlap(

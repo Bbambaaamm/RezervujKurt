@@ -20,6 +20,28 @@ const requiredPolicies = [
   }
 ];
 
+
+const requiredPublicOccupancyArtifacts = [
+  {
+    type: 'view',
+    name: 'public.reservation_public_occupancy',
+    matcher: /create\s+or\s+replace\s+view\s+public\.reservation_public_occupancy/i,
+    reason: 'Veřejný grid musí mít minimální read-only pohled na obsazenost.'
+  },
+  {
+    type: 'grant',
+    name: 'grant_select_reservation_public_occupancy_anon',
+    matcher: /grant\s+select\s+on\s+public\.reservation_public_occupancy\s+to\s+anon/i,
+    reason: 'Anonymní návštěvník musí číst veřejnou obsazenost.'
+  },
+  {
+    type: 'grant',
+    name: 'grant_select_reservation_public_occupancy_authenticated',
+    matcher: /grant\s+select\s+on\s+public\.reservation_public_occupancy\s+to\s+authenticated/i,
+    reason: 'Přihlášený uživatel musí číst stejnou veřejnou obsazenost.'
+  }
+];
+
 const devOnlyPolicies = [
 ];
 
@@ -52,6 +74,19 @@ function hasDevOnlyMarker(sql, policyName) {
 }
 
 const files = readMigrationFiles();
+
+for (const artifact of requiredPublicOccupancyArtifacts) {
+  const exists = files.some((file) => {
+    const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
+    return artifact.matcher.test(sql);
+  });
+
+  if (!exists) {
+    console.error('❌ RLS check selhal: chybí povinný public occupancy artefakt.');
+    console.error(`- ${artifact.name}: ${artifact.reason}`);
+    process.exit(1);
+  }
+}
 
 for (const policy of requiredPolicies) {
   const exists = files.some((file) => {

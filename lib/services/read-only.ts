@@ -11,13 +11,11 @@ type CourtRow = {
 };
 
 type ReservationRow = {
-  id: string;
   court_id: number;
   reservation_date: string;
   time_from: string;
   time_to: string;
-  status: 'pending' | 'approved' | 'cancelled';
-  created_at: string;
+  status: 'pending' | 'approved';
 };
 
 type ReservationOverviewRow = {
@@ -75,8 +73,10 @@ function mapCourt(row: CourtRow): Court {
 }
 
 function mapReservation(row: ReservationRow): Reservation {
+  const syntheticId = `${row.court_id}-${row.reservation_date}-${row.time_from}-${row.time_to}`;
+
   return {
-    id: row.id,
+    id: syntheticId,
     courtId: row.court_id,
     date: row.reservation_date,
     fromHour: parseHour(row.time_from),
@@ -87,7 +87,7 @@ function mapReservation(row: ReservationRow): Reservation {
     email: '',
     phone: '',
     paymentMethod: 'online_placeholder',
-    createdAt: row.created_at,
+    createdAt: `${row.reservation_date}T${row.time_from}`,
   };
 }
 
@@ -126,25 +126,22 @@ export async function getCourtsReadOnly() {
   return rows.map(mapCourt);
 }
 
-export async function getReservationsReadOnly(date: string) {
-  const endpoint = `reservations?select=id,court_id,reservation_date,time_from,time_to,status,created_at&reservation_date=eq.${date}&status=in.(pending,approved)&order=time_from.asc`;
+export async function getReservationsReadOnly(date: string, accessToken?: string | null) {
+  const endpoint = `reservation_public_occupancy?select=court_id,reservation_date,time_from,time_to,status&reservation_date=eq.${date}&status=in.(pending,approved)&order=time_from.asc`;
+
   if (process.env.NODE_ENV === 'development') {
-    console.info('public reservations endpoint', {
-      url: endpoint,
-    });
-  }
-  const rows = await supabaseSelect<ReservationRow>(endpoint);
-  if (process.env.NODE_ENV === 'development') {
-    console.info('public reservations raw count', { count: rows.length, date });
-    console.info('public reservations sample', rows.slice(0, 3));
+    console.info('public occupancy request started', { date });
   }
 
-  const mappedRows = rows.map(mapReservation);
+  const rows = accessToken
+    ? await supabaseSelectWithAccessToken<ReservationRow>(endpoint, accessToken)
+    : await supabaseSelect<ReservationRow>(endpoint);
+
   if (process.env.NODE_ENV === 'development') {
-    console.info('public reservations mapped count', { count: mappedRows.length, date });
+    console.info('public occupancy loaded', { date, count: rows.length });
   }
 
-  return mappedRows;
+  return rows.map(mapReservation);
 }
 
 async function getReservationsOverviewByEndpoint(endpoint: string, accessToken: string) {
