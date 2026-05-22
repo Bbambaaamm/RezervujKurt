@@ -1,3 +1,5 @@
+import { buildOtpPayload, getSupabaseOtpRequestConfig, resolveOtpEndpoint } from '@/lib/supabase/otp-proxy';
+
 export type AuthSession = {
   access_token: string;
   refresh_token?: string;
@@ -26,6 +28,15 @@ let refreshInFlight: Promise<AuthSession | null> | null = null;
 function getSupabaseConfig(): { url: string; anonKey: string } | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (process.env.NODE_ENV === 'development') {
+    console.info('[auth] Supabase runtime env:', {
+      has_url: Boolean(url),
+      url_preview: url ? `${url.slice(0, 48)}${url.length > 48 ? '…' : ''}` : null,
+      has_anon_key: Boolean(anonKey),
+      anon_key_prefix: anonKey ? anonKey.slice(0, 12) : null,
+      anon_key_length: anonKey?.length ?? 0,
+    });
+  }
   if (!url || !anonKey) return null;
   return { url, anonKey };
 }
@@ -282,14 +293,13 @@ export const supabaseAuthClient = {
       return { data: { subscription: { unsubscribe() { listeners.delete(callback); } } } };
     },
     async signInWithOtp({ email, options }: { email: string; options?: { emailRedirectTo?: string } }) {
+      const payload = buildOtpPayload(email, options?.emailRedirectTo);
       const config = getSupabaseConfig();
       if (!config) return { error: new Error('Chybí NEXT_PUBLIC_SUPABASE_URL nebo NEXT_PUBLIC_SUPABASE_ANON_KEY.') };
-      const endpoint = `${config.url}/auth/v1/otp`;
-      const payload = {
-        email,
-        create_user: true,
-        ...(options?.emailRedirectTo ? { redirect_to: options.emailRedirectTo } : {}),
-      };
+      const directEndpoint = `${config.url}/auth/v1/otp`;
+      const windowOrigin = typeof window !== 'undefined' ? window.location.origin : undefined;
+      const endpoint = resolveOtpEndpoint(directEndpoint, windowOrigin);
+      const useProxy = endpoint === '/api/auth/otp';
 
       if (process.env.NODE_ENV === 'development') {
         console.info('[auth] Supabase OTP endpoint:', endpoint);
@@ -303,10 +313,28 @@ export const supabaseAuthClient = {
       try {
         const response = await fetch(endpoint, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', apikey: config.anonKey },
+          headers: useProxy ? { 'Content-Type': 'application/json' } : getSupabaseOtpRequestConfig().headers,
           body: JSON.stringify(payload),
         });
-        if (!response.ok) return { error: new Error(`Supabase Auth OTP selhalo (${response.status}).`) };
+        if (!response.ok) {
+          const responseBody = await response.text();
+          if (process.env.NODE_ENV === 'development') {
+            console.info('[auth] Supabase OTP failed response:', {
+              status: response.status,
+              statusText: response.statusText,
+              body: responseBody,
+            });
+          }
+          return { error: new Error(`Supabase Auth OTP selhalo (${response.status}).`) };
+        }
+        if (process.env.NODE_ENV === 'development') {
+          const responseBody = await response.text();
+          console.info('[auth] Supabase OTP success response:', {
+            status: response.status,
+            statusText: response.statusText,
+            body: responseBody || null,
+          });
+        }
         return { error: null };
       } catch {
         return { error: new Error('Síťová chyba při volání Supabase Auth OTP.') };

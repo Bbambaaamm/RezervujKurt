@@ -4,20 +4,16 @@ import { useMemo, useState } from 'react';
 
 import { courts as fallbackCourts, mockReservations as fallbackReservations, openHours } from '@/lib/mockData';
 import type { Court, Reservation } from '@/lib/types/domain';
-import { isReservationSlotOccupied } from '@/lib/services/reservation-occupancy';
+import { buildReservationSlotRenderClassName, getReservationSlotCellClassName, getReservationSlotState } from '@/lib/services/reservation-slot-state';
 
-const statusClasses: Record<string, string> = {
-  volno: 'bg-white',
-  potvrzeno: 'bg-emerald-200 text-emerald-900',
-  cekajici: 'bg-amber-200 text-amber-900',
-  blokace: 'bg-rose-200 text-rose-900',
-};
+
+type ReservationSelection = { courtId: number; timeFrom: string; timeTo: string };
 
 type ReservationGridProps = {
   selectedDate: string;
   courts?: Court[];
   reservations?: Reservation[];
-  onSelectionChange?: (selection: { courtId: number; timeFrom: string; timeTo: string } | null) => void;
+  onSelectionChange?: (selection: ReservationSelection | null) => void;
 };
 
 type SlotKey = `${number}-${number}`;
@@ -27,39 +23,6 @@ type DragState = {
   startTime: number;
   endTime: number;
 } | null;
-
-function getSlotStatus(courtId: number, time: number, date: string, reservations: Reservation[]) {
-  const slotTo = time + 0.5;
-  const reservation = reservations.find((item) => item.courtId === courtId && item.date === date && isReservationSlotOccupied(item, time, slotTo));
-
-  if (!reservation) {
-    if (process.env.NODE_ENV === 'development') {
-      console.info('reservation grid occupancy no match for slot', {
-        courtId,
-        date,
-        slotFrom: formatTimeLabel(time),
-        slotTo: formatTimeLabel(slotTo),
-      });
-    }
-    return { type: 'volno', label: 'Volno' };
-  }
-
-  if (process.env.NODE_ENV === 'development') {
-    console.info('reservation grid occupancy matched', {
-      reservationId: reservation.id,
-      courtId,
-      date,
-      slotFrom: formatTimeLabel(time),
-      slotTo: formatTimeLabel(slotTo),
-      status: reservation.status,
-    });
-  }
-
-  return {
-    type: reservation.status,
-    label: reservation.status === 'cekajici' ? 'Čeká na schválení' : 'Obsazeno',
-  };
-}
 
 function formatTimeLabel(time: number) {
   const hour = Math.floor(time);
@@ -72,6 +35,7 @@ function normalizeRange(start: number, end: number) {
 }
 
 export function ReservationGrid({ selectedDate, courts = fallbackCourts, reservations = fallbackReservations, onSelectionChange }: ReservationGridProps) {
+  console.info('reservation grid component render active', { selectedDate, reservationsCount: reservations.length, courtsCount: courts.length });
   const halfHourSlots = useMemo(
     () => Array.from({ length: (openHours.end - openHours.start) * 2 }, (_, i) => openHours.start + i * 0.5),
     [],
@@ -81,6 +45,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
 
   if (process.env.NODE_ENV === "development") {
     console.info('reservation grid received reservations count', { count: reservations.length, selectedDate });
+    console.info('reservation grid received reservations sample', reservations.slice(0, 3));
   }
   const [dragState, setDragState] = useState<DragState>(null);
 
@@ -98,8 +63,8 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
         return;
       }
 
-      const slot = getSlotStatus(dragState.courtId, time, selectedDate, reservations);
-      if (slot.type === 'volno') {
+      const slot = getReservationSlotState(reservations, dragState.courtId, selectedDate, time, time + 0.5);
+      if (!slot.isOccupied) {
         slots.add(`${dragState.courtId}-${time}`);
       }
     });
@@ -133,7 +98,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
           return false;
         }
 
-        return getSlotStatus(dragState.courtId, time, selectedDate, reservations).type !== 'volno';
+        return getReservationSlotState(reservations, dragState.courtId, selectedDate, time, time + 0.5).isOccupied;
       });
 
       if (hasBlockedSlot) {
@@ -156,6 +121,9 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
     >
+      {process.env.NODE_ENV === 'development' && (
+        <div className="border-b border-slate-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">GRID DEBUG ACTIVE</div>
+      )}
       <div className="grid min-w-[760px] grid-cols-4">
         <div className="border-b border-r border-slate-200 bg-slate-100 p-3 text-sm font-semibold">Čas</div>
         {courts.map((court) => (
@@ -170,20 +138,66 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
               {formatTimeLabel(time)} - {formatTimeLabel(time + 0.5)}
             </div>
             {courts.map((court) => {
-              const slot = getSlotStatus(court.id, time, selectedDate, reservations);
+              const slot = getReservationSlotState(reservations, court.id, selectedDate, time, time + 0.5);
+              if (process.env.NODE_ENV === 'development' && time === halfHourSlots[0]) {
+                console.info('reservation grid slot state', { selectedDate, courtId: court.id, timeFrom: time, timeTo: time + 0.5, slotType: slot.type, isOccupied: slot.isOccupied });
+              }
               const slotKey = `${court.id}-${time}` as SlotKey;
               const isSelected = selectedSlots.has(slotKey);
+              const slotClassName = buildReservationSlotRenderClassName(slot.type, isSelected);
+              const slotCellClassName = getReservationSlotCellClassName(slot.type, isSelected);
+
+              if (process.env.NODE_ENV === 'development' && time <= halfHourSlots[2]) {
+                console.info('reservation grid visual state', {
+                  selectedDate,
+                  courtId: court.id,
+                  timeFrom: time,
+                  slotType: slot.type,
+                  isOccupied: slot.isOccupied,
+                  isSelected,
+                  className: slotClassName,
+                  cellClassName: slotCellClassName,
+                });
+              }
+              if (process.env.NODE_ENV === 'development') {
+                console.info('reservation grid rendered slot className', {
+                  selectedDate,
+                  courtId: court.id,
+                  timeFrom: time,
+                  slotType: slot.type,
+                  className: slotClassName,
+                });
+              }
+
+              if (
+                process.env.NODE_ENV === 'development' &&
+                selectedDate === '2026-05-21' &&
+                court.id === 2 &&
+                time >= 15.5 &&
+                time <= 18
+              ) {
+                console.info('reservation grid slot final targeted', {
+                  selectedDate,
+                  courtId: court.id,
+                  slot: { timeFrom: time, timeTo: time + 0.5 },
+                  isOccupied: slot.isOccupied,
+                  slotType: slot.type,
+                  className: slotClassName,
+                });
+              }
 
               return (
                 <button
                   key={slotKey}
                   type="button"
-                  onPointerDown={() => handlePointerDown(court.id, time, slot.type)}
+                  onPointerDown={() => handlePointerDown(court.id, time, slot.isOccupied ? 'obsazeno' : 'volno')}
                   onPointerEnter={() => handlePointerEnter(court.id, time)}
-                  className={`border-b border-r border-slate-200 p-3 text-left text-xs transition hover:brightness-95 last:border-r-0 ${statusClasses[slot.type]} ${isSelected ? 'ring-2 ring-inset ring-blue-500' : ''}`}
+                  className={slotClassName}
                 >
-                  <span className="font-semibold">{slot.label}</span>
-                  {slot.type === 'volno' && <p className="mt-1 text-slate-500">Klikněte a tahem vyberte úsek</p>}
+                  <span className={slotCellClassName}>
+                    <span className="font-semibold">{slot.label}</span>
+                    {!slot.isOccupied && <p className="mt-1 text-slate-500">Klikněte a tahem vyberte úsek</p>}
+                  </span>
                 </button>
               );
             })}

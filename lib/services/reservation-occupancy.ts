@@ -5,7 +5,7 @@ function getTimeMinutesFromHour(hourValue: number) {
 }
 
 export function isReservationSlotOccupied(reservation: Reservation, slotFromHour: number, slotToHour: number) {
-  if (reservation.status !== 'cekajici' && reservation.status !== 'potvrzeno') {
+  if (reservation.status !== 'cekajici' && reservation.status !== 'potvrzeno' && reservation.status !== 'blokace') {
     return false;
   }
 

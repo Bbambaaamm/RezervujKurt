@@ -20,7 +20,6 @@ type UpdateReservationStatusInput = {
 };
 
 type ReservationAvailabilityCheckInput = {
-  accessToken: string;
   courtId: number;
   reservationDate: string;
   timeFrom: string;
@@ -170,7 +169,7 @@ export async function checkReservationSlotAvailability(input: ReservationAvailab
     method: 'GET',
     headers: {
       apikey: supabaseAnonKey,
-      Authorization: `Bearer ${input.accessToken}`,
+      Authorization: `Bearer ${supabaseAnonKey}`,
       Accept: 'application/json',
     },
   });

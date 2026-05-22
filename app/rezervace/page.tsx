@@ -9,6 +9,7 @@ import { ReservationConflictError, ReservationUnauthorizedError, ReservationVali
 import { getCourtsReadOnly, getReservationsReadOnly } from '@/lib/services/read-only';
 import { supabaseAuthClient } from '@/lib/supabase/auth-client';
 import { SupabaseRequestError } from '@/lib/supabase/client';
+import { isSlotOccupiedByPublicReservations } from '@/lib/services/reservation-submit-guard';
 import type { Court, Reservation } from '@/lib/types/domain';
 
 type DataSourceMode = 'supabase' | 'mock fallback';
@@ -68,7 +69,7 @@ export default function ReservationPage() {
 
   const reservationsReloadRequestRef = useRef(0);
 
-  const reloadReservations = useCallback(async (date: string, accessToken?: string | null) => {
+  const reloadReservations = useCallback(async (date: string) => {
     const requestId = ++reservationsReloadRequestRef.current;
 
     if (process.env.NODE_ENV === 'development') {
@@ -76,7 +77,7 @@ export default function ReservationPage() {
     }
 
     try {
-      const loadedReservations = await getReservationsReadOnly(date, accessToken);
+      const loadedReservations = await getReservationsReadOnly(date);
 
       if (requestId !== reservationsReloadRequestRef.current) {
         return;
@@ -102,8 +103,14 @@ export default function ReservationPage() {
   }, []);
 
   useEffect(() => {
-    void reloadReservations(selectedDate, sessionToken);
-  }, [reloadReservations, selectedDate, sessionToken]);
+    void reloadReservations(selectedDate);
+  }, [reloadReservations, selectedDate]);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.info('reservation page passing reservations to grid', { count: reservations.length, sample: reservations.slice(0, 3) });
+    }
+  }, [reservations]);
 
   useEffect(() => {
     setSelectionReady(false);
@@ -121,12 +128,11 @@ export default function ReservationPage() {
 
 
   useEffect(() => {
-    if (!selectionReady || !sessionToken) {
+    if (!selectionReady) {
       setAvailabilityWarning(null);
       return;
     }
 
-    const token = sessionToken;
     let active = true;
 
     async function runAvailabilityCheck() {
@@ -136,7 +142,6 @@ export default function ReservationPage() {
 
       try {
         const isAvailable = await checkReservationSlotAvailability({
-          accessToken: token,
           courtId: Number(courtId),
           reservationDate: selectedDate,
           timeFrom,
@@ -168,7 +173,7 @@ export default function ReservationPage() {
     return () => {
       active = false;
     };
-  }, [courtId, selectedDate, selectionReady, sessionToken, timeFrom, timeTo]);
+  }, [courtId, selectedDate, selectionReady, timeFrom, timeTo]);
   async function handleCreateReservation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitMessage(null);
@@ -184,9 +189,20 @@ export default function ReservationPage() {
       return;
     }
 
+    if (isSlotOccupiedByPublicReservations({
+      reservations,
+      courtId: Number(courtId),
+      date: selectedDate,
+      timeFrom,
+      timeTo,
+    })) {
+      setSubmitError('Kolize rezervace. Vybraný termín je už obsazen.');
+      return;
+    }
+
     try {
       await createReservation({ accessToken: sessionToken, userId: sessionUserId, courtId: Number(courtId), reservationDate: selectedDate, timeFrom, timeTo, note });
-      await reloadReservations(selectedDate, sessionToken);
+      await reloadReservations(selectedDate);
       setSubmitMessage('Rezervace vytvořena.');
     } catch (error) {
       if (error instanceof ReservationConflictError) {
@@ -207,7 +223,7 @@ export default function ReservationPage() {
 
   return <div className="space-y-6">{/* ... */}
     <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end"><div><h1 className="text-3xl font-bold">Rezervace kurtů</h1><p className="text-slate-600">Denní přehled všech 3 kurtů na jednom místě.</p></div><div className="space-y-2 rounded-md border border-slate-200 bg-white px-4 py-3 text-sm"><div>Datum: <span className="font-semibold">{formattedSelectedDate}</span></div><label className="flex flex-col gap-1 text-xs font-medium text-slate-600" htmlFor="reservation-day">Vyberte den<input id="reservation-day" type="date" lang="cs-CZ" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></label></div></div>
-    <ReservationGrid selectedDate={selectedDate} courts={courts} reservations={reservations} onSelectionChange={(selection) => {
+    <ReservationGrid selectedDate={selectedDate} courts={courts} reservations={reservations} onSelectionChange={(selection: { courtId: number; timeFrom: string; timeTo: string } | null) => {
       if (!selection) {
         setSelectionReady(false);
         return;
@@ -230,7 +246,7 @@ export default function ReservationPage() {
           )}
         </div>
         <label className="flex flex-col gap-1 md:col-span-2">Poznámka<input value={note} onChange={(event) => setNote(event.target.value)} className="rounded-md border border-slate-300 px-2 py-1.5"/></label>
-        <button type="submit" disabled={!selectionReady} className="rounded-md border border-slate-300 px-3 py-2 text-left disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 md:col-span-2">Rezervovat vybraný termín</button>
+        <button type="submit" disabled={!selectionReady || Boolean(availabilityWarning)} className="rounded-md border border-slate-300 px-3 py-2 text-left disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 md:col-span-2">Rezervovat vybraný termín</button>
         {submitMessage && <p className="md:col-span-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-800">{submitMessage}</p>}
         {availabilityWarning && (
           <p role="status" aria-live="polite" className="md:col-span-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">

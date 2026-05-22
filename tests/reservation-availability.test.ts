@@ -88,7 +88,6 @@ test('checkReservationSlotAvailability: pending a approved blokují slot, cancel
   };
 
   const available = await checkReservationSlotAvailability({
-    accessToken: 'token',
     courtId: 2,
     reservationDate: '2026-05-20',
     timeFrom: '10:00',
@@ -105,6 +104,30 @@ test('checkReservationSlotAvailability: pending a approved blokují slot, cancel
   assert.equal(parsedUrl.searchParams.get('status'), 'in.(pending,approved)');
 });
 
+test('checkReservationSlotAvailability: nepoužívá session token a volá anonymní read bez user filtru', async () => {
+  let requestedAuth = '';
+  let requestedUrl = '';
+  const { checkReservationSlotAvailability } = await import('../lib/services/reservations');
+
+  globalThis.fetch = async (input, init) => {
+    requestedUrl = String(input);
+    const headers = (init?.headers ?? {}) as Record<string, string>;
+    requestedAuth = String(headers.Authorization ?? '');
+    return new Response(JSON.stringify([]), { status: 200 });
+  };
+
+  await checkReservationSlotAvailability({
+    courtId: 1,
+    reservationDate: '2026-05-20',
+    timeFrom: '09:00',
+    timeTo: '10:00',
+  });
+
+  const parsedUrl = new URL(requestedUrl);
+  assert.equal(requestedAuth, 'Bearer anon-key');
+  assert.equal(parsedUrl.searchParams.get('user_id'), null);
+});
+
 test('checkReservationSlotAvailability: bez overlapu vrací true', async () => {
   const { checkReservationSlotAvailability } = await import('../lib/services/reservations');
 
@@ -114,7 +137,6 @@ test('checkReservationSlotAvailability: bez overlapu vrací true', async () => {
   );
 
   const available = await checkReservationSlotAvailability({
-    accessToken: 'token',
     courtId: 2,
     reservationDate: '2026-05-20',
     timeFrom: '09:00',

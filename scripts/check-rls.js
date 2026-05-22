@@ -12,6 +12,11 @@ const requiredPolicies = [
     table: 'public.reservations',
     name: 'reservations_select_owner_or_admin',
     reason: 'Admin musí mít SELECT na reservations přes policy owner_or_admin i po db resetu.'
+  },
+  {
+    table: 'public.reservations',
+    name: 'reservations_select_public_occupancy_anon',
+    reason: 'Anonymní occupancy read musí povolit pending/approved pro veřejný grid.'
   }
 ];
 
@@ -38,9 +43,12 @@ const requiredPublicOccupancyArtifacts = [
 ];
 
 const devOnlyPolicies = [
+];
+
+const forbiddenPolicyFragments = [
   {
-    name: 'reservations_select_public_overview_anon',
-    reason: 'Anonymní SELECT na reservations nesmí být aktivní v produkci.'
+    needle: "coalesce(current_setting('app.rls_mode', true), 'prod') = 'dev'",
+    reason: 'Legacy DEV podmínka na reservations select by zablokovala veřejný grid mimo app.rls_mode=dev.'
   }
 ];
 
@@ -137,4 +145,23 @@ if (findings.length === 0) {
   for (const finding of findings) {
     console.log(`- ${finding.policy} v ${finding.file}`);
   }
+}
+
+
+const legacyPolicyFindings = [];
+for (const file of files) {
+  const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
+  for (const rule of forbiddenPolicyFragments) {
+    if (sql.includes(rule.needle)) {
+      legacyPolicyFindings.push({ file, reason: rule.reason });
+    }
+  }
+}
+
+if (legacyPolicyFindings.length > 0) {
+  console.warn('⚠️ RLS check upozornění: nalezena legacy DEV policy v historii migrací.');
+  for (const finding of legacyPolicyFindings) {
+    console.warn(`- ${finding.file}: ${finding.reason}`);
+  }
+  console.warn('  Ověřte, že je aplikovaná migrace 20260521110000_public_reservations_anon_pending_approved.sql.');
 }

@@ -24,12 +24,14 @@ test('getReservationsReadOnly: používá public occupancy endpoint bez user fil
 
   globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     requested.url = String(input);
-    requested.auth = String(init?.headers && (init.headers as Record<string, string>).Authorization);
+    const headers = (init?.headers ?? {}) as Record<string, string>;
+    requested.auth = String(headers.Authorization ?? '');
+    requested.apikey = String(headers.apikey ?? '');
     return createJsonResponse('[]');
   };
 
   const { getReservationsReadOnly } = await import('../lib/services/read-only');
-  const result = await getReservationsReadOnly('2026-05-20', 'session-token');
+  const result = await getReservationsReadOnly('2026-05-20');
 
   assert.deepEqual(result, []);
 

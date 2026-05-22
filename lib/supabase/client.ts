@@ -21,10 +21,21 @@ function getRestUrl(path: string) {
   return `${supabaseUrl}/rest/v1/${path}`;
 }
 
+function logSupabaseSelectDebug(path: string, role: 'anon' | 'access_token') {
+  if (process.env.NODE_ENV !== 'development') {
+    return;
+  }
+
+  const finalUrl = getRestUrl(path);
+  console.info('supabase select request', { role, path, finalUrl });
+}
+
 export async function supabaseSelect<T>(path: string): Promise<T[]> {
   if (!supabaseAnonKey) {
     throw new Error('Chybí NEXT_PUBLIC_SUPABASE_ANON_KEY.');
   }
+
+  logSupabaseSelectDebug(path, 'anon');
 
   const response = await fetch(getRestUrl(path), {
     headers: {
@@ -51,6 +62,8 @@ export async function supabaseSelectWithAccessToken<T>(path: string, accessToken
   if (!supabaseAnonKey) {
     throw new Error('Chybí NEXT_PUBLIC_SUPABASE_ANON_KEY.');
   }
+
+  logSupabaseSelectDebug(path, 'access_token');
 
   const response = await fetch(getRestUrl(path), {
     headers: {
