@@ -59,25 +59,8 @@ export function getReservationSlotState(
   slotFrom: number,
   slotTo: number,
 ) {
-  const isTargetedDebugSlot =
-    process.env.NODE_ENV === 'development' &&
-    date === '2026-05-21' &&
-    courtId === 2 &&
-    slotFrom >= 15.5 &&
-    slotFrom <= 18;
-
   const slotStartMinutes = Math.round(slotFrom * 60);
   const slotEndMinutes = Math.round(slotTo * 60);
-
-  if (isTargetedDebugSlot) {
-    console.info('reservation grid slot state targeted', {
-      selectedDate: date,
-      courtId,
-      slot: { timeFrom: slotFrom, timeTo: slotTo },
-      reservationsCount: reservations.length,
-      reservationsSample: reservations.slice(0, 5),
-    });
-  }
 
   const reservation = reservations.find((item) => {
     const isSameCourt = item.courtId === courtId;
@@ -87,59 +70,12 @@ export function getReservationSlotState(
     const reservationEndMinutes = Math.round(item.toHour * 60);
     const isStatusBlocking = item.status === 'cekajici' || item.status === 'potvrzeno';
     const isOverlap = slotStartMinutes < reservationEndMinutes && reservationStartMinutes < slotEndMinutes;
-
-    if (isTargetedDebugSlot) {
-      console.info('reservation grid slot compare targeted', {
-        selectedDate: date,
-        courtId,
-        slot: { timeFrom: slotFrom, timeTo: slotTo },
-        reservationDate: item.date,
-        reservationCourtId: item.courtId,
-        reservationTimeFrom: item.fromHour,
-        reservationTimeTo: item.toHour,
-        reservationStatus: item.status,
-        normalizedStartMinutes: reservationStartMinutes,
-        normalizedEndMinutes: reservationEndMinutes,
-        normalizedSlotStartMinutes: slotStartMinutes,
-        normalizedSlotEndMinutes: slotEndMinutes,
-        isSameCourt,
-        isSameDate,
-        isStatusBlocking,
-        isOverlap,
-        isOccupied,
-      });
-    }
-
-    if (process.env.NODE_ENV === 'development') {
-      console.info('slot reservation compare', {
-        slot: { courtId, date, slotFrom, slotTo },
-        reservation: {
-          id: item.id,
-          courtId: item.courtId,
-          date: item.date,
-          fromHour: item.fromHour,
-          toHour: item.toHour,
-          status: item.status,
-        },
-        result: { isSameCourt, isSameDate, isOccupied },
-      });
-    }
-
     return isSameCourt && isSameDate && isOccupied;
   });
 
   if (!reservation) {
-    if (process.env.NODE_ENV === 'development') {
-      console.info('slot final status', { courtId, date, slotFrom, slotTo, status: 'volno' });
-    }
-
     return { type: 'volno' as const, label: 'Volno', isOccupied: false };
   }
-
-  if (process.env.NODE_ENV === 'development') {
-    console.info('slot final status', { courtId, date, slotFrom, slotTo, status: reservation.status });
-  }
-
   return {
     type: reservation.status as ReservationSlotType,
     label: reservation.status === 'cekajici' ? 'Čeká na schválení' : 'Obsazeno',
