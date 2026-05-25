@@ -1,10 +1,10 @@
 project_id = "rezervujkurt"
 
 [auth]
-site_url = "https://reimagined-space-tribble-7vp7vq5jrp9pcr545-3000.app.github.dev"
+site_url = "https://cautious-waddle-q7pv7r4599g4fqp5-3000.app.github.dev"
 additional_redirect_urls = [
-  "https://reimagined-space-tribble-7vp7vq5jrp9pcr545-3000.app.github.dev",
-  "https://reimagined-space-tribble-7vp7vq5jrp9pcr545-3000.app.github.dev/rezervace",
+  "https://cautious-waddle-q7pv7r4599g4fqp5-3000.app.github.dev",
+  "https://cautious-waddle-q7pv7r4599g4fqp5-3000.app.github.dev/rezervace",
   "http://localhost:3000",
   "http://localhost:3000/rezervace"
 ]
