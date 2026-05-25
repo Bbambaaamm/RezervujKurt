@@ -223,7 +223,7 @@ export async function checkReservationSlotAvailability(input: ReservationAvailab
   const hasConflict = rows.some((row) => doesReservationIntervalOverlap(
     { timeFrom: input.timeFrom, timeTo: input.timeTo },
     { timeFrom: row.time_from, timeTo: row.time_to },
-  ));
+  ) && (row.status === 'pending' || row.status === 'approved'));
 
   return !hasConflict;
 }

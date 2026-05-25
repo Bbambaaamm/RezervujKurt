@@ -20,7 +20,7 @@ test.afterEach(() => {
 });
 
 test('getReservationsReadOnly: používá public occupancy endpoint bez user filtru a jen minimální pole', async () => {
-  const requested = { url: '', auth: '' };
+  const requested = { url: '', auth: '', apikey: '' };
 
   globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     requested.url = String(input);
@@ -42,5 +42,6 @@ test('getReservationsReadOnly: používá public occupancy endpoint bez user fil
   assert.equal(parsedUrl.searchParams.get('status'), 'in.(pending,approved)');
   assert.equal(parsedUrl.searchParams.get('order'), 'time_from.asc');
   assert.equal(parsedUrl.searchParams.get('user_id'), null);
-  assert.equal(requested.auth, 'Bearer session-token');
+  assert.equal(requested.auth, 'Bearer anon-key');
+  assert.equal(requested.apikey, 'anon-key');
 });
