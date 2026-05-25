@@ -112,6 +112,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
     }
 
     setIsDragging(false);
+    setDragState(null);
   };
 
   return (
