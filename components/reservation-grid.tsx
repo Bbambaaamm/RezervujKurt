@@ -13,6 +13,7 @@ type ReservationGridProps = {
   selectedDate: string;
   courts?: Court[];
   reservations?: Reservation[];
+  selection?: ReservationSelection | null;
   onSelectionChange?: (selection: ReservationSelection | null) => void;
 };
 
@@ -34,8 +35,7 @@ function normalizeRange(start: number, end: number) {
   return { from: Math.min(start, end), to: Math.max(start, end) + 0.5 };
 }
 
-export function ReservationGrid({ selectedDate, courts = fallbackCourts, reservations = fallbackReservations, onSelectionChange }: ReservationGridProps) {
-  console.info('reservation grid component render active', { selectedDate, reservationsCount: reservations.length, courtsCount: courts.length });
+export function ReservationGrid({ selectedDate, courts = fallbackCourts, reservations = fallbackReservations, selection = null, onSelectionChange }: ReservationGridProps) {
   const halfHourSlots = useMemo(
     () => Array.from({ length: (openHours.end - openHours.start) * 2 }, (_, i) => openHours.start + i * 0.5),
     [],
@@ -43,14 +43,10 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
 
   const [isDragging, setIsDragging] = useState(false);
 
-  if (process.env.NODE_ENV === "development") {
-    console.info('reservation grid received reservations count', { count: reservations.length, selectedDate });
-    console.info('reservation grid received reservations sample', reservations.slice(0, 3));
-  }
   const [dragState, setDragState] = useState<DragState>(null);
   const activeSelection = dragState
     ? { courtId: dragState.courtId, timeFrom: normalizeRange(dragState.startTime, dragState.endTime).from, timeTo: normalizeRange(dragState.startTime, dragState.endTime).to }
-    : null;
+    : selection;
 
   const selectedSlots = useMemo(() => {
     if (!dragState) {
@@ -124,9 +120,6 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
     >
-      {process.env.NODE_ENV === 'development' && (
-        <div className="border-b border-slate-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">GRID DEBUG ACTIVE</div>
-      )}
       <div className="grid min-w-[760px] grid-cols-4">
         <div className="border-b border-r border-slate-200 bg-slate-100 p-3 text-sm font-semibold">Čas</div>
         {courts.map((court) => (
@@ -142,27 +135,11 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
             </div>
             {courts.map((court) => {
               const slot = getReservationSlotState(reservations, court.id, selectedDate, time, time + 0.5);
-              if (process.env.NODE_ENV === 'development' && time === halfHourSlots[0]) {
-                console.info('reservation grid slot state', { selectedDate, courtId: court.id, timeFrom: time, timeTo: time + 0.5, slotType: slot.type, isOccupied: slot.isOccupied });
-              }
               const slotKey = `${court.id}-${time}` as SlotKey;
               const isSelectedByRange = isReservationSlotSelected(activeSelection, court.id, time, time + 0.5);
               const isSelected = selectedSlots.has(slotKey) || isSelectedByRange;
               const slotClassName = buildReservationSlotRenderClassName(slot.type, isSelected);
               const slotCellClassName = getReservationSlotCellClassName(slot.type, isSelected);
-
-              if (process.env.NODE_ENV === 'development' && isSelected) {
-                console.info('reservation grid selected slot state', {
-                  courtId: court.id,
-                  slotFrom: time,
-                  slotTo: time + 0.5,
-                  selectedCourtId: activeSelection?.courtId ?? null,
-                  selectedFrom: activeSelection?.timeFrom ?? null,
-                  selectedTo: activeSelection?.timeTo ?? null,
-                  isSelected,
-                  className: slotClassName,
-                });
-              }
 
               return (
                 <button
