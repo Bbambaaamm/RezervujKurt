@@ -193,6 +193,23 @@ test('selection courtId 2 od 17.5 do 19 označí všechny sloty v intervalu', ()
   assert.equal(isReservationSlotSelected(selection, 2, 18.5, 19), true);
 });
 
+test('selection courtId 2 od 17:30 do 19:00 dá selected root class třem půlhodinám', () => {
+  const selection = { courtId: 2, timeFrom: '17:30', timeTo: '19:00' };
+  const slots: Array<[number, number]> = [
+    [17.5, 18],
+    [18, 18.5],
+    [18.5, 19],
+  ];
+
+  for (const [from, to] of slots) {
+    const isSelected = isReservationSlotSelected(selection, 2, from, to);
+    assert.equal(isSelected, true);
+    const rootClassName = buildReservationSlotRenderClassName('volno', isSelected);
+    assert.match(rootClassName, /bg-blue-200/);
+    assert.match(rootClassName, /ring-2/);
+  }
+});
+
 test('slot mimo interval není selected', () => {
   const selection = { courtId: 2, timeFrom: 17.5, timeTo: 19 };
   assert.equal(isReservationSlotSelected(selection, 2, 17, 17.5), false);
