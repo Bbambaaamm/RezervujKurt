@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 
 import { courts as fallbackCourts, mockReservations as fallbackReservations, openHours } from '@/lib/mockData';
 import type { Court, Reservation } from '@/lib/types/domain';
-import { buildReservationSlotRenderClassName, getReservationSlotCellClassName, getReservationSlotState } from '@/lib/services/reservation-slot-state';
+import { buildReservationSlotRenderClassName, getReservationSlotCellClassName, getReservationSlotState, isReservationSlotSelected } from '@/lib/services/reservation-slot-state';
 
 
 type ReservationSelection = { courtId: number; timeFrom: string; timeTo: string };
@@ -48,6 +48,9 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
     console.info('reservation grid received reservations sample', reservations.slice(0, 3));
   }
   const [dragState, setDragState] = useState<DragState>(null);
+  const activeSelection = dragState
+    ? { courtId: dragState.courtId, timeFrom: normalizeRange(dragState.startTime, dragState.endTime).from, timeTo: normalizeRange(dragState.startTime, dragState.endTime).to }
+    : null;
 
   const selectedSlots = useMemo(() => {
     if (!dragState) {
@@ -143,45 +146,20 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
                 console.info('reservation grid slot state', { selectedDate, courtId: court.id, timeFrom: time, timeTo: time + 0.5, slotType: slot.type, isOccupied: slot.isOccupied });
               }
               const slotKey = `${court.id}-${time}` as SlotKey;
-              const isSelected = selectedSlots.has(slotKey);
+              const isSelectedByRange = isReservationSlotSelected(activeSelection, court.id, time, time + 0.5);
+              const isSelected = selectedSlots.has(slotKey) || isSelectedByRange;
               const slotClassName = buildReservationSlotRenderClassName(slot.type, isSelected);
               const slotCellClassName = getReservationSlotCellClassName(slot.type, isSelected);
 
-              if (process.env.NODE_ENV === 'development' && time <= halfHourSlots[2]) {
-                console.info('reservation grid visual state', {
-                  selectedDate,
+              if (process.env.NODE_ENV === 'development' && isSelected) {
+                console.info('reservation grid selected slot state', {
                   courtId: court.id,
-                  timeFrom: time,
-                  slotType: slot.type,
-                  isOccupied: slot.isOccupied,
+                  slotFrom: time,
+                  slotTo: time + 0.5,
+                  selectedCourtId: activeSelection?.courtId ?? null,
+                  selectedFrom: activeSelection?.timeFrom ?? null,
+                  selectedTo: activeSelection?.timeTo ?? null,
                   isSelected,
-                  className: slotClassName,
-                  cellClassName: slotCellClassName,
-                });
-              }
-              if (process.env.NODE_ENV === 'development') {
-                console.info('reservation grid rendered slot className', {
-                  selectedDate,
-                  courtId: court.id,
-                  timeFrom: time,
-                  slotType: slot.type,
-                  className: slotClassName,
-                });
-              }
-
-              if (
-                process.env.NODE_ENV === 'development' &&
-                selectedDate === '2026-05-21' &&
-                court.id === 2 &&
-                time >= 15.5 &&
-                time <= 18
-              ) {
-                console.info('reservation grid slot final targeted', {
-                  selectedDate,
-                  courtId: court.id,
-                  slot: { timeFrom: time, timeTo: time + 0.5 },
-                  isOccupied: slot.isOccupied,
-                  slotType: slot.type,
                   className: slotClassName,
                 });
               }
