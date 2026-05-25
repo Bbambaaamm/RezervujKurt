@@ -145,3 +145,44 @@ test('checkReservationSlotAvailability: bez overlapu vrací true', async () => {
 
   assert.equal(available, true);
 });
+
+test('checkReservationSlotAvailability: při read chybě vrací read/precheck chybu, ne reservation-write', async () => {
+  const { checkReservationSlotAvailability, ReservationAvailabilityReadError } = await import('../lib/services/reservations');
+
+  globalThis.fetch = async () => new Response(
+    JSON.stringify({ message: 'forbidden' }),
+    { status: 403, statusText: 'Forbidden' },
+  );
+
+  await assert.rejects(
+    () => checkReservationSlotAvailability({
+      courtId: 2,
+      reservationDate: '2026-05-20',
+      timeFrom: '09:00',
+      timeTo: '10:00',
+    }),
+    (error: unknown) => {
+      assert.ok(error instanceof ReservationAvailabilityReadError);
+      assert.ok(!String((error as Error).message).includes('reservation-write'));
+      return true;
+    },
+  );
+});
+
+test('checkReservationSlotAvailability: cancelled rezervace nevrací conflict', async () => {
+  const { checkReservationSlotAvailability } = await import('../lib/services/reservations');
+
+  globalThis.fetch = async () => new Response(
+    JSON.stringify([{ time_from: '09:30', time_to: '10:30', status: 'cancelled' }]),
+    { status: 200 },
+  );
+
+  const available = await checkReservationSlotAvailability({
+    courtId: 2,
+    reservationDate: '2026-05-20',
+    timeFrom: '10:00',
+    timeTo: '11:00',
+  });
+
+  assert.equal(available, true);
+});

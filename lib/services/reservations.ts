@@ -32,6 +32,22 @@ type ReservationAvailabilityRow = {
   status: 'pending' | 'approved' | 'cancelled';
 };
 
+export class ReservationAvailabilityReadError extends Error {
+  readonly status: number;
+  readonly endpoint: string;
+  readonly responseBody: string;
+  readonly role: 'anon';
+
+  constructor(params: { status: number; endpoint: string; responseBody: string; role: 'anon' }) {
+    super('Nepodařilo se načíst dostupnost rezervace.');
+    this.name = 'ReservationAvailabilityReadError';
+    this.status = params.status;
+    this.endpoint = params.endpoint;
+    this.responseBody = params.responseBody;
+    this.role = params.role;
+  }
+}
+
 function timeStringToMinutes(value: string): number {
   const [hoursPart, minutesPart] = value.split(':');
   const hours = Number(hoursPart);
@@ -177,13 +193,19 @@ export async function checkReservationSlotAvailability(input: ReservationAvailab
   if (!response.ok) {
     const responseBody = await response.text();
     if (process.env.NODE_ENV === 'development') {
-      console.info('public occupancy request failed', { status: response.status, reservationDate: input.reservationDate });
+      console.error('availability read failed', {
+        endpoint: endpoint.toString(),
+        status: response.status,
+        responseBody,
+        role: 'anon',
+        reservationDate: input.reservationDate,
+      });
     }
-    throw mapReservationWriteError({
+    throw new ReservationAvailabilityReadError({
       status: response.status,
-      statusText: response.statusText,
-      endpoint: response.url,
+      endpoint: endpoint.toString(),
       responseBody,
+      role: 'anon',
     });
   }
 
@@ -201,7 +223,7 @@ export async function checkReservationSlotAvailability(input: ReservationAvailab
   const hasConflict = rows.some((row) => doesReservationIntervalOverlap(
     { timeFrom: input.timeFrom, timeTo: input.timeTo },
     { timeFrom: row.time_from, timeTo: row.time_to },
-  ));
+  ) && (row.status === 'pending' || row.status === 'approved'));
 
   return !hasConflict;
 }
