@@ -162,8 +162,11 @@ export default function ReservationPage() {
           console.info('reservation availability conflict');
         }
         setAvailabilityWarning('Vybraný termín je pravděpodobně obsazen.');
-      } catch {
+      } catch (error) {
         if (!active) return;
+        if (process.env.NODE_ENV === 'development') {
+          console.error('availability check failed', error);
+        }
         setAvailabilityWarning(null);
       }
     }
