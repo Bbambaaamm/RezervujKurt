@@ -3,6 +3,54 @@ import type { Reservation } from '../types/domain';
 import { isReservationSlotOccupied } from './reservation-occupancy';
 
 export type ReservationSlotType = 'volno' | Reservation['status'];
+type SlotSelection = { courtId: number; timeFrom: string | number; timeTo: string | number } | null;
+
+export function normalizeReservationSlotTime(value: string | number): number | null {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  const normalized = value.trim().replace(',', '.');
+
+  if (/^\d+(\.\d+)?$/.test(normalized)) {
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  const parts = normalized.split(':');
+  if (parts.length < 2) {
+    return null;
+  }
+
+  const hours = Number(parts[0]);
+  const minutes = Number(parts[1]);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+    return null;
+  }
+
+  return hours + minutes / 60;
+}
+
+export function isReservationSlotSelected(selection: SlotSelection, courtId: number, slotFrom: number, slotTo: number) {
+  if (!selection || selection.courtId !== courtId) {
+    return false;
+  }
+
+  const selectedFrom = normalizeReservationSlotTime(selection.timeFrom);
+  const selectedTo = normalizeReservationSlotTime(selection.timeTo);
+  if (selectedFrom === null || selectedTo === null) {
+    return false;
+  }
+
+  const rangeFrom = Math.min(selectedFrom, selectedTo);
+  const rangeTo = Math.max(selectedFrom, selectedTo);
+  const slotStartMinutes = Math.round(slotFrom * 60);
+  const slotEndMinutes = Math.round(slotTo * 60);
+  const selectedFromMinutes = Math.round(rangeFrom * 60);
+  const selectedToMinutes = Math.round(rangeTo * 60);
+
+  return slotStartMinutes >= selectedFromMinutes && slotEndMinutes <= selectedToMinutes;
+}
 
 export function getReservationSlotState(
   reservations: Reservation[],
@@ -116,7 +164,7 @@ export function getReservationSlotClassName(slotType: ReservationSlotType, isSel
   }
 
   if (isSelected && slotType === 'volno') {
-    return `${baseClass} border-blue-300 bg-blue-100 text-blue-900 ring-2 ring-inset ring-blue-600 hover:bg-blue-100`;
+    return `${baseClass} border-blue-400 bg-blue-200 text-blue-950 ring-2 ring-inset ring-blue-600 hover:bg-blue-200`;
   }
 
   return `${baseClass} border-slate-200 bg-white text-slate-900 hover:bg-slate-50`;

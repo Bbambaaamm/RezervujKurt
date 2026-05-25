@@ -1,7 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildReservationSlotRenderClassName, getReservationSlotCellClassName, getReservationSlotClassName, getReservationSlotState } from '../lib/services/reservation-slot-state';
+import {
+  buildReservationSlotRenderClassName,
+  getReservationSlotCellClassName,
+  getReservationSlotClassName,
+  getReservationSlotState,
+  isReservationSlotSelected,
+} from '../lib/services/reservation-slot-state';
 import type { Reservation } from '../lib/types/domain';
 
 function createReservation(overrides: Partial<Reservation>): Reservation {
@@ -55,14 +61,14 @@ test('selected stav nepřebije occupied slot', () => {
 test('selected volný slot dostane viditelnou selected class', () => {
   const className = getReservationSlotClassName('volno', true);
   assert.match(className, /ring-2/);
-  assert.match(className, /bg-blue-100/);
-  assert.match(className, /hover:bg-blue-100/);
+  assert.match(className, /bg-blue-200/);
+  assert.match(className, /hover:bg-blue-200/);
 });
 
 test('obsazený slot má prioritu před selected', () => {
   const className = getReservationSlotClassName('potvrzeno', true);
   assert.match(className, /bg-emerald-100/);
-  assert.doesNotMatch(className, /bg-blue-100/);
+  assert.doesNotMatch(className, /bg-blue-200/);
 });
 
 test('free slot nemá occupied ani selected class bez výběru', () => {
@@ -166,8 +172,8 @@ test('helper pro render root elementu čekajícího slotu obsahuje background cl
 
 test('helper pro render root elementu selected slotu obsahuje selected background', () => {
   const className = buildReservationSlotRenderClassName('volno', true);
-  assert.match(className, /bg-blue-100/);
-  assert.match(className, /hover:bg-blue-100/);
+  assert.match(className, /bg-blue-200/);
+  assert.match(className, /hover:bg-blue-200/);
 });
 
 test('status text class není jediný zdroj stylu root elementu', () => {
@@ -178,4 +184,38 @@ test('status text class není jediný zdroj stylu root elementu', () => {
   assert.doesNotMatch(rootClassName, /text-xs text-left/);
   assert.match(textClassName, /text-xs/);
   assert.match(textClassName, /text-left/);
+});
+
+test('selection courtId 2 od 17.5 do 19 označí všechny sloty v intervalu', () => {
+  const selection = { courtId: 2, timeFrom: 17.5, timeTo: 19 };
+  assert.equal(isReservationSlotSelected(selection, 2, 17.5, 18), true);
+  assert.equal(isReservationSlotSelected(selection, 2, 18, 18.5), true);
+  assert.equal(isReservationSlotSelected(selection, 2, 18.5, 19), true);
+});
+
+test('slot mimo interval není selected', () => {
+  const selection = { courtId: 2, timeFrom: 17.5, timeTo: 19 };
+  assert.equal(isReservationSlotSelected(selection, 2, 17, 17.5), false);
+  assert.equal(isReservationSlotSelected(selection, 2, 19, 19.5), false);
+});
+
+test('normalizace času podporuje 17:30, 17.5 i 17:30:00', () => {
+  assert.equal(isReservationSlotSelected({ courtId: 2, timeFrom: '17:30', timeTo: '19:00' }, 2, 18, 18.5), true);
+  assert.equal(isReservationSlotSelected({ courtId: 2, timeFrom: '17.5', timeTo: 19 }, 2, 18, 18.5), true);
+  assert.equal(isReservationSlotSelected({ courtId: 2, timeFrom: '17:30:00', timeTo: '19:00:00' }, 2, 18, 18.5), true);
+});
+
+test('selected free slot má výrazný blue styl a hover jej nepřepíše', () => {
+  const className = getReservationSlotClassName('volno', true);
+  assert.match(className, /bg-blue-200/);
+  assert.match(className, /border-blue-400/);
+  assert.match(className, /text-blue-950/);
+  assert.match(className, /hover:bg-blue-200/);
+  assert.doesNotMatch(className, /hover:bg-slate-50/);
+});
+
+test('obsazený slot v selected intervalu zůstane obsazený', () => {
+  const className = getReservationSlotClassName('potvrzeno', true);
+  assert.match(className, /bg-emerald-100/);
+  assert.doesNotMatch(className, /bg-blue-200/);
 });
