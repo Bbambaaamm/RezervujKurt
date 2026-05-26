@@ -235,7 +235,7 @@ export default function ReservationPage() {
     }
   }
 
-  return <div className="space-y-6">{/* ... */}
+  return <div className="space-y-4 pb-24">{/* ... */}
     <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end"><div><h1 className="text-3xl font-bold">Rezervace kurtů</h1><p className="text-slate-600">Denní přehled všech 3 kurtů na jednom místě.</p></div><div className="space-y-2 rounded-md border border-slate-200 bg-white px-4 py-3 text-sm"><div>Datum: <span className="font-semibold">{formattedSelectedDate}</span></div><label className="flex flex-col gap-1 text-xs font-medium text-slate-600" htmlFor="reservation-day">Vyberte den<input id="reservation-day" type="date" lang="cs-CZ" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></label></div></div>
     <ReservationGrid selectedDate={selectedDate} courts={courts} reservations={reservations} selection={gridSelection} onSelectionChange={(selection: { courtId: number; timeFrom: string; timeTo: string } | null) => {
       if (!selection) {
@@ -249,26 +249,26 @@ export default function ReservationPage() {
       setSelectionReady(true);
     }} />
     {isAuthenticated ? (
-      <form onSubmit={handleCreateReservation} className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 text-sm shadow-sm md:grid-cols-2">
-        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 md:col-span-2">
-          <p className="text-sm font-medium text-slate-500">Vybraný termín</p>
+      <form onSubmit={handleCreateReservation} className="sticky bottom-0 z-20 grid gap-2 rounded-2xl border border-slate-200 bg-white/95 p-3 text-sm shadow-lg backdrop-blur md:grid-cols-[minmax(220px,1.2fr)_minmax(220px,1fr)_auto] md:items-center">
+        <div className="min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2">
+          <p className="text-xs font-medium text-slate-500">Vybraný termín</p>
           {selectionReady ? (
-            <p className="mt-1 text-lg font-semibold text-slate-900">
+            <p className="truncate text-sm font-semibold text-slate-900">
               {(courts.find((court) => String(court.id) === courtId)?.name ?? `Kurt ${courtId}`)} · {timeFrom}–{timeTo}
             </p>
           ) : (
-            <p className="mt-1 text-slate-600">Nejdřív vyberte volná okna přímo v přehledu kurtů.</p>
+            <p className="text-xs text-slate-600">Nejdřív vyberte volná okna v přehledu kurtů.</p>
           )}
         </div>
-        <label className="flex flex-col gap-1 md:col-span-2">Poznámka<input value={note} onChange={(event) => setNote(event.target.value)} className="rounded-xl border border-slate-300 px-3 py-2 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"/></label>
-        <button type="submit" disabled={!selectionReady || Boolean(availabilityWarning)} className="h-11 rounded-xl bg-blue-600 px-4 py-2 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 md:col-span-2">Rezervovat vybraný termín</button>
-        {submitMessage && <p className="md:col-span-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-800">{submitMessage}</p>}
+        <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-slate-600">Poznámka<input value={note} onChange={(event) => setNote(event.target.value)} className="h-10 rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-300"/></label>
+        <button type="submit" disabled={!selectionReady || Boolean(availabilityWarning)} className="h-10 rounded-xl bg-blue-600 px-4 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">Rezervovat</button>
+        {submitMessage && <p className="md:col-span-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-800">{submitMessage}</p>}
         {availabilityWarning && (
-          <p role="status" aria-live="polite" className="md:col-span-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
+          <p role="status" aria-live="polite" className="md:col-span-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
             {availabilityWarning}
           </p>
         )}
-        {submitError && <p className="md:col-span-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-rose-800">{submitError}</p>}
+        {submitError && <p className="md:col-span-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-rose-800">{submitError}</p>}
       </form>
     ) : (
       <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">

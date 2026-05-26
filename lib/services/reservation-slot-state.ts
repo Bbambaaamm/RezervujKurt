@@ -114,7 +114,7 @@ export function getReservationSlotClassName(
   isSelected: boolean,
   selectedPosition: ReservationSlotSelectionPosition = 'single',
 ) {
-  const baseClass = 'border-b border-r border-slate-200 p-0 transition-colors duration-150 last:border-r-0';
+  const baseClass = 'relative border-b border-r border-slate-200 p-0 transition-colors duration-150 last:border-r-0';
 
   if (slotType === 'potvrzeno') {
     return `${baseClass} border-rose-300 bg-rose-50 text-rose-900`;
@@ -136,10 +136,10 @@ export function getReservationSlotClassName(
         : selectedPosition === 'end'
           ? 'rounded-b-xl rounded-t-none'
           : 'rounded-none';
-    return `${baseClass} border-blue-700 bg-blue-600 text-white ring-2 ring-inset ring-blue-300 ${radiusClassName}`;
+    return `${baseClass} z-10 border-blue-700 bg-blue-600 text-white ring-1 ring-inset ring-blue-300 ${radiusClassName}`;
   }
 
-  return `${baseClass} bg-white text-slate-700 hover:bg-sky-50`;
+  return `${baseClass} bg-white text-slate-700 hover:border-sky-300 hover:bg-sky-50`;
 }
 
 
@@ -154,7 +154,7 @@ export function buildReservationSlotRenderClassName(
 }
 
 export function getReservationSlotCellClassName(slotType: ReservationSlotType, isSelected: boolean) {
-  const baseClass = 'block min-h-[76px] w-full px-4 py-3 text-left';
+  const baseClass = 'block min-h-[48px] w-full px-2.5 py-1.5 text-left';
 
   if (slotType === 'potvrzeno') {
     return `${baseClass} text-rose-900`;
