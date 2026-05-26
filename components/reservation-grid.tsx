@@ -146,16 +146,16 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
       onPointerLeave={handlePointerUp}
     >
       <div className="grid min-w-[760px] grid-cols-4">
-        <div className="border-b border-r border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-900">Čas</div>
+        <div className="border-b border-r border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900">Čas</div>
         {courts.map((court) => (
-          <div key={court.id} className="border-b border-r border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-900 last:border-r-0">
+          <div key={court.id} className="border-b border-r border-slate-300 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900 last:border-r-0">
             {court.name}
           </div>
         ))}
 
         {halfHourSlots.map((time) => (
           <div key={`row-${time}`} className="contents">
-            <div key={`time-${time}`} className="border-b border-r border-slate-200 bg-white p-3 text-sm font-medium text-slate-600">
+            <div key={`time-${time}`} className="border-b border-r border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600">
               {formatTimeLabel(time)} - {formatTimeLabel(time + 0.5)}
             </div>
             {courts.map((court) => {
@@ -199,14 +199,14 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
                   aria-pressed={slot.type === 'volno' ? isSelected : undefined}
                 >
                   <span className={slotCellClassName}>
-                    <span className="block font-medium">
+                    <span className="block text-sm font-medium leading-tight">
                       {isSelected ? '✓ Vybráno' : isDragPreview ? 'Výběr' : slot.label}
                     </span>
-                    {isSelected ? <p className="mt-1 text-sm text-blue-100">Potvrďte termín níže</p> : null}
-                    {isDragPreview ? <p className="mt-1 text-sm text-sky-900">Výběr</p> : null}
-                    {!slot.isOccupied && !isSelected && !isDragPreview ? <p className="mt-1 text-sm text-slate-500">Vyberte kliknutím nebo tahem</p> : null}
-                    {slot.type === 'cekajici' ? <p className="mt-1 text-sm text-amber-900">Rezervace čeká na potvrzení</p> : null}
-                    {(slot.type === 'potvrzeno' || slot.type === 'blokace') ? <p className="mt-1 text-sm text-rose-900">Termín je již rezervovaný</p> : null}
+                    {isSelected ? <p className="mt-0.5 text-xs text-blue-100">Potvrďte termín níže</p> : null}
+                    {isDragPreview ? <p className="mt-0.5 text-xs text-sky-900">Výběr</p> : null}
+                    {!slot.isOccupied && !isSelected && !isDragPreview ? <p className="mt-0.5 text-xs text-slate-500">Vyberte kliknutím nebo tahem</p> : null}
+                    {slot.type === 'cekajici' ? <p className="mt-0.5 text-xs text-amber-900">Rezervace čeká na potvrzení</p> : null}
+                    {(slot.type === 'potvrzeno' || slot.type === 'blokace') ? <p className="mt-0.5 text-xs text-rose-900">Termín je již rezervovaný</p> : null}
                   </span>
                 </button>
               );

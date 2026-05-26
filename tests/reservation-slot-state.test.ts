@@ -60,7 +60,7 @@ test('selected stav nepřebije occupied slot', () => {
 
 test('selected volný slot dostane viditelnou selected class', () => {
   const className = getReservationSlotClassName('volno', true);
-  assert.match(className, /ring-2/);
+  assert.match(className, /ring-1/);
   assert.match(className, /bg-blue-600/);
   assert.match(className, /text-white/);
 });
@@ -153,7 +153,7 @@ test('recovery G: kurt 2 dne 2026-05-21 s pending 16:00:00–18:00:00 blokuje sp
 test('hlavní slot container dostane plné rozměry i pro čekající slot', () => {
   const className = getReservationSlotCellClassName('cekajici', false);
   assert.match(className, /block/);
-  assert.match(className, /min-h-\[76px\]/);
+  assert.match(className, /min-h-\[48px\]/);
   assert.match(className, /w-full/);
 });
 
@@ -182,7 +182,7 @@ test('status text class není jediný zdroj stylu root elementu', () => {
 
   assert.match(rootClassName, /bg-/);
   assert.doesNotMatch(rootClassName, /min-h-[76px] text-left/);
-  assert.match(textClassName, /min-h-\[76px\]/);
+  assert.match(textClassName, /min-h-\[48px\]/);
   assert.match(textClassName, /text-left/);
 });
 
@@ -206,7 +206,7 @@ test('selection courtId 2 od 17:30 do 19:00 dá selected root class třem půlho
     assert.equal(isSelected, true);
     const rootClassName = buildReservationSlotRenderClassName('volno', isSelected);
     assert.match(rootClassName, /bg-blue-600/);
-    assert.match(rootClassName, /ring-2/);
+    assert.match(rootClassName, /ring-1/);
   }
 });
 
