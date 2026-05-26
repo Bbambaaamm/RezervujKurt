@@ -3,6 +3,7 @@ import type { Reservation } from '../types/domain';
 import { isReservationSlotOccupied } from './reservation-occupancy';
 
 export type ReservationSlotType = 'volno' | Reservation['status'];
+export type ReservationSlotSelectionPosition = 'single' | 'start' | 'middle' | 'end';
 type SlotSelection =
   | { courtId: number | string; timeFrom?: string | number; timeTo?: string | number; from?: string | number; to?: string | number }
   | null;
@@ -108,40 +109,55 @@ export function getReservationSlotState(
   };
 }
 
-export function getReservationSlotClassName(slotType: ReservationSlotType, isSelected: boolean) {
-  const baseClass =
-    'border-b border-r p-0 transition-colors duration-150 last:border-r-0';
+export function getReservationSlotClassName(
+  slotType: ReservationSlotType,
+  isSelected: boolean,
+  selectedPosition: ReservationSlotSelectionPosition = 'single',
+) {
+  const baseClass = 'border-b border-r border-slate-200 p-0 transition-colors duration-150 last:border-r-0';
 
   if (slotType === 'potvrzeno') {
-    return `${baseClass} border-emerald-300 bg-emerald-100 text-emerald-950 shadow-[inset_4px_0_0_0_rgba(5,150,105,0.85)]`;
+    return `${baseClass} border-rose-300 bg-rose-50 text-rose-900`;
   }
 
   if (slotType === 'cekajici') {
-    return `${baseClass} border-amber-300 bg-amber-100 text-amber-950 shadow-[inset_4px_0_0_0_rgba(217,119,6,0.9)]`;
+    return `${baseClass} border-amber-300 bg-amber-50 text-amber-900`;
   }
 
   if (slotType === 'blokace') {
-    return `${baseClass} border-rose-300 bg-rose-100 text-rose-950 shadow-[inset_4px_0_0_0_rgba(190,18,60,0.9)]`;
+    return `${baseClass} border-rose-300 bg-rose-50 text-rose-900`;
   }
 
   if (isSelected && slotType === 'volno') {
-    return `${baseClass} border-blue-600 bg-blue-300 text-blue-950 ring-2 ring-inset ring-blue-700 shadow-[inset_4px_0_0_0_rgba(29,78,216,0.9)] hover:bg-blue-300`;
+    const radiusClassName = selectedPosition === 'single'
+      ? 'rounded-xl'
+      : selectedPosition === 'start'
+        ? 'rounded-t-xl rounded-b-none'
+        : selectedPosition === 'end'
+          ? 'rounded-b-xl rounded-t-none'
+          : 'rounded-none';
+    return `${baseClass} border-blue-700 bg-blue-600 text-white ring-2 ring-inset ring-blue-300 ${radiusClassName}`;
   }
 
-  return `${baseClass} border-slate-200 bg-white text-slate-900 hover:bg-slate-50`;
+  return `${baseClass} bg-white text-slate-700 hover:bg-sky-50`;
 }
 
 
-export function buildReservationSlotRenderClassName(slotType: ReservationSlotType, isSelected: boolean, extraClassName?: string) {
-  const classNames = [getReservationSlotClassName(slotType, isSelected), extraClassName].filter(Boolean);
+export function buildReservationSlotRenderClassName(
+  slotType: ReservationSlotType,
+  isSelected: boolean,
+  selectedPosition: ReservationSlotSelectionPosition = 'single',
+  extraClassName?: string,
+) {
+  const classNames = [getReservationSlotClassName(slotType, isSelected, selectedPosition), extraClassName].filter(Boolean);
   return classNames.join(' ');
 }
 
 export function getReservationSlotCellClassName(slotType: ReservationSlotType, isSelected: boolean) {
-  const baseClass = 'block h-full w-full p-3 text-left text-xs';
+  const baseClass = 'block min-h-[76px] w-full px-4 py-3 text-left';
 
   if (slotType === 'potvrzeno') {
-    return `${baseClass} text-emerald-900`;
+    return `${baseClass} text-rose-900`;
   }
 
   if (slotType === 'cekajici') {
@@ -153,8 +169,8 @@ export function getReservationSlotCellClassName(slotType: ReservationSlotType, i
   }
 
   if (isSelected && slotType === 'volno') {
-    return `${baseClass} text-blue-900`;
+    return `${baseClass} text-white`;
   }
 
-  return `${baseClass} text-slate-900`;
+  return `${baseClass} text-slate-700`;
 }
