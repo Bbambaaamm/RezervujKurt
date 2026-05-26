@@ -43,6 +43,7 @@ export default function ReservationPage() {
   const [availabilityWarning, setAvailabilityWarning] = useState<string | null>(null);
   const formattedSelectedDate = useMemo(() => formatCzechDate(selectedDate), [selectedDate]);
   const isAuthenticated = Boolean(sessionToken && sessionUserId);
+  const showDevFallbackWarning = process.env.NODE_ENV === 'development' && sourceMode === 'mock fallback';
 
   useEffect(() => {
     supabaseAuthClient.auth.getSession().then(({ data }) => {
@@ -65,7 +66,7 @@ export default function ReservationPage() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  useEffect(() => { /* existing */ let active = true; async function loadCourts() { try { const loadedCourts = await getCourtsReadOnly(); if (active && loadedCourts.length > 0) { setCourts(loadedCourts); setCourtId(String(loadedCourts[0].id)); } } catch (error) { if (active) { setCourts(fallbackCourts); setSourceMode('mock fallback'); } if (error instanceof SupabaseRequestError) { console.error('Načtení kurtů ze Supabase selhalo, používám fallback data.', { endpoint: error.endpoint, status: error.status, response: error.responseBody, }); return; } console.error('Načtení kurtů ze Supabase selhalo, používám fallback data.', error); }} loadCourts(); return () => { active = false; }; }, []);
+  useEffect(() => { /* existing */ let active = true; async function loadCourts() { try { const loadedCourts = await getCourtsReadOnly(); if (active && loadedCourts.length > 0) { setCourts(loadedCourts); setCourtId(String(loadedCourts[0].id)); setSourceMode('supabase'); } } catch (error) { if (active) { setCourts(fallbackCourts); setSourceMode('mock fallback'); } if (error instanceof SupabaseRequestError) { console.error('[DEV fallback] Načtení kurtů ze Supabase selhalo, používám fallback data.', { endpoint: error.endpoint, status: error.status, response: error.responseBody, }); return; } console.error('[DEV fallback] Načtení kurtů ze Supabase selhalo, používám fallback data.', error); }} loadCourts(); return () => { active = false; }; }, []);
 
   const reservationsReloadRequestRef = useRef(0);
 
@@ -84,6 +85,7 @@ export default function ReservationPage() {
       }
 
       setReservations(loadedReservations);
+      setSourceMode('supabase');
 
       if (process.env.NODE_ENV === 'development') {
         console.info('reservation grid loaded public occupancy', { date, requestId, count: loadedReservations.length });
@@ -97,7 +99,7 @@ export default function ReservationPage() {
       setSourceMode('mock fallback');
 
       if (process.env.NODE_ENV === 'development') {
-        console.info('public occupancy request failed', { date, requestId, error });
+        console.warn('[DEV fallback] public occupancy request failed, používám fallback data', { date, requestId, error });
       }
     }
   }, []);
@@ -237,6 +239,11 @@ export default function ReservationPage() {
 
   return <div className="space-y-3 pb-32">{/* ... */}
     <div className="mb-1 flex flex-col justify-between gap-3 md:flex-row md:items-end"><div><h1 className="text-2xl font-bold tracking-tight">Rezervace kurtů</h1><p className="text-slate-600">Denní přehled všech 3 kurtů na jednom místě.</p></div><div className="flex items-end gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"><div>Datum: <span className="font-semibold">{formattedSelectedDate}</span></div><label className="flex flex-col gap-1 text-xs font-medium text-slate-600" htmlFor="reservation-day">Vyberte den<input id="reservation-day" type="date" lang="cs-CZ" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></label></div></div>
+    {showDevFallbackWarning && (
+      <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        DEV upozornění: čtení ze Supabase selhalo a stránka používá mock fallback data.
+      </p>
+    )}
     <ReservationGrid selectedDate={selectedDate} courts={courts} reservations={reservations} selection={gridSelection} onSelectionChange={(selection: { courtId: number; timeFrom: string; timeTo: string } | null) => {
       if (!selection) {
         setSelectionReady(false);

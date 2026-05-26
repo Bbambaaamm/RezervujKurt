@@ -127,6 +127,29 @@ Následující body jsou záměrně oddělené jako budoucí rozvoj mimo scope p
 
 ---
 
+## Production Confidence Pass (26. 5. 2026)
+
+### Hotové
+- Přidán runtime checklist pro lokální Supabase průchod: `docs/runtime-verification.md`.
+- DEV fallback režim pro `/rezervace` už není tichý: při selhání Supabase read je vidět DEV-only upozornění v UI + výraznější log.
+- Dokumentace prostředí doplněna o rychlý env sanity postup (`README.md`) a `.env.example` obsahuje i Codespaces vzor.
+- `supabase/config.toml` vrácen do bezpečného repo-default stavu pro localhost, aby se snížilo riziko driftu mezi vývojáři.
+
+### Ověřené testy
+- `npm test` (unit test suite).
+
+### Runtime ověřit manuálně
+- Kritická cesta member/admin podle `docs/runtime-verification.md`:
+  auth → pending create → admin approve/cancel → occupancy refresh.
+
+### Future backlog (bez nové feature implementace v tomto průchodu)
+- E2E smoke automatizace:
+  - V repozitáři aktuálně není E2E framework.
+  - Doporučený první krok: Playwright v `e2e/` + jeden smoke scénář pro kritickou cestu
+    (login magic-link/session fixture → create reservation → admin approve/cancel → ověřit occupancy v gridu).
+
+---
+
 ## Závěr
 Původní MVP milestone plán **A–P je dokončený** a dokumentace je sjednocená s reálným stavem kódu. Další práce patří do odděleného **Future / production readiness backlogu**.
 
