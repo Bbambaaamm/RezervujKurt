@@ -54,19 +54,19 @@ export function getReservationSlotState(reservations: Reservation[], courtId: nu
 }
 
 export function getReservationSlotClassName(slotType: ReservationSlotType, isSelected: boolean, selectedPosition: ReservationSlotSelectionPosition = 'single') {
-  const baseClass = 'relative border-r border-b border-slate-200 p-0 transition-colors duration-150 last:border-r-0';
+  const baseClass = 'relative h-11 overflow-hidden border-r border-b border-slate-200 p-0 transition-colors duration-150 last:border-r-0';
 
   if (isSelected && slotType === 'volno') {
     const selectionShape =
       selectedPosition === 'single'
         ? 'rounded-xl border-blue-700 ring-1 ring-inset ring-blue-300'
         : selectedPosition === 'start'
-          ? 'rounded-t-xl rounded-b-none border-blue-700 border-b-blue-700 ring-1 ring-inset ring-blue-300'
+          ? 'rounded-t-xl border-blue-700 ring-1 ring-inset ring-blue-300'
           : selectedPosition === 'end'
-            ? 'rounded-b-xl rounded-t-none border-blue-700 border-t-blue-700 ring-1 ring-inset ring-blue-300'
+            ? 'rounded-b-xl border-blue-700 ring-1 ring-inset ring-blue-300'
             : 'rounded-none border-blue-700 ring-1 ring-inset ring-blue-300';
 
-    const dividerControl = selectedPosition === 'middle' || selectedPosition === 'end' ? 'border-t-blue-700' : '';
+    const dividerControl = selectedPosition === 'middle' || selectedPosition === 'end' ? 'border-t-blue-600' : '';
     return `${baseClass} z-10 bg-blue-600 text-white ${selectionShape} ${dividerControl}`;
   }
 
