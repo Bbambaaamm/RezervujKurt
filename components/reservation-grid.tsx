@@ -48,6 +48,14 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
     ? { courtId: dragState.courtId, timeFrom: normalizeRange(dragState.startTime, dragState.endTime).from, timeTo: normalizeRange(dragState.startTime, dragState.endTime).to }
     : selection;
 
+  if (process.env.NODE_ENV === 'development') {
+    console.info('reservation grid selection debug', {
+      selection,
+      dragState,
+      activeSelection,
+    });
+  }
+
   const selectedSlots = useMemo(() => {
     if (!dragState) {
       return new Set<SlotKey>();
@@ -141,6 +149,20 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
               const isSelected = selectedSlots.has(slotKey) || isSelectedByRange;
               const slotClassName = buildReservationSlotRenderClassName(slot.type, isSelected);
               const slotCellClassName = getReservationSlotCellClassName(slot.type, isSelected);
+
+              if (
+                process.env.NODE_ENV === 'development' &&
+                activeSelection &&
+                Number(activeSelection.courtId) === Number(court.id)
+              ) {
+                console.info('reservation grid slot selection debug', {
+                  courtId: court.id,
+                  slotFrom: time,
+                  slotTo: time + 0.5,
+                  isSelected,
+                  className: slotClassName,
+                });
+              }
 
               return (
                 <button
