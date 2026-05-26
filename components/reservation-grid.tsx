@@ -174,7 +174,10 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
                 >
                   <span className={slotCellClassName}>
                     <span className="font-semibold">{slot.label}</span>
-                    {!slot.isOccupied && <p className="mt-1 text-slate-500">Klikněte a tahem vyberte úsek</p>}
+                    {isSelected && slot.type === 'volno' ? (
+                      <p className="mt-1 font-medium text-blue-900">Vybráno</p>
+                    ) : null}
+                    {!slot.isOccupied && !isSelected && <p className="mt-1 text-slate-500">Klikněte a tahem vyberte úsek</p>}
                   </span>
                 </button>
               );
