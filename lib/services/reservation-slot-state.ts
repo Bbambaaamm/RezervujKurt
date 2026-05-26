@@ -110,22 +110,22 @@ export function getReservationSlotState(
 
 export function getReservationSlotClassName(slotType: ReservationSlotType, isSelected: boolean) {
   const baseClass =
-    'border-b border-r p-0 transition last:border-r-0';
+    'border-b border-r p-0 transition-colors duration-150 last:border-r-0';
 
   if (slotType === 'potvrzeno') {
-    return `${baseClass} border-emerald-300 bg-emerald-100 text-emerald-900`;
+    return `${baseClass} border-emerald-300 bg-emerald-100 text-emerald-950 shadow-[inset_4px_0_0_0_rgba(5,150,105,0.85)]`;
   }
 
   if (slotType === 'cekajici') {
-    return `${baseClass} border-amber-300 bg-amber-100 text-amber-900`;
+    return `${baseClass} border-amber-300 bg-amber-100 text-amber-950 shadow-[inset_4px_0_0_0_rgba(217,119,6,0.9)]`;
   }
 
   if (slotType === 'blokace') {
-    return `${baseClass} border-rose-300 bg-rose-100 text-rose-900`;
+    return `${baseClass} border-rose-300 bg-rose-100 text-rose-950 shadow-[inset_4px_0_0_0_rgba(190,18,60,0.9)]`;
   }
 
   if (isSelected && slotType === 'volno') {
-    return `${baseClass} border-blue-600 bg-blue-300 text-blue-950 ring-2 ring-inset ring-blue-700 shadow-[inset_0_0_0_1px_rgba(29,78,216,0.35)] hover:bg-blue-300`;
+    return `${baseClass} border-blue-600 bg-blue-300 text-blue-950 ring-2 ring-inset ring-blue-700 shadow-[inset_4px_0_0_0_rgba(29,78,216,0.9)] hover:bg-blue-300`;
   }
 
   return `${baseClass} border-slate-200 bg-white text-slate-900 hover:bg-slate-50`;
