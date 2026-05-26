@@ -138,7 +138,8 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
                 const isSelected = selectedSlots.has(slotKey) || isSelectedByRange;
                 const selectedPosition = isSelected ? getSelectedPosition(court.id, time) : 'single';
                 const isDragPreview = selectedSlots.has(slotKey) && !isSelectedByRange;
-                const slotClassName = buildReservationSlotRenderClassName(slot.type, isSelected, selectedPosition, isDragPreview ? 'border-sky-300 bg-sky-100 text-sky-900' : 'hover:bg-sky-50/70');
+                const interactionClassName = isSelected ? '' : isDragPreview ? 'border-sky-300 bg-sky-100 text-sky-900' : 'hover:bg-sky-50';
+                const slotClassName = buildReservationSlotRenderClassName(slot.type, isSelected, selectedPosition, interactionClassName);
                 const slotStateLabel = isSelected ? 'vybráno' : slot.type === 'volno' ? 'volno' : slot.type === 'cekajici' ? 'čeká na schválení' : 'obsazeno';
                 const showSelectedText = isSelectedByRange && (selectedPosition === 'single' || selectedPosition === 'start');
 
@@ -157,7 +158,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
                         showSelectedText ? (
                           <>
                             <span className="block truncate whitespace-nowrap text-sm font-semibold leading-tight text-white">Vybráno</span>
-                            <span className="block truncate whitespace-nowrap text-xs leading-tight text-blue-50 opacity-90">{selectedRangeLabel}</span>
+                            <span className="block truncate whitespace-nowrap text-xs leading-tight text-blue-100">{selectedRangeLabel}</span>
                           </>
                         ) : null
                       ) : isDragPreview ? (
