@@ -89,11 +89,17 @@ npm run lint
 - `npm run build` – vytvoří produkční build.
 - `npm run start` – spustí aplikaci z produkčního buildu.
 - `npm run lint` – spustí ESLint kontrolu.
+- `npm run test` – spustí unit testy (TypeScript build + `node --test`).
 
 ## Struktura
 - `app/` – stránky (Domů, Rezervace, Přihlášení, Admin)
 - `components/` – sdílené UI komponenty
 - `lib/` – doménové typy a mock data
+- `docs/runtime-verification.md` – runtime checklist pro lokální Supabase ověření
+
+## Runtime verification (Production Confidence Pass)
+
+Pro manuální runtime smoke průchod použij checklist v `docs/runtime-verification.md`.
 
 ## Aktuální stav (MVP základ)
 - české UI a základní layout
@@ -189,3 +195,11 @@ npx supabase stop && npx supabase start
 ```
 
 6. Odešli nový magic link. Staré magic linky po změně hostu/configu už nejsou validní.
+
+## Supabase/Codespaces env sanity check (rychlý postup)
+
+1. `NEXT_PUBLIC_SUPABASE_URL` v `.env.local` musí mít stejný host jako API endpoint z `npx supabase status` i jako endpoint použitý ve Studio.
+2. `NEXT_PUBLIC_SUPABASE_REDIRECT_URL` a `NEXT_PUBLIC_SUPABASE_AUTH_REDIRECT_URL` musí odpovídat aktuálnímu frontend hostu (`localhost` vs. Codespaces veřejná URL).
+3. `supabase/config.toml` drž v repozitáři s localhost defaultem; Codespaces host nastavuj jen lokálně podle runbooku výše.
+4. Po změně `supabase/config.toml` restartuj lokální Supabase (`npx supabase stop && npx supabase start`), jinak hrozí redirect mismatch.
+5. Pokud je v DEV na `/rezervace` viditelná fallback hláška, runtime verifikace není validní, dokud neopravíš chybu čtení ze Supabase.
