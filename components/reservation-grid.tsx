@@ -141,12 +141,12 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
                 const canApplySelectedStyle = isSelected && slot.type === 'volno';
                 const selectedClassName = canApplySelectedStyle
                   ? selectedPosition === 'single'
-                    ? 'z-10 rounded-xl border-blue-600 bg-blue-600 text-white shadow-sm'
+                    ? 'z-10 rounded-xl border-blue-500 bg-blue-500 text-white ring-1 ring-blue-300/40 shadow-sm'
                     : selectedPosition === 'start'
-                      ? 'z-10 rounded-t-xl border-blue-600 border-b-blue-600 bg-blue-600 text-white shadow-sm'
+                      ? 'z-10 rounded-t-xl border-blue-500 bg-blue-500 text-white ring-1 ring-blue-300/40 shadow-sm shadow-[inset_0_-1px_0_rgba(96,165,250,0.25)]'
                       : selectedPosition === 'end'
-                        ? 'z-10 rounded-b-xl border-blue-600 border-t-blue-600 bg-blue-600 text-white shadow-sm'
-                        : 'z-10 rounded-none border-blue-600 border-y-blue-600 bg-blue-600 text-white shadow-sm'
+                        ? 'z-10 rounded-b-xl border-blue-500 bg-blue-500 text-white ring-1 ring-blue-300/40 shadow-sm'
+                        : 'z-10 rounded-none border-blue-500 bg-blue-500 text-white ring-1 ring-blue-300/40 shadow-sm shadow-[inset_0_-1px_0_rgba(96,165,250,0.25)]'
                   : '';
                 const interactionClassName = canApplySelectedStyle ? selectedClassName : isDragPreview ? 'border-sky-300 bg-sky-100 text-sky-900' : 'hover:bg-sky-50';
                 const slotClassName = buildReservationSlotRenderClassName(slot.type, isSelected, selectedPosition, interactionClassName);
@@ -163,7 +163,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
                     aria-label={`${court.name}, ${formatTimeLabel(time)} až ${formatTimeLabel(time + 0.5)}, stav ${slotStateLabel}`}
                     aria-pressed={slot.type === 'volno' ? isSelected : undefined}
                   >
-                    <span className="flex h-11 w-full flex-col justify-center overflow-hidden px-3 py-1.5 text-left">
+                    <span className="flex h-11 h-full w-full flex-col justify-center overflow-hidden px-3 py-1.5 text-left">
                       {canApplySelectedStyle ? (
                         showSelectedText ? (
                           <>
