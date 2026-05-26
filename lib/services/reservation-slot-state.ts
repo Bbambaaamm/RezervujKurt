@@ -54,26 +54,25 @@ export function getReservationSlotState(reservations: Reservation[], courtId: nu
 }
 
 export function getReservationSlotClassName(slotType: ReservationSlotType, isSelected: boolean, selectedPosition: ReservationSlotSelectionPosition = 'single') {
-  const baseClass = 'relative h-11 overflow-hidden border-r border-b border-slate-200 p-0 transition-colors duration-150 last:border-r-0';
+  const baseClass = 'relative h-11 overflow-hidden border-r border-b border-slate-100 p-0 transition-colors duration-150 last:border-r-0';
 
   if (isSelected && slotType === 'volno') {
     const selectionShape =
       selectedPosition === 'single'
-        ? 'rounded-xl border-blue-700 ring-1 ring-inset ring-blue-300'
+        ? 'rounded-xl border-blue-500 ring-1 ring-inset ring-blue-300/50 shadow-sm'
         : selectedPosition === 'start'
-          ? 'rounded-t-xl border-blue-700 ring-1 ring-inset ring-blue-300'
+          ? 'rounded-t-xl border-blue-500 border-b-transparent ring-1 ring-inset ring-blue-300/50 shadow-sm'
           : selectedPosition === 'end'
-            ? 'rounded-b-xl border-blue-700 ring-1 ring-inset ring-blue-300'
-            : 'rounded-none border-blue-700 ring-1 ring-inset ring-blue-300';
+            ? 'rounded-b-xl border-blue-500 border-t-transparent ring-1 ring-inset ring-blue-300/50 shadow-sm'
+            : 'rounded-none border-blue-500 border-y-transparent ring-1 ring-inset ring-blue-300/50 shadow-sm';
 
-    const dividerControl = selectedPosition === 'middle' || selectedPosition === 'end' ? 'border-t-blue-600' : '';
-    return `${baseClass} z-10 bg-blue-600 text-white ${selectionShape} ${dividerControl}`;
+    return `${baseClass} z-10 bg-blue-500 text-white ${selectionShape}`;
   }
 
   if (slotType === 'potvrzeno' || slotType === 'blokace') return `${baseClass} bg-rose-50 text-rose-900 border-rose-200`;
   if (slotType === 'cekajici') return `${baseClass} bg-amber-50 text-amber-900 border-amber-300`;
 
-  return `${baseClass} bg-white text-slate-700 hover:bg-sky-50 hover:border-sky-300`;
+  return `${baseClass} bg-white text-slate-700 hover:bg-sky-50`;
 }
 
 export function buildReservationSlotRenderClassName(slotType: ReservationSlotType, isSelected: boolean, selectedPosition: ReservationSlotSelectionPosition = 'single', extraClassName?: string) {
