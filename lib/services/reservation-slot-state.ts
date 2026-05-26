@@ -125,7 +125,7 @@ export function getReservationSlotClassName(slotType: ReservationSlotType, isSel
   }
 
   if (isSelected && slotType === 'volno') {
-    return `${baseClass} border-blue-400 bg-blue-200 text-blue-950 ring-2 ring-inset ring-blue-600 hover:bg-blue-200`;
+    return `${baseClass} border-blue-600 bg-blue-300 text-blue-950 ring-2 ring-inset ring-blue-700 shadow-[inset_0_0_0_1px_rgba(29,78,216,0.35)] hover:bg-blue-300`;
   }
 
   return `${baseClass} border-slate-200 bg-white text-slate-900 hover:bg-slate-50`;
