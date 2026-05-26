@@ -82,13 +82,13 @@ export function Header() {
 
   return (
     <header className="border-b border-slate-200 bg-white">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2.5">
         <div>
-          <p className="text-lg font-semibold">RezervujKurt</p>
-          <p className="text-sm text-slate-600">TJ Baník Stříbro</p>
+          <p className="text-base font-semibold">RezervujKurt</p>
+          <p className="text-xs text-slate-600">TJ Baník Stříbro</p>
           {session && <p className="text-xs text-emerald-700">{getAuthStatusText(session)}</p>}
         </div>
-        <nav className="flex gap-4 text-sm font-medium">
+        <nav className="flex gap-4 text-sm font-medium items-center">
           {baseLinks.map((link) => (
             <Link key={link.href} href={link.href} className="text-slate-700 transition hover:text-court">
               {link.label}
