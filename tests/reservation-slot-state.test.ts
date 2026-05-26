@@ -210,6 +210,18 @@ test('selection courtId 2 od 17:30 do 19:00 dá selected root class třem půlho
   }
 });
 
+test('parent selection shape courtId/timeFrom/timeTo označí sloty 17.5, 18, 18.5 jako selected', () => {
+  const selection = { courtId: 2, timeFrom: '17:30', timeTo: '19:00' };
+  assert.equal(isReservationSlotSelected(selection, 2, 17.5, 18), true);
+  assert.equal(isReservationSlotSelected(selection, 2, 18, 18.5), true);
+  assert.equal(isReservationSlotSelected(selection, 2, 18.5, 19), true);
+});
+
+test('selection helper je kompatibilní i s from/to a string courtId', () => {
+  const selection = { courtId: '2', from: '17:30', to: '19:00' };
+  assert.equal(isReservationSlotSelected(selection, 2, 17.5, 18), true);
+});
+
 test('slot mimo interval není selected', () => {
   const selection = { courtId: 2, timeFrom: 17.5, timeTo: 19 };
   assert.equal(isReservationSlotSelected(selection, 2, 17, 17.5), false);

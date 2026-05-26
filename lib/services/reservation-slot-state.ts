@@ -3,7 +3,9 @@ import type { Reservation } from '../types/domain';
 import { isReservationSlotOccupied } from './reservation-occupancy';
 
 export type ReservationSlotType = 'volno' | Reservation['status'];
-type SlotSelection = { courtId: number; timeFrom: string | number; timeTo: string | number } | null;
+type SlotSelection =
+  | { courtId: number | string; timeFrom?: string | number; timeTo?: string | number; from?: string | number; to?: string | number }
+  | null;
 
 export function normalizeReservationSlotTime(value: string | number): number | null {
   if (typeof value === 'number') {
@@ -31,16 +33,39 @@ export function normalizeReservationSlotTime(value: string | number): number | n
   return hours + minutes / 60;
 }
 
+
+function normalizeSelection(selection: Exclude<SlotSelection, null>) {
+  const normalizedCourtId = typeof selection.courtId === 'string' ? Number(selection.courtId) : selection.courtId;
+  if (!Number.isFinite(normalizedCourtId)) {
+    return null;
+  }
+
+  const rawFrom = selection.timeFrom ?? selection.from;
+  const rawTo = selection.timeTo ?? selection.to;
+  if (rawFrom === undefined || rawTo === undefined) {
+    return null;
+  }
+
+  const selectedFrom = normalizeReservationSlotTime(rawFrom);
+  const selectedTo = normalizeReservationSlotTime(rawTo);
+  if (selectedFrom === null || selectedTo === null) {
+    return null;
+  }
+
+  return { courtId: normalizedCourtId, selectedFrom, selectedTo };
+}
+
 export function isReservationSlotSelected(selection: SlotSelection, courtId: number, slotFrom: number, slotTo: number) {
-  if (!selection || selection.courtId !== courtId) {
+  if (!selection) {
     return false;
   }
 
-  const selectedFrom = normalizeReservationSlotTime(selection.timeFrom);
-  const selectedTo = normalizeReservationSlotTime(selection.timeTo);
-  if (selectedFrom === null || selectedTo === null) {
+  const normalizedSelection = normalizeSelection(selection);
+  if (!normalizedSelection || normalizedSelection.courtId !== courtId) {
     return false;
   }
+
+  const { selectedFrom, selectedTo } = normalizedSelection;
 
   const rangeFrom = Math.min(selectedFrom, selectedTo);
   const rangeTo = Math.max(selectedFrom, selectedTo);
