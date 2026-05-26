@@ -138,9 +138,19 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
                 const isSelected = selectedSlots.has(slotKey) || isSelectedByRange;
                 const selectedPosition = isSelected ? getSelectedPosition(court.id, time) : 'single';
                 const isDragPreview = selectedSlots.has(slotKey) && !isSelectedByRange;
-                const interactionClassName = isSelected ? '' : isDragPreview ? 'border-sky-300 bg-sky-100 text-sky-900' : 'hover:bg-sky-50';
+                const canApplySelectedStyle = isSelected && slot.type === 'volno';
+                const selectedClassName = canApplySelectedStyle
+                  ? selectedPosition === 'single'
+                    ? 'z-10 rounded-xl border-blue-600 bg-blue-600 text-white shadow-sm'
+                    : selectedPosition === 'start'
+                      ? 'z-10 rounded-t-xl border-blue-600 border-b-blue-600 bg-blue-600 text-white shadow-sm'
+                      : selectedPosition === 'end'
+                        ? 'z-10 rounded-b-xl border-blue-600 border-t-blue-600 bg-blue-600 text-white shadow-sm'
+                        : 'z-10 rounded-none border-blue-600 border-y-blue-600 bg-blue-600 text-white shadow-sm'
+                  : '';
+                const interactionClassName = canApplySelectedStyle ? selectedClassName : isDragPreview ? 'border-sky-300 bg-sky-100 text-sky-900' : 'hover:bg-sky-50';
                 const slotClassName = buildReservationSlotRenderClassName(slot.type, isSelected, selectedPosition, interactionClassName);
-                const slotStateLabel = isSelected ? 'vybráno' : slot.type === 'volno' ? 'volno' : slot.type === 'cekajici' ? 'čeká na schválení' : 'obsazeno';
+                const slotStateLabel = canApplySelectedStyle ? 'vybráno' : slot.type === 'volno' ? 'volno' : slot.type === 'cekajici' ? 'čeká na schválení' : 'obsazeno';
                 const showSelectedText = isSelectedByRange && (selectedPosition === 'single' || selectedPosition === 'start');
 
                 return (
@@ -154,7 +164,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
                     aria-pressed={slot.type === 'volno' ? isSelected : undefined}
                   >
                     <span className="flex h-11 w-full flex-col justify-center overflow-hidden px-3 py-1.5 text-left">
-                      {isSelected ? (
+                      {canApplySelectedStyle ? (
                         showSelectedText ? (
                           <>
                             <span className="block truncate whitespace-nowrap text-sm font-semibold leading-tight text-white">Vybráno</span>
