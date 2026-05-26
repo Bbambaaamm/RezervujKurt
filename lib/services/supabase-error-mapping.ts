@@ -35,7 +35,6 @@ export function mapReservationWriteError(params: {
     console.error('[reservation-write] raw supabase error', { status, statusText, endpoint, errorCode, responseBody });
   }
 
-  console.log('FULL_ERROR_OBJECT', error);
 
   if (status === 401 || status === 403 || errorCode === '42501') {
     const message = operation === 'update'
