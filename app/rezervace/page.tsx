@@ -235,7 +235,7 @@ export default function ReservationPage() {
     }
   }
 
-  return <div className="space-y-3 pb-28">{/* ... */}
+  return <div className="space-y-3 pb-32">{/* ... */}
     <div className="mb-1 flex flex-col justify-between gap-3 md:flex-row md:items-end"><div><h1 className="text-2xl font-bold tracking-tight">Rezervace kurtů</h1><p className="text-slate-600">Denní přehled všech 3 kurtů na jednom místě.</p></div><div className="flex items-end gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"><div>Datum: <span className="font-semibold">{formattedSelectedDate}</span></div><label className="flex flex-col gap-1 text-xs font-medium text-slate-600" htmlFor="reservation-day">Vyberte den<input id="reservation-day" type="date" lang="cs-CZ" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></label></div></div>
     <ReservationGrid selectedDate={selectedDate} courts={courts} reservations={reservations} selection={gridSelection} onSelectionChange={(selection: { courtId: number; timeFrom: string; timeTo: string } | null) => {
       if (!selection) {
@@ -249,20 +249,20 @@ export default function ReservationPage() {
       setSelectionReady(true);
     }} />
     {isAuthenticated ? (
-      <form onSubmit={handleCreateReservation} className="sticky bottom-4 z-20 mx-auto grid max-w-6xl gap-3 rounded-2xl border border-slate-200 bg-white/95 p-2.5 text-sm shadow-lg backdrop-blur md:grid-cols-[minmax(220px,1fr)_minmax(320px,1.4fr)_auto] md:items-end">
+      <form onSubmit={handleCreateReservation} className="sticky bottom-2 z-20 mx-auto grid w-full max-w-6xl gap-3 rounded-2xl border border-slate-200 bg-white/95 p-2.5 text-sm shadow-md backdrop-blur md:grid-cols-[minmax(220px,1fr)_minmax(320px,1.4fr)_auto] md:items-end">
         <div className="min-w-0">
-          <p className="mb-1 text-xs font-medium text-slate-500">Vybraný termín</p>
+          <p className="mb-1 text-xs font-semibold tracking-wide text-slate-500">Vybraný termín</p>
           <div className="flex h-10 items-center rounded-xl border border-slate-200 bg-white px-3">
           {selectionReady ? (
             <p className="truncate text-sm font-semibold text-slate-900">
               {(courts.find((court) => String(court.id) === courtId)?.name ?? `Kurt ${courtId}`)} · {timeFrom}–{timeTo}
             </p>
           ) : (
-            <p className="truncate text-xs text-slate-600">Nejdřív vyberte volná okna v přehledu kurtů.</p>
+            <p className="truncate text-sm text-slate-600">Nejdřív vyberte volná okna v přehledu kurtů.</p>
           )}
           </div>
         </div>
-        <label className="flex min-w-0 flex-col text-xs font-medium text-slate-500"><span className="mb-1">Poznámka</span><input value={note} onChange={(event) => setNote(event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-300"/></label>
+        <label className="flex min-w-0 flex-col text-xs font-semibold tracking-wide text-slate-500"><span className="mb-1">Poznámka</span><input value={note} onChange={(event) => setNote(event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-300"/></label>
         <button type="submit" disabled={!selectionReady || Boolean(availabilityWarning)} className="h-10 self-end rounded-xl bg-blue-600 px-5 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">Rezervovat</button>
         {submitMessage && <p className="md:col-span-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-800">{submitMessage}</p>}
         {availabilityWarning && (

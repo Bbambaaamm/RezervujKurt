@@ -61,14 +61,14 @@ test('selected stav nepřebije occupied slot', () => {
 test('selected volný slot dostane viditelnou selected class', () => {
   const className = getReservationSlotClassName('volno', true);
   assert.match(className, /ring-1/);
-  assert.match(className, /bg-blue-600/);
+  assert.match(className, /bg-blue-500/);
   assert.match(className, /text-white/);
 });
 
 test('obsazený slot má prioritu před selected', () => {
   const className = getReservationSlotClassName('potvrzeno', true);
   assert.match(className, /bg-rose-50/);
-  assert.doesNotMatch(className, /bg-blue-600/);
+  assert.doesNotMatch(className, /bg-blue-500/);
 });
 
 test('free slot nemá occupied ani selected class bez výběru', () => {
@@ -172,8 +172,8 @@ test('helper pro render root elementu čekajícího slotu obsahuje background cl
 
 test('helper pro render root elementu selected slotu obsahuje selected background', () => {
   const className = buildReservationSlotRenderClassName('volno', true);
-  assert.match(className, /bg-blue-600/);
-  assert.match(className, /ring-blue-300/);
+  assert.match(className, /bg-blue-500/);
+  assert.match(className, /ring-blue-300\/50/);
 });
 
 test('status text class není jediný zdroj stylu root elementu', () => {
@@ -205,7 +205,7 @@ test('selection courtId 2 od 17:30 do 19:00 dá selected root class třem půlho
     const isSelected = isReservationSlotSelected(selection, 2, from, to);
     assert.equal(isSelected, true);
     const rootClassName = buildReservationSlotRenderClassName('volno', isSelected);
-    assert.match(rootClassName, /bg-blue-600/);
+    assert.match(rootClassName, /bg-blue-500/);
     assert.match(rootClassName, /ring-1/);
   }
 });
@@ -236,15 +236,15 @@ test('normalizace času podporuje 17:30, 17.5 i 17:30:00', () => {
 
 test('selected free slot má výrazný blue styl a hover jej nepřepíše', () => {
   const className = getReservationSlotClassName('volno', true);
-  assert.match(className, /bg-blue-600/);
-  assert.match(className, /border-blue-700/);
+  assert.match(className, /bg-blue-500/);
+  assert.match(className, /border-blue-500/);
   assert.match(className, /text-white/);
-  assert.match(className, /ring-blue-300/);
+  assert.match(className, /ring-blue-300\/50/);
   assert.doesNotMatch(className, /hover:bg-sky-50/);
 });
 
 test('obsazený slot v selected intervalu zůstane obsazený', () => {
   const className = getReservationSlotClassName('potvrzeno', true);
   assert.match(className, /bg-rose-50/);
-  assert.doesNotMatch(className, /bg-blue-600/);
+  assert.doesNotMatch(className, /bg-blue-500/);
 });

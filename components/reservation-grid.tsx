@@ -119,16 +119,16 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
         onPointerLeave={handlePointerUp}
       >
         <div className="grid min-w-[760px] grid-cols-4">
-          <div className="sticky top-0 z-10 border-b border-r border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900">Čas</div>
+          <div className="sticky top-0 z-20 border-b border-r border-slate-300 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900">Čas</div>
           {courts.map((court) => (
-            <div key={court.id} className="sticky top-0 z-10 border-b border-r border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900 last:border-r-0">
+            <div key={court.id} className="sticky top-0 z-20 border-b border-r border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900 last:border-r-0">
               {court.name}
             </div>
           ))}
 
           {halfHourSlots.map((time) => (
             <div key={`row-${time}`} className="contents">
-              <div className="border-b border-r border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600">
+              <div className="border-b border-r border-slate-300 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-600">
                 {formatTimeLabel(time)} - {formatTimeLabel(time + 0.5)}
               </div>
               {courts.map((court) => {
@@ -138,7 +138,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
                 const isSelected = selectedSlots.has(slotKey) || isSelectedByRange;
                 const selectedPosition = isSelected ? getSelectedPosition(court.id, time) : 'single';
                 const isDragPreview = selectedSlots.has(slotKey) && !isSelectedByRange;
-                const slotClassName = buildReservationSlotRenderClassName(slot.type, isSelected, selectedPosition, isDragPreview ? 'border-sky-300 bg-sky-100 text-sky-900' : undefined);
+                const slotClassName = buildReservationSlotRenderClassName(slot.type, isSelected, selectedPosition, isDragPreview ? 'border-sky-300 bg-sky-100 text-sky-900' : 'hover:bg-sky-50/70');
                 const slotStateLabel = isSelected ? 'vybráno' : slot.type === 'volno' ? 'volno' : slot.type === 'cekajici' ? 'čeká na schválení' : 'obsazeno';
                 const showSelectedText = isSelectedByRange && (selectedPosition === 'single' || selectedPosition === 'start');
 
@@ -152,12 +152,12 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
                     aria-label={`${court.name}, ${formatTimeLabel(time)} až ${formatTimeLabel(time + 0.5)}, stav ${slotStateLabel}`}
                     aria-pressed={slot.type === 'volno' ? isSelected : undefined}
                   >
-                    <span className="block h-11 w-full overflow-hidden px-3 py-1.5 text-left">
+                    <span className="flex h-11 w-full flex-col justify-center overflow-hidden px-3 py-1.5 text-left">
                       {isSelected ? (
                         showSelectedText ? (
                           <>
                             <span className="block truncate whitespace-nowrap text-sm font-semibold leading-tight text-white">Vybráno</span>
-                            <span className="block truncate whitespace-nowrap text-xs leading-tight text-blue-100 opacity-90">{selectedRangeLabel}</span>
+                            <span className="block truncate whitespace-nowrap text-xs leading-tight text-blue-50 opacity-90">{selectedRangeLabel}</span>
                           </>
                         ) : null
                       ) : isDragPreview ? (
