@@ -68,9 +68,8 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
 
   const selectedRangeLabel = useMemo(() => {
     if (!activeSelection) return null;
-    const courtName = courts.find((court) => Number(court.id) === Number(activeSelection.courtId))?.name ?? `Kurt ${activeSelection.courtId}`;
-    return `${courtName} · ${activeSelection.timeFrom}–${activeSelection.timeTo}`;
-  }, [activeSelection, courts]);
+    return `${activeSelection.timeFrom}–${activeSelection.timeTo}`;
+  }, [activeSelection]);
 
   const handlePointerDown = (courtId: number, time: number, slotType: string) => {
     if (slotType !== 'volno') return;
@@ -153,22 +152,22 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
                     aria-label={`${court.name}, ${formatTimeLabel(time)} až ${formatTimeLabel(time + 0.5)}, stav ${slotStateLabel}`}
                     aria-pressed={slot.type === 'volno' ? isSelected : undefined}
                   >
-                    <span className="block min-h-[40px] w-full px-3 py-1.5 text-left">
+                    <span className="block h-11 w-full overflow-hidden px-3 py-1.5 text-left">
                       {isSelected ? (
                         showSelectedText ? (
                           <>
-                            <span className="block text-sm font-semibold leading-tight text-white">Vybráno</span>
-                            <span className="block text-xs text-blue-100">{selectedRangeLabel}</span>
+                            <span className="block truncate whitespace-nowrap text-sm font-semibold leading-tight text-white">Vybráno</span>
+                            <span className="block truncate whitespace-nowrap text-xs leading-tight text-blue-100 opacity-90">{selectedRangeLabel}</span>
                           </>
                         ) : null
                       ) : isDragPreview ? (
-                        <span className="block text-sm font-medium leading-tight text-sky-900">Výběr</span>
+                        <span className="block truncate whitespace-nowrap text-sm font-medium leading-tight text-sky-900">Výběr</span>
                       ) : slot.type === 'volno' ? (
-                        <span className="block text-sm font-medium leading-tight text-slate-700">Volno</span>
+                        <span className="block truncate whitespace-nowrap text-sm font-medium leading-tight text-slate-700">Volno</span>
                       ) : slot.type === 'cekajici' ? (
-                        <span className="block text-sm font-medium leading-tight text-amber-900">Čeká na schválení</span>
+                        <span className="block truncate whitespace-nowrap text-sm font-medium leading-tight text-amber-900">Čeká na schválení</span>
                       ) : (
-                        <span className="block text-sm font-medium leading-tight text-rose-900">Obsazeno</span>
+                        <span className="block truncate whitespace-nowrap text-sm font-medium leading-tight text-rose-900">Obsazeno</span>
                       )}
                     </span>
                   </button>
