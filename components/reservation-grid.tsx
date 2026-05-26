@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 
 import { courts as fallbackCourts, mockReservations as fallbackReservations, openHours } from '@/lib/mockData';
 import type { Court, Reservation } from '@/lib/types/domain';
-import { buildReservationSlotRenderClassName, getReservationSlotCellClassName, getReservationSlotState, isReservationSlotSelected } from '@/lib/services/reservation-slot-state';
+import { buildReservationSlotRenderClassName, getReservationSlotCellClassName, getReservationSlotState, isReservationSlotSelected, type ReservationSlotSelectionPosition } from '@/lib/services/reservation-slot-state';
 
 
 type ReservationSelection = { courtId: number; timeFrom: string; timeTo: string };
@@ -123,23 +123,39 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
     setDragState(null);
   };
 
+  const getSelectedPosition = (courtId: number, time: number): ReservationSlotSelectionPosition => {
+    const previousSelected = isReservationSlotSelected(activeSelection, courtId, time - 0.5, time);
+    const nextSelected = isReservationSlotSelected(activeSelection, courtId, time + 0.5, time + 1);
+
+    if (!previousSelected && !nextSelected) {
+      return 'single';
+    }
+    if (!previousSelected) {
+      return 'start';
+    }
+    if (!nextSelected) {
+      return 'end';
+    }
+    return 'middle';
+  };
+
   return (
     <div
-      className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm"
+      className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm"
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
     >
       <div className="grid min-w-[760px] grid-cols-4">
-        <div className="border-b border-r border-slate-200 bg-slate-100 p-3 text-sm font-semibold">Čas</div>
+        <div className="border-b border-r border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-900">Čas</div>
         {courts.map((court) => (
-          <div key={court.id} className="border-b border-r border-slate-200 bg-slate-100 p-3 text-sm font-semibold last:border-r-0">
+          <div key={court.id} className="border-b border-r border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-900 last:border-r-0">
             {court.name}
           </div>
         ))}
 
         {halfHourSlots.map((time) => (
           <div key={`row-${time}`} className="contents">
-            <div key={`time-${time}`} className="border-b border-r border-slate-200 p-3 text-sm font-medium text-slate-700">
+            <div key={`time-${time}`} className="border-b border-r border-slate-200 bg-white p-3 text-sm font-medium text-slate-600">
               {formatTimeLabel(time)} - {formatTimeLabel(time + 0.5)}
             </div>
             {courts.map((court) => {
@@ -147,8 +163,16 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
               const slotKey = `${court.id}-${time}` as SlotKey;
               const isSelectedByRange = isReservationSlotSelected(activeSelection, court.id, time, time + 0.5);
               const isSelected = selectedSlots.has(slotKey) || isSelectedByRange;
-              const slotClassName = buildReservationSlotRenderClassName(slot.type, isSelected);
+              const selectedPosition = isSelected ? getSelectedPosition(court.id, time) : 'single';
+              const isDragPreview = selectedSlots.has(slotKey) && !isSelectedByRange;
+              const slotClassName = buildReservationSlotRenderClassName(
+                slot.type,
+                isSelected,
+                selectedPosition,
+                isDragPreview ? 'border-sky-300 bg-sky-100 ring-1 ring-inset ring-sky-300 text-sky-900' : undefined,
+              );
               const slotCellClassName = getReservationSlotCellClassName(slot.type, isSelected);
+              const slotStateLabel = isSelected ? 'vybráno' : slot.type === 'volno' ? 'volno' : slot.type === 'cekajici' ? 'čeká na schválení' : 'obsazeno';
 
               if (
                 process.env.NODE_ENV === 'development' &&
@@ -171,21 +195,18 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
                   onPointerDown={() => handlePointerDown(court.id, time, slot.isOccupied ? 'obsazeno' : 'volno')}
                   onPointerEnter={() => handlePointerEnter(court.id, time)}
                   className={slotClassName}
+                  aria-label={`${court.name}, ${formatTimeLabel(time)} až ${formatTimeLabel(time + 0.5)}, stav ${slotStateLabel}`}
+                  aria-pressed={slot.type === 'volno' ? isSelected : undefined}
                 >
                   <span className={slotCellClassName}>
-                    <span className="flex items-center gap-1.5 font-semibold">
-                      {slot.type === 'cekajici' ? <span aria-hidden="true">🕒</span> : null}
-                      {slot.type === 'potvrzeno' ? <span aria-hidden="true">⛔</span> : null}
-                      {slot.type === 'blokace' ? <span aria-hidden="true">🚫</span> : null}
-                      {slot.type === 'volno' && isSelected ? <span aria-hidden="true">✓</span> : null}
-                      <span>{slot.label}</span>
+                    <span className="block font-medium">
+                      {isSelected ? '✓ Vybráno' : isDragPreview ? 'Výběr' : slot.label}
                     </span>
-                    {isSelected && slot.type === 'volno' ? (
-                      <p className="mt-1 inline-flex rounded-full bg-blue-700 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">Vybráno</p>
-                    ) : null}
-                    {!slot.isOccupied && !isSelected && <p className="mt-1 text-slate-500">Klikněte a tahem vyberte úsek</p>}
-                    {slot.type === 'cekajici' ? <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-amber-800">Čeká na potvrzení správcem</p> : null}
-                    {slot.type === 'potvrzeno' ? <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-800">Termín je již obsazen</p> : null}
+                    {isSelected ? <p className="mt-1 text-sm text-blue-100">Potvrďte termín níže</p> : null}
+                    {isDragPreview ? <p className="mt-1 text-sm text-sky-900">Výběr</p> : null}
+                    {!slot.isOccupied && !isSelected && !isDragPreview ? <p className="mt-1 text-sm text-slate-500">Vyberte kliknutím nebo tahem</p> : null}
+                    {slot.type === 'cekajici' ? <p className="mt-1 text-sm text-amber-900">Rezervace čeká na potvrzení</p> : null}
+                    {(slot.type === 'potvrzeno' || slot.type === 'blokace') ? <p className="mt-1 text-sm text-rose-900">Termín je již rezervovaný</p> : null}
                   </span>
                 </button>
               );
