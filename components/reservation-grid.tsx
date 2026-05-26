@@ -173,11 +173,19 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
                   className={slotClassName}
                 >
                   <span className={slotCellClassName}>
-                    <span className="font-semibold">{slot.label}</span>
+                    <span className="flex items-center gap-1.5 font-semibold">
+                      {slot.type === 'cekajici' ? <span aria-hidden="true">🕒</span> : null}
+                      {slot.type === 'potvrzeno' ? <span aria-hidden="true">⛔</span> : null}
+                      {slot.type === 'blokace' ? <span aria-hidden="true">🚫</span> : null}
+                      {slot.type === 'volno' && isSelected ? <span aria-hidden="true">✓</span> : null}
+                      <span>{slot.label}</span>
+                    </span>
                     {isSelected && slot.type === 'volno' ? (
-                      <p className="mt-1 font-medium text-blue-900">Vybráno</p>
+                      <p className="mt-1 inline-flex rounded-full bg-blue-700 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">Vybráno</p>
                     ) : null}
                     {!slot.isOccupied && !isSelected && <p className="mt-1 text-slate-500">Klikněte a tahem vyberte úsek</p>}
+                    {slot.type === 'cekajici' ? <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-amber-800">Čeká na potvrzení správcem</p> : null}
+                    {slot.type === 'potvrzeno' ? <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-800">Termín je již obsazen</p> : null}
                   </span>
                 </button>
               );
