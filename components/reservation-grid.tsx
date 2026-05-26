@@ -128,7 +128,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
 
           {halfHourSlots.map((time) => (
             <div key={`row-${time}`} className="contents">
-              <div className="border-b border-r border-slate-300 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-600">
+              <div className="border-b border-r border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-600">
                 {formatTimeLabel(time)} - {formatTimeLabel(time + 0.5)}
               </div>
               {courts.map((court) => {
@@ -148,7 +148,13 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
                         ? 'z-10 rounded-b-xl border-blue-500 bg-blue-500 text-white ring-1 ring-blue-300/40 shadow-sm'
                         : 'z-10 rounded-none border-blue-500 bg-blue-500 text-white ring-1 ring-blue-300/40 shadow-[0_1px_2px_0_rgba(0,0,0,0.05),inset_0_-1px_0_rgba(96,165,250,0.25)]'
                   : '';
-                const interactionClassName = canApplySelectedStyle ? selectedClassName : isDragPreview ? 'border-sky-300 bg-sky-100 text-sky-900' : 'hover:bg-sky-50';
+                const interactionClassName = canApplySelectedStyle
+                  ? selectedClassName
+                  : isDragPreview
+                    ? 'border-sky-300 bg-sky-100 text-sky-900'
+                    : slot.type === 'volno'
+                      ? 'hover:bg-sky-50 transition-colors duration-150'
+                      : '';
                 const slotClassName = buildReservationSlotRenderClassName(slot.type, isSelected, selectedPosition, interactionClassName);
                 const slotStateLabel = canApplySelectedStyle ? 'vybráno' : slot.type === 'volno' ? 'volno' : slot.type === 'cekajici' ? 'čeká na schválení' : 'obsazeno';
                 const showSelectedText = isSelectedByRange && (selectedPosition === 'single' || selectedPosition === 'start');
