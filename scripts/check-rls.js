@@ -8,6 +8,12 @@ const mode = process.env.RLS_RELEASE_MODE === 'prod' ? 'prod' : 'dev';
 
 
 const requiredPolicies = [
+
+  {
+    table: 'public.courts',
+    name: 'courts_select_active_anon',
+    reason: 'Anonymní návštěvník musí načíst aktivní kurty pro veřejnou stránku /rezervace.'
+  },
   {
     table: 'public.reservations',
     name: 'reservations_select_owner_or_admin',

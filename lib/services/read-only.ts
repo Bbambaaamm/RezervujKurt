@@ -1,7 +1,7 @@
 import type { Court, Reservation, ReservationStatus } from '@/lib/types/domain';
 import type { AuthSession } from '../supabase/auth-client';
 import { ReservationUnauthorizedError } from './supabase-error-mapping';
-import { SupabaseRequestError, supabaseSelect, supabaseSelectWithAccessToken } from '@/lib/supabase/client';
+import { SupabaseNetworkError, SupabaseRequestError, supabaseSelect, supabaseSelectWithAccessToken } from '@/lib/supabase/client';
 
 type CourtRow = {
   id: number;
@@ -107,6 +107,14 @@ function mapReservationOverview(row: ReservationOverviewRow): ReservationOvervie
 }
 
 function logSupabaseRequestFailure(error: unknown) {
+  if (error instanceof SupabaseNetworkError) {
+    console.error('admin reservations read network failure', {
+      endpoint: error.endpoint,
+      cause: error.causeError,
+    });
+    return;
+  }
+
   if (error instanceof SupabaseRequestError) {
     console.error('admin reservations read failed', {
       endpoint: error.endpoint,
@@ -122,7 +130,18 @@ function logSupabaseRequestFailure(error: unknown) {
 }
 
 export async function getCourtsReadOnly() {
-  const rows = await supabaseSelect<CourtRow>('courts?select=id,name,surface,is_active&is_active=eq.true&order=id.asc');
+  const endpoint = 'courts?select=id,name,surface,is_active&is_active=eq.true&order=id.asc';
+
+  if (process.env.NODE_ENV === 'development') {
+    console.info('getCourtsReadOnly request', { endpoint });
+  }
+
+  const rows = await supabaseSelect<CourtRow>(endpoint);
+
+  if (process.env.NODE_ENV === 'development') {
+    console.info('getCourtsReadOnly loaded', { rawCount: rows.length, mappedCount: rows.length });
+  }
+
   return rows.map(mapCourt);
 }
 
@@ -130,7 +149,7 @@ export async function getReservationsReadOnly(date: string, accessToken?: string
   const endpoint = `reservation_public_occupancy?select=court_id,reservation_date,time_from,time_to,status&reservation_date=eq.${date}&status=in.(pending,approved)&order=time_from.asc`;
 
   if (process.env.NODE_ENV === 'development') {
-    console.info('public occupancy request started', { date });
+    console.info('getReservationsReadOnly request', { date, endpoint });
   }
 
   const rows = accessToken
@@ -138,7 +157,7 @@ export async function getReservationsReadOnly(date: string, accessToken?: string
     : await supabaseSelect<ReservationRow>(endpoint);
 
   if (process.env.NODE_ENV === 'development') {
-    console.info('public occupancy loaded', { date, count: rows.length });
+    console.info('getReservationsReadOnly loaded', { date, rawCount: rows.length, mappedCount: rows.length });
   }
 
   return rows.map(mapReservation);

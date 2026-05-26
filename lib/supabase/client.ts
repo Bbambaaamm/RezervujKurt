@@ -13,6 +13,17 @@ export class SupabaseRequestError extends Error {
   }
 }
 
+export class SupabaseNetworkError extends Error {
+  constructor(
+    message: string,
+    public readonly endpoint: string,
+    public readonly causeError: unknown,
+  ) {
+    super(message);
+    this.name = 'SupabaseNetworkError';
+  }
+}
+
 function getRestUrl(path: string) {
   if (!supabaseUrl) {
     throw new Error('Chybí NEXT_PUBLIC_SUPABASE_URL.');
@@ -37,13 +48,19 @@ export async function supabaseSelect<T>(path: string): Promise<T[]> {
 
   logSupabaseSelectDebug(path, 'anon');
 
-  const response = await fetch(getRestUrl(path), {
-    headers: {
-      apikey: supabaseAnonKey,
-      Authorization: `Bearer ${supabaseAnonKey}`,
-    },
-    cache: 'no-store',
-  });
+  const requestUrl = getRestUrl(path);
+  let response: Response;
+  try {
+    response = await fetch(requestUrl, {
+      headers: {
+        apikey: supabaseAnonKey,
+        Authorization: `Bearer ${supabaseAnonKey}`,
+      },
+      cache: 'no-store',
+    });
+  } catch (error) {
+    throw new SupabaseNetworkError('Supabase SELECT selhal: network error', requestUrl, error);
+  }
 
   if (!response.ok) {
     const responseBody = await response.text();
@@ -65,13 +82,19 @@ export async function supabaseSelectWithAccessToken<T>(path: string, accessToken
 
   logSupabaseSelectDebug(path, 'access_token');
 
-  const response = await fetch(getRestUrl(path), {
-    headers: {
-      apikey: supabaseAnonKey,
-      Authorization: `Bearer ${accessToken}`,
-    },
-    cache: 'no-store',
-  });
+  const requestUrl = getRestUrl(path);
+  let response: Response;
+  try {
+    response = await fetch(requestUrl, {
+      headers: {
+        apikey: supabaseAnonKey,
+        Authorization: `Bearer ${accessToken}`,
+      },
+      cache: 'no-store',
+    });
+  } catch (error) {
+    throw new SupabaseNetworkError('Supabase SELECT selhal: network error', requestUrl, error);
+  }
 
   if (!response.ok) {
     const responseBody = await response.text();
