@@ -143,3 +143,33 @@ NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 npm run test:e2e:smoke
   - grid/sloty jsou viditelné,
   - anonymní uživatel vidí výzvu k přihlášení,
   - akce `Rezervovat` není pro anonymous dostupná.
+
+
+## H) Auth bootstrap runbook (member/admin storageState)
+
+Tento krok slouží pouze pro ověření přihlášení rolí a přípravu `storageState` souborů.
+
+### Seed účty
+- member: `jan.novak@example.com`
+- admin: `spravce.arealu@example.com`
+
+### Co test dělá
+1. Otevře `/prihlaseni` a odešle magic link přes existující OTP flow.
+2. Vyzvedne poslední e-mail z Mailpit API (`http://127.0.0.1:54324`).
+3. Otevře nalezený Supabase verify link v Playwrightu.
+4. Uloží `storageState` do:
+   - `e2e/.auth/member.json`
+   - `e2e/.auth/admin.json`
+5. Ověří, že:
+   - member není anonymous na `/ucet`,
+   - admin projde guardem na `/admin`.
+
+### Spuštění
+```bash
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 npm run test:e2e:auth
+```
+
+Poznámky:
+- `e2e/.auth/*.json` je v `.gitignore`, soubory se necommitují.
+- Auth bootstrap je zapnutý jen pro auth script přes `PLAYWRIGHT_ENABLE_AUTH_SETUP=1`.
+- Běžný anonymous smoke (`npm run test:e2e:smoke`) zůstává bez auth bootstrapu.

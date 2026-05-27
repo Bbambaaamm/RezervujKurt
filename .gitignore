@@ -29,3 +29,6 @@ supabase/.cache/
 
 # typescript
 *.tsbuildinfo
+
+# playwright auth states
+e2e/.auth/*.json
