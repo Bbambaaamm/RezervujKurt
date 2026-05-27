@@ -70,6 +70,8 @@ async function waitForOtpOutcomeOrMailpit(page: Page, email: string): Promise<st
       }
     }
 
+    // UI hláška může být pomalejší/odlišná; logiku úspěchu bereme primárně z Mailpitu.
+    void otpMessageRegex.test(visibleText);
     await page.waitForTimeout(500);
   }
 
