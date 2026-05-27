@@ -17,9 +17,10 @@ async function waitForOtpOutcomeOrMailpit(page: Page, email: string): Promise<st
   const searchUrl = `${MAILPIT_BASE_URL}/api/v1/search?kind=to&query=${encodedQuery}`;
 
   const otpErrorRegex = /Přihlášení se nepodařilo\.|Neplatné JSON tělo požadavku\.|Pole email musí být validní řetězec\.|Síťová chyba při volání Supabase Auth OTP\./i;
-  const otpMessageRegex = /Na e-mail byl odeslán odkaz pro přihlášení\.|Jste přihlášen\(a\)\./i;
+  const otpSuccessRegex = /Na e-mail byl odeslán odkaz pro přihlášení\.|Jste přihlášen\(a\)\./i;
 
   const startedAt = Date.now();
+  let otpRequestConfirmed = false;
 
   while (Date.now() - startedAt < MAGIC_LINK_TIMEOUT_MS) {
     const visibleText = await getVisiblePageText(page);
@@ -28,6 +29,13 @@ async function waitForOtpOutcomeOrMailpit(page: Page, email: string): Promise<st
       throw new Error(
         `OTP požadavek selhal podle UI hlášky. URL: ${page.url()}. Viditelný text: ${visibleText}`,
       );
+    }
+
+    // Čekáme na potvrzení aktuálního OTP požadavku, aby se nepoužil starý e-mail z Mailpitu.
+    if (!otpRequestConfirmed) {
+      otpRequestConfirmed = otpSuccessRegex.test(visibleText);
+      await page.waitForTimeout(500);
+      continue;
     }
 
     const response = await page.request.get(searchUrl);
@@ -87,7 +95,7 @@ export async function loginViaMagicLink(params: {
 
   const magicLink = await waitForOtpOutcomeOrMailpit(page, email);
 
-  const verifyLink = new RegExp(`auth\\/v1\\/verify.*${escapeForRegex(email)}`, 'i');
+  const verifyLink = new RegExp(`auth\/v1\/verify.*${escapeForRegex(email)}`, 'i');
   if (!verifyLink.test(magicLink) && !magicLink.includes('auth/v1/verify')) {
     throw new Error('Nalezený odkaz z Mailpit nevypadá jako Supabase verify link.');
   }
