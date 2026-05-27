@@ -11,7 +11,7 @@
     "check:rls:prod": "RLS_RELEASE_MODE=prod node scripts/check-rls.js",
     "test:unit": "rm -rf .tmp-tests && tsc -p tsconfig.test.json && node --test $(find .tmp-tests/tests -name '*.test.js' -print)",
     "test": "npm run test:unit",
-    "test:e2e:smoke": "npx -y playwright@1.54.0 test e2e/smoke.anonymous.spec.ts"
+    "test:e2e:smoke": "playwright test e2e/smoke.anonymous.spec.ts"
   },
   "dependencies": {
     "next": "15.3.2",
