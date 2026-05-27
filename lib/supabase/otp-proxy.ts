@@ -1,6 +1,6 @@
 export type OtpRequestPayload = {
   email: string;
-  create_user: true;
+  create_user: boolean;
   redirect_to?: string;
 };
 
@@ -20,12 +20,13 @@ export function normalizeOtpRedirectTo(redirectTo?: string): string | undefined 
   }
 }
 
-export function buildOtpPayload(email: string, emailRedirectTo?: string): OtpRequestPayload {
+export function buildOtpPayload(email: string, emailRedirectTo?: string, options?: { createUser?: boolean }): OtpRequestPayload {
   const redirectTo = normalizeOtpRedirectTo(emailRedirectTo);
+  const createUser = options?.createUser ?? false;
 
   return {
     email,
-    create_user: true,
+    create_user: createUser,
     ...(redirectTo ? { redirect_to: redirectTo } : {}),
   };
 }

@@ -22,12 +22,18 @@ test('getSupabaseOtpRequestConfig používá anon klíč a endpoint /auth/v1/otp
   assert.notEqual(config.headers.apikey, process.env.SUPABASE_SERVICE_ROLE_KEY);
 });
 
-test('buildOtpPayload předává redirect_to', () => {
+test('buildOtpPayload pro login flow nastaví create_user na false', () => {
   const payload = buildOtpPayload('user@example.com', 'https://example.com/rezervace');
 
   assert.equal(payload.email, 'user@example.com');
-  assert.equal(payload.create_user, true);
+  assert.equal(payload.create_user, false);
   assert.equal(payload.redirect_to, 'https://example.com/rezervace');
+});
+
+test('buildOtpPayload umožní explicitně povolit create_user pro signup scénář', () => {
+  const payload = buildOtpPayload('user@example.com', 'https://example.com/rezervace', { createUser: true });
+
+  assert.equal(payload.create_user, true);
 });
 
 
