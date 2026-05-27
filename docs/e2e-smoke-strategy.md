@@ -113,3 +113,11 @@ Obsah kroku:
 2. Rychlost: smoke suite do rozumného času (orientačně do několika minut).
 3. Diagnostika: při uměle vyvolané chybě je dostupný trace/screenshot.
 4. Izolace: opakovaný běh bez ručního zásahu do DB.
+
+## G) Runbook pro první smoke krok (anonymous)
+1. Nainstalujte závislosti: `npm install`.
+2. Spusťte aplikaci lokálně: `npm run dev` (default `http://127.0.0.1:3000`).
+3. Volitelně změňte base URL: `E2E_BASE_URL=http://127.0.0.1:3000`.
+4. Spusťte smoke test: `npm run test:e2e:smoke`.
+
+Poznámka: první běh Playwrightu může vyžadovat instalaci browseru (`npx playwright install chromium`).
