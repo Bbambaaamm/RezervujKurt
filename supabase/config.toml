@@ -6,6 +6,15 @@ additional_redirect_urls = [
   "http://localhost:3000",
   "http://localhost:3000/rezervace"
 ]
+# Lokální dev/e2e: explicitně povolíme signup větev pro email OTP endpoint.
+# Bez toho může GoTrue vracet 422 "otp_disabled" i pro create_user=false.
+enable_signup = true
+
+[auth.email]
+# Lokální dev/e2e: email provider musí být explicitně zapnutý pro magic-link OTP flow.
+enable_signup = true
+# Seed uživatelé už mají email_confirmed_at, proto nechceme další potvrzovací krok.
+enable_confirmations = false
 
 [auth.email.template.magic_link]
 subject = "Přihlášení do RezervujKurt"

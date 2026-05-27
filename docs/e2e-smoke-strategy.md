@@ -144,6 +144,14 @@ NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 npm run test:e2e:smoke
   - anonymní uživatel vidí výzvu k přihlášení,
   - akce `Rezervovat` není pro anonymous dostupná.
 
+### Lokální Supabase Auth konfigurace pro OTP
+- `supabase/config.toml` má pro lokální dev/e2e explicitně zapnuté:
+  - `[auth].enable_signup = true`
+  - `[auth.email].enable_signup = true`
+  - `[auth.email].enable_confirmations = false`
+- Důvod: bez explicitního povolení signup větve může lokální GoTrue vracet `422 otp_disabled` (`Signups not allowed for otp`) i při volání `/auth/v1/otp` s `create_user:false`.
+- Po změně `supabase/config.toml` je nutný restart lokálního Supabase stacku (`npx supabase stop && npx supabase start`).
+
 
 ## H) Auth bootstrap runbook (member/admin storageState)
 
