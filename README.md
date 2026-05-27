@@ -90,6 +90,7 @@ npm run lint
 - `npm run start` – spustí aplikaci z produkčního buildu.
 - `npm run lint` – spustí ESLint kontrolu.
 - `npm run test` – spustí unit testy (TypeScript build + `node --test`).
+- `npm run test:e2e:smoke` – spustí minimální E2E smoke test (Playwright, Chromium).
 
 ## Struktura
 - `app/` – stránky (Domů, Rezervace, Přihlášení, Admin)
@@ -100,6 +101,19 @@ npm run lint
 ## Runtime verification (Production Confidence Pass)
 
 Pro manuální runtime smoke průchod použij checklist v `docs/runtime-verification.md`.
+
+## E2E smoke testy (Playwright)
+
+Minimální E2E smoke vrstva je popsána v:
+
+- `docs/e2e-smoke-strategy.md` (strategie)
+- `docs/e2e-smoke-runbook.md` (praktické spuštění)
+
+Rychlé spuštění:
+
+```bash
+npm run test:e2e:smoke
+```
 
 ## Aktuální stav (MVP základ)
 - české UI a základní layout
