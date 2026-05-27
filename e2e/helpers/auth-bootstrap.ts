@@ -7,16 +7,40 @@ function escapeForRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-async function extractLatestMagicLink(page: Page, email: string): Promise<string> {
+async function getVisiblePageText(page: Page): Promise<string> {
+  const bodyText = await page.locator('body').innerText().catch(() => '');
+  return bodyText.replace(/\s+/g, ' ').trim();
+}
+
+async function waitForOtpOutcomeOrMailpit(page: Page, email: string): Promise<string> {
   const encodedQuery = encodeURIComponent(`to:${email}`);
   const searchUrl = `${MAILPIT_BASE_URL}/api/v1/search?kind=to&query=${encodedQuery}`;
 
+  const otpErrorRegex = /Přihlášení se nepodařilo\.|Neplatné JSON tělo požadavku\.|Pole email musí být validní řetězec\.|Síťová chyba při volání Supabase Auth OTP\./i;
+  const otpSuccessRegex = /Na e-mail byl odeslán odkaz pro přihlášení\.|Jste přihlášen\(a\)\./i;
+
   const startedAt = Date.now();
+  let otpRequestConfirmed = false;
 
   while (Date.now() - startedAt < MAGIC_LINK_TIMEOUT_MS) {
+    const visibleText = await getVisiblePageText(page);
+
+    if (otpErrorRegex.test(visibleText)) {
+      throw new Error(
+        `OTP požadavek selhal podle UI hlášky. URL: ${page.url()}. Viditelný text: ${visibleText}`,
+      );
+    }
+
+    // Čekáme na potvrzení aktuálního OTP požadavku, aby se nepoužil starý e-mail z Mailpitu.
+    if (!otpRequestConfirmed) {
+      otpRequestConfirmed = otpSuccessRegex.test(visibleText);
+      await page.waitForTimeout(500);
+      continue;
+    }
+
     const response = await page.request.get(searchUrl);
     if (!response.ok()) {
-      throw new Error(`Mailpit search selhal se statusem ${response.status()}.`);
+      throw new Error(`Mailpit search selhal se statusem ${response.status()}. URL: ${searchUrl}`);
     }
 
     const body = (await response.json()) as {
@@ -49,7 +73,10 @@ async function extractLatestMagicLink(page: Page, email: string): Promise<string
     await page.waitForTimeout(500);
   }
 
-  throw new Error(`Magic link pro ${email} nebyl v Mailpit nalezen do ${MAGIC_LINK_TIMEOUT_MS} ms.`);
+  const visibleText = await getVisiblePageText(page);
+  throw new Error(
+    `Magic link pro ${email} nebyl v Mailpit nalezen do ${MAGIC_LINK_TIMEOUT_MS} ms. URL: ${page.url()}. Viditelný text: ${visibleText}`,
+  );
 }
 
 export async function loginViaMagicLink(params: {
@@ -64,11 +91,9 @@ export async function loginViaMagicLink(params: {
   await page.getByLabel('E-mail').fill(email);
   await page.getByRole('button', { name: 'Poslat odkaz pro přihlášení' }).click();
 
-  await expect(page.getByText('Na e-mail byl odeslán odkaz pro přihlášení.')).toBeVisible();
+  const magicLink = await waitForOtpOutcomeOrMailpit(page, email);
 
-  const magicLink = await extractLatestMagicLink(page, email);
-
-  const verifyLink = new RegExp(`auth\\/v1\\/verify.*${escapeForRegex(email)}`, 'i');
+  const verifyLink = new RegExp(`auth\/v1\/verify.*${escapeForRegex(email)}`, 'i');
   if (!verifyLink.test(magicLink) && !magicLink.includes('auth/v1/verify')) {
     throw new Error('Nalezený odkaz z Mailpit nevypadá jako Supabase verify link.');
   }
