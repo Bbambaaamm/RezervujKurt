@@ -113,3 +113,33 @@ Obsah kroku:
 2. Rychlost: smoke suite do rozumného času (orientačně do několika minut).
 3. Diagnostika: při uměle vyvolané chybě je dostupný trace/screenshot.
 4. Izolace: opakovaný běh bez ručního zásahu do DB.
+
+## G) Runbook pro první minimální E2E krok (Playwright skeleton + 1 anonymous smoke)
+
+### 1) Předpoklady prostředí
+- Lokální Supabase musí běžet na `http://127.0.0.1:54321`.
+- V prostředí Codespaces může `.env.local` obsahovat public GitHub URL; pro E2E běh je nutné explicitně přepsat `NEXT_PUBLIC_SUPABASE_URL` na lokální endpoint.
+
+### 2) Instalace a příprava
+```bash
+npx supabase start
+npm install
+npx playwright install chromium
+# Pokud chybí systémové knihovny:
+# sudo npx playwright install-deps chromium
+```
+
+### 3) Spuštění smoke testu proti lokální Supabase
+```bash
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 npm run test:e2e:smoke
+```
+
+### 4) Stabilizační pravidla pro test
+- Test nesmí být navázaný na konkrétní text `Kurt 1`; lokální data obsahují různé názvy kurtů (`Kurt 3/4/5`).
+- Test nesmí být závislý na „dnešním“ datu.
+- Test musí ověřit, že není aktivní fallback/mock banner (`DEV upozornění...`). Pokud je banner viditelný, je problém v runtime env nebo v Supabase endpointu.
+- Test kontroluje jen anonymní read-only guard:
+  - stránka `/rezervace` se načte,
+  - grid/sloty jsou viditelné,
+  - anonymní uživatel vidí výzvu k přihlášení,
+  - akce `Rezervovat` není pro anonymous dostupná.
