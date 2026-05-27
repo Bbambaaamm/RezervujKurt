@@ -16,8 +16,7 @@ async function getVisiblePageText(page: Page): Promise<string> {
 }
 
 async function waitForOtpOutcomeOrMailpit(page: Page, email: string): Promise<string> {
-  const encodedQuery = encodeURIComponent(`to:${email}`);
-  const searchUrl = `${MAILPIT_BASE_URL}/api/v1/search?kind=to&query=${encodedQuery}`;
+  const messagesUrl = `${MAILPIT_BASE_URL}/api/v1/messages`;
 
   const otpErrorRegex = /Přihlášení se nepodařilo\.|Neplatné JSON tělo požadavku\.|Pole email musí být validní řetězec\.|Síťová chyba při volání Supabase Auth OTP\./i;
   const otpSuccessRegex = /Na e-mail byl odeslán odkaz pro přihlášení\.|Jste přihlášen\(a\)\./i;
@@ -41,18 +40,35 @@ async function waitForOtpOutcomeOrMailpit(page: Page, email: string): Promise<st
       continue;
     }
 
-    const response = await page.request.get(searchUrl);
+    const response = await page.request.get(messagesUrl);
     if (!response.ok()) {
-      throw new Error(`Mailpit search selhal se statusem ${response.status()}. URL: ${searchUrl}`);
+      throw new Error(`Mailpit messages selhal se statusem ${response.status()}. URL: ${messagesUrl}`);
     }
 
     const body = (await response.json()) as {
       messages?: Array<{
-        ID: string;
+        ID?: string;
+        Created?: string;
+        CreatedAt?: string;
+        To?: Array<{ Address?: string }>;
       }>;
     };
 
-    const latestMessage = body.messages?.[0];
+    const allMessages = body.messages ?? [];
+    const normalizedEmail = email.toLowerCase();
+    const matchingMessages = allMessages.filter((message) =>
+      (message.To ?? []).some((recipient) => recipient.Address?.toLowerCase() === normalizedEmail),
+    );
+
+    const freshMessages = matchingMessages.filter((message) => {
+      const createdRaw = message.CreatedAt ?? message.Created;
+      const createdMs = createdRaw ? Date.parse(createdRaw) : Number.NaN;
+
+      // Zachováme ochranu proti starým zprávám: bez validního času zprávu raději nebereme.
+      return Number.isFinite(createdMs) && createdMs >= startedAt;
+    });
+
+    const latestMessage = freshMessages[0];
     if (latestMessage?.ID) {
       const messageResponse = await page.request.get(`${MAILPIT_BASE_URL}/api/v1/message/${latestMessage.ID}`);
       if (!messageResponse.ok()) {
@@ -62,15 +78,32 @@ async function waitForOtpOutcomeOrMailpit(page: Page, email: string): Promise<st
       const messageBody = (await messageResponse.json()) as {
         Text?: string;
         HTML?: string;
+        [key: string]: unknown;
       };
 
-      const candidateText = `${messageBody.HTML ?? ''}\n${messageBody.Text ?? ''}`;
-      const linkRegex = /(https?:\/\/[^\s"'<>]+auth\/v1\/verify[^\s"'<>]+)/i;
-      const matched = candidateText.match(linkRegex);
+      const normalizedText = (messageBody.Text ?? '').replace(/&amp;/g, '&');
+      const normalizedHtml = (messageBody.HTML ?? '').replace(/&amp;/g, '&');
+      const verifyBase = `${SUPABASE_URL ?? 'http://127.0.0.1:54321'}/auth/v1/verify`;
+      const escapedVerifyBase = escapeForRegex(verifyBase);
+      const verifyRegex = new RegExp(`(${escapedVerifyBase}[^\\s"'<>]+)`, 'i');
+      const fallbackRegex = /(https?:\/\/[^\s"'<>]+auth\/v1\/verify[^\s"'<>]+)/i;
+
+      const matched = normalizedText.match(verifyRegex)
+        ?? normalizedHtml.match(verifyRegex)
+        ?? normalizedText.match(fallbackRegex)
+        ?? normalizedHtml.match(fallbackRegex);
 
       if (matched?.[1]) {
-        return matched[1].replace(/&amp;/g, '&');
+        return matched[1];
       }
+
+      const detailFields = Object.keys(messageBody).sort().join(', ') || '(žádné)';
+      const toAddresses = (latestMessage.To ?? []).map((recipient) => recipient.Address ?? '(missing)').join(', ') || '(žádné)';
+      throw new Error(
+        `Magic link pro ${email} nebyl nalezen v detailu Mailpit zprávy. `
+        + `messagesCount=${matchingMessages.length}; latestMessageId=${latestMessage.ID}; `
+        + `toAddresses=${toAddresses}; detailFields=${detailFields}`,
+      );
     }
 
     // UI hláška může být pomalejší/odlišná; logiku úspěchu bereme primárně z Mailpitu.
@@ -79,8 +112,32 @@ async function waitForOtpOutcomeOrMailpit(page: Page, email: string): Promise<st
   }
 
   const visibleText = await getVisiblePageText(page);
+  const diagnosticsResponse = await page.request.get(messagesUrl);
+  let diagnostics = 'Mailpit diagnostika nedostupná';
+  if (diagnosticsResponse.ok()) {
+    const diagnosticsBody = (await diagnosticsResponse.json()) as {
+      messages?: Array<{ ID?: string; To?: Array<{ Address?: string }> }>;
+    };
+    const diagnosticsMessages = diagnosticsBody.messages ?? [];
+    const matchingMessages = diagnosticsMessages.filter((message) =>
+      (message.To ?? []).some((recipient) => recipient.Address?.toLowerCase() === email.toLowerCase()),
+    );
+    const latestMessage = matchingMessages[0];
+    const toAddresses = (latestMessage?.To ?? []).map((recipient) => recipient.Address ?? '(missing)').join(', ') || '(žádné)';
+    let detailFields = '(nedostupné)';
+    if (latestMessage?.ID) {
+      const detailResponse = await page.request.get(`${MAILPIT_BASE_URL}/api/v1/message/${latestMessage.ID}`);
+      if (detailResponse.ok()) {
+        const detailBody = (await detailResponse.json()) as Record<string, unknown>;
+        detailFields = Object.keys(detailBody).sort().join(', ') || '(žádné)';
+      }
+    }
+    diagnostics = `messagesCount=${matchingMessages.length}; latestMessageId=${latestMessage?.ID ?? '(žádné)'}; `
+      + `toAddresses=${toAddresses}; detailFields=${detailFields}`;
+  }
   throw new Error(
-    `Magic link pro ${email} nebyl v Mailpit nalezen do ${MAGIC_LINK_TIMEOUT_MS} ms. URL: ${page.url()}. Viditelný text: ${visibleText}`,
+    `Magic link pro ${email} nebyl v Mailpit nalezen do ${MAGIC_LINK_TIMEOUT_MS} ms. URL: ${page.url()}. `
+      + `Viditelný text: ${visibleText}. ${diagnostics}`,
   );
 }
 
