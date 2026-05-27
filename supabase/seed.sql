@@ -61,6 +61,50 @@ set
   role = excluded.role,
   updated_at = excluded.updated_at;
 
+-- Identity záznamy pro email provider (nutné pro OTP/magic-link auth flow).
+insert into auth.identities (
+  id,
+  user_id,
+  identity_data,
+  provider,
+  provider_id,
+  created_at,
+  updated_at
+)
+values
+  (
+    gen_random_uuid(),
+    '11111111-1111-1111-1111-111111111111',
+    '{"sub":"11111111-1111-1111-1111-111111111111","email":"jan.novak@example.com"}'::jsonb,
+    'email',
+    'jan.novak@example.com',
+    now(),
+    now()
+  ),
+  (
+    gen_random_uuid(),
+    '22222222-2222-2222-2222-222222222222',
+    '{"sub":"22222222-2222-2222-2222-222222222222","email":"petr.svoboda@example.com"}'::jsonb,
+    'email',
+    'petr.svoboda@example.com',
+    now(),
+    now()
+  ),
+  (
+    gen_random_uuid(),
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    '{"sub":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","email":"spravce.arealu@example.com"}'::jsonb,
+    'email',
+    'spravce.arealu@example.com',
+    now(),
+    now()
+  )
+on conflict (provider, provider_id) do update
+set
+  user_id = excluded.user_id,
+  identity_data = excluded.identity_data,
+  updated_at = excluded.updated_at;
+
 insert into public.courts (name, surface, is_active)
 values
   ('Kurt 1', 'antuka', true),

@@ -154,6 +154,32 @@ V GitHub Codespaces musí magic link v e-mailové šabloně používat veřejný
 
 Pokud by link mířil na `127.0.0.1`, e-mail otevřený mimo kontejner nedokončí ověření, protože localhost adresa je dostupná jen uvnitř Codespace kontejneru.
 
+
+## Troubleshooting: `422 otp_disabled` při volání `/auth/v1/otp`
+
+Pokud Supabase vrátí odpověď:
+
+- `HTTP 422`
+- `error_code: "otp_disabled"`
+- `msg: "Signups not allowed for otp"`
+
+neznamená to nutně chybný payload. V lokálním GoTrue se to stává, když běžící Auth instance ještě nepoužívá aktuální `supabase/config.toml` (nebo má vypnuté signup větve pro email OTP).
+
+Rychlá kontrola:
+
+1. Ověř v `supabase/config.toml`, že jsou aktivní:
+   - `[auth].enable_signup = true`
+   - `[auth.email].enable_signup = true`
+2. Restartuj lokální Supabase stack, aby GoTrue načetl config znovu:
+
+```bash
+npx supabase stop && npx supabase start
+```
+
+3. Po restartu odešli OTP request znovu.
+
+Poznámka: i když posíláš `create_user:false` (login flow), GoTrue stále kontroluje OTP/signup konfiguraci endpointu.
+
 ## Debug veřejného occupancy čtení pro `/rezervace`
 
 Rychlý anonymní REST test (bez osobních údajů), který má vrátit i `pending` rezervace:
