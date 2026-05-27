@@ -6,6 +6,7 @@ test.describe('E2E smoke: anonymní read-only guard', () => {
 
     await expect(page.getByRole('heading', { name: 'Rezervace kurtů' })).toBeVisible();
     await expect(page.getByText('Denní přehled všech 3 kurtů na jednom místě.')).toBeVisible();
+    await page.getByLabel('Vyberte den').fill('2026-05-14');
 
     await expect(
       page.getByRole('button', {
