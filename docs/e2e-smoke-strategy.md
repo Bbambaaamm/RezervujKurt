@@ -89,7 +89,7 @@ Aby rozsah zůstal minimální:
 
 Obsah kroku:
 1. Přidat Playwright jako dev dependency.
-2. Přidat minimální `playwright.config.ts`:
+2. Přidat minimální `playwright.config.mjs`:
    - baseURL z env
    - pouze Chromium
    - trace při retry/fail
