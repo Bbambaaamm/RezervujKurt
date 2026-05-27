@@ -2,6 +2,9 @@ import { expect, type Page } from '@playwright/test';
 
 const MAILPIT_BASE_URL = process.env.E2E_MAILPIT_URL ?? 'http://127.0.0.1:54324';
 const MAGIC_LINK_TIMEOUT_MS = Number(process.env.E2E_MAGIC_LINK_TIMEOUT_MS ?? '20000');
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 function escapeForRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -84,14 +87,36 @@ async function waitForOtpOutcomeOrMailpit(page: Page, email: string): Promise<st
 export async function loginViaMagicLink(params: {
   page: Page;
   email: string;
+  createUser?: boolean;
 }): Promise<void> {
-  const { page, email } = params;
+  const { page, email, createUser = false } = params;
 
-  await page.goto('/prihlaseni');
-  await expect(page.getByRole('heading', { name: 'Přihlášení' })).toBeVisible();
+  if (createUser) {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      throw new Error('Pro E2E signup chybí NEXT_PUBLIC_SUPABASE_URL nebo NEXT_PUBLIC_SUPABASE_ANON_KEY.');
+    }
 
-  await page.getByLabel('E-mail').fill(email);
-  await page.getByRole('button', { name: 'Poslat odkaz pro přihlášení' }).click();
+    const response = await page.request.post(`${SUPABASE_URL}/auth/v1/otp`, {
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SUPABASE_ANON_KEY,
+      },
+      data: {
+        email,
+        create_user: true,
+      },
+    });
+
+    if (!response.ok()) {
+      throw new Error(`E2E signup OTP selhal (${response.status()}): ${await response.text()}`);
+    }
+  } else {
+    await page.goto('/prihlaseni');
+    await expect(page.getByRole('heading', { name: 'Přihlášení' })).toBeVisible();
+
+    await page.getByLabel('E-mail').fill(email);
+    await page.getByRole('button', { name: 'Poslat odkaz pro přihlášení' }).click();
+  }
 
   const magicLink = await waitForOtpOutcomeOrMailpit(page, email);
 
@@ -105,4 +130,59 @@ export async function loginViaMagicLink(params: {
 
   await page.goto('/prihlaseni');
   await expect(page.getByText('Jste přihlášen(a).')).toBeVisible();
+}
+
+export async function upsertE2eProfileRole(params: {
+  page: Page;
+  email: string;
+  role: 'user' | 'admin';
+}): Promise<void> {
+  const { page, email, role } = params;
+
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error('Pro E2E upsert profilu chybí NEXT_PUBLIC_SUPABASE_URL nebo SUPABASE_SERVICE_ROLE_KEY.');
+  }
+
+  const userResponse = await page.request.get(
+    `${SUPABASE_URL}/auth/v1/admin/users?email=${encodeURIComponent(email)}`,
+    {
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+    },
+  );
+
+  if (!userResponse.ok()) {
+    throw new Error(`Načtení auth user podle e-mailu selhalo (${userResponse.status()}): ${await userResponse.text()}`);
+  }
+
+  const userBody = (await userResponse.json()) as { users?: Array<{ id: string; email?: string }> };
+  const user = userBody.users?.find((item) => item.email?.toLowerCase() === email.toLowerCase());
+  if (!user?.id) {
+    throw new Error(`Pro e-mail ${email} nebyl v auth.users nalezen žádný uživatel.`);
+  }
+
+  const upsertResponse = await page.request.post(`${SUPABASE_URL}/rest/v1/profiles`, {
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      Prefer: 'resolution=merge-duplicates,return=minimal',
+    },
+    params: {
+      on_conflict: 'id',
+    },
+    data: [
+      {
+        id: user.id,
+        email,
+        role,
+      },
+    ],
+  });
+
+  if (!upsertResponse.ok()) {
+    throw new Error(`Upsert e2e profile role selhal (${upsertResponse.status()}): ${await upsertResponse.text()}`);
+  }
 }
