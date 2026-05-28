@@ -13,7 +13,9 @@
     "test": "npm run test:unit",
     "test:e2e:smoke": "playwright test e2e/smoke.anonymous.spec.ts",
     "test:e2e:auth": "PLAYWRIGHT_ENABLE_AUTH_SETUP=1 playwright test e2e/smoke.auth-bootstrap.spec.ts",
-    "test:e2e:lifecycle": "playwright test e2e/smoke.reservation-lifecycle.spec.ts"
+    "test:e2e:lifecycle": "playwright test e2e/smoke.reservation-lifecycle.spec.ts",
+    "test:e2e:auth:bootstrap": "PLAYWRIGHT_ENABLE_AUTH_SETUP=1 playwright test e2e/smoke.auth-bootstrap.spec.ts",
+    "test:e2e:lifecycle:with-auth-bootstrap": "npm run test:e2e:auth:bootstrap && npm run test:e2e:lifecycle"
   },
   "dependencies": {
     "next": "15.3.2",
