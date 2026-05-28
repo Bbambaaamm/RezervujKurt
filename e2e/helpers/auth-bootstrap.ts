@@ -76,6 +76,7 @@ async function waitForOtpOutcomeOrMailpit(page: Page, email: string): Promise<st
       }
 
       const messageBody = (await messageResponse.json()) as {
+        Subject?: string;
         Text?: string;
         HTML?: string;
         [key: string]: unknown;
@@ -87,22 +88,46 @@ async function waitForOtpOutcomeOrMailpit(page: Page, email: string): Promise<st
       const escapedVerifyBase = escapeForRegex(verifyBase);
       const verifyRegex = new RegExp(`(${escapedVerifyBase}[^\\s"'<>]+)`, 'i');
       const fallbackRegex = /(https?:\/\/[^\s"'<>]+auth\/v1\/verify[^\s"'<>]+)/i;
+      const hrefRegex = /href=["']([^"']*auth\/v1\/verify[^"']*)["']/i;
+      const actionRegex = /action=["']([^"']*auth\/v1\/verify[^"']*)["']/i;
 
       const matched = normalizedText.match(verifyRegex)
         ?? normalizedHtml.match(verifyRegex)
         ?? normalizedText.match(fallbackRegex)
-        ?? normalizedHtml.match(fallbackRegex);
+        ?? normalizedHtml.match(fallbackRegex)
+        ?? normalizedHtml.match(hrefRegex)
+        ?? normalizedHtml.match(actionRegex);
 
       if (matched?.[1]) {
         return matched[1];
       }
 
+      const redactSensitive = (value: string): string => value
+        .replace(/([?&](?:token|access_token|refresh_token|code)=)[^&\s"'<>]+/gi, '$1<redacted>')
+        .replace(/(token_hash=)[^&\s"'<>]+/gi, '$1<redacted>')
+        .replace(/(otp=)[^&\s"'<>]+/gi, '$1<redacted>')
+        .replace(/(Bearer\s+)[A-Za-z0-9._-]+/gi, '$1<redacted>')
+        .replace(/[A-Za-z0-9_-]{24,}\.[A-Za-z0-9._-]{24,}/g, '<redacted-jwt>');
+
+      const shortExcerpt = (value: string): string => {
+        if (!value.trim()) {
+          return '(prázdné)';
+        }
+        const normalized = value.replace(/\s+/g, ' ').trim();
+        const excerpt = normalized.slice(0, 240);
+        return redactSensitive(excerpt);
+      };
+
       const detailFields = Object.keys(messageBody).sort().join(', ') || '(žádné)';
       const toAddresses = (latestMessage.To ?? []).map((recipient) => recipient.Address ?? '(missing)').join(', ') || '(žádné)';
+      const subject = redactSensitive(String(messageBody.Subject ?? '(bez předmětu)'));
+      const textSnippet = shortExcerpt(normalizedText);
+      const htmlSnippet = shortExcerpt(normalizedHtml);
       throw new Error(
         `Magic link pro ${email} nebyl nalezen v detailu Mailpit zprávy. `
         + `messagesCount=${matchingMessages.length}; latestMessageId=${latestMessage.ID}; `
-        + `toAddresses=${toAddresses}; detailFields=${detailFields}`,
+        + `toAddresses=${toAddresses}; detailFields=${detailFields}; `
+        + `subject=${subject}; textSnippet=${textSnippet}; htmlSnippet=${htmlSnippet}`,
       );
     }
 

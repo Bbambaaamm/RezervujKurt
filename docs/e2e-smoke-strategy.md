@@ -181,7 +181,7 @@ NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 npm run test:e2e:auth:bootstrap
 
 Navazující lifecycle test spusť po bootstrapu:
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_SERVICE_ROLE_KEY=<SERVICE_ROLE_KEY> npm run test:e2e:lifecycle:with-auth-bootstrap
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 NEXT_PUBLIC_SUPABASE_ANON_KEY=<ANON_KEY> SUPABASE_SERVICE_ROLE_KEY=<SERVICE_ROLE_KEY> npm run test:e2e:lifecycle:with-auth-bootstrap
 ```
 Poznámky:
 - `e2e/.auth/*.json` je v `.gitignore`, soubory se necommitují.
