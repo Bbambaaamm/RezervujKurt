@@ -144,9 +144,27 @@ Následující body jsou záměrně oddělené jako budoucí rozvoj mimo scope p
 
 ### Future backlog (bez nové feature implementace v tomto průchodu)
 - E2E smoke automatizace:
-  - V repozitáři aktuálně není E2E framework.
-  - Doporučený první krok: Playwright v `e2e/` + jeden smoke scénář pro kritickou cestu
-    (login magic-link/session fixture → create reservation → admin approve/cancel → ověřit occupancy v gridu).
+  - V repozitáři už je zavedený Playwright skeleton (`playwright.config.mjs`, `e2e/smoke.anonymous.spec.ts`, `e2e/smoke.auth-bootstrap.spec.ts`).
+  - Další doporučený krok je doplnit member/admin end-to-end smoke přes existující auth bootstrap.
+
+### Doporučený další krok (po 28. 5. 2026)
+**Cíl:** uzavřít mezeru mezi unit testy a runtime checklistem automatizací kritické role-based cesty.
+
+1. Přidat nový E2E test `e2e/smoke.reservation-lifecycle.spec.ts` pokrývající:
+   - member vytvoří `pending` rezervaci,
+   - admin provede `approve` nebo `cancel`,
+   - `/rezervace` ověří správné blokování/uvolnění slotu.
+2. Test navázat na existující `storageState` (`e2e/.auth/member.json`, `e2e/.auth/admin.json`) bez změny produkční logiky auth.
+3. Udržet determinismus testu:
+   - vypočítaný slot `+2 dny`,
+   - cleanup pouze E2E dat cílového slotu,
+   - žádné globální truncaty tabulek.
+4. Přidat script `test:e2e:lifecycle` a ponechat `test:e2e:smoke` jako rychlý anonymous gate.
+
+**Proč je to doporučené:**
+- jde o nejmenší bezpečný inkrement s nejvyšším dopadem na důvěru v release,
+- využívá už připravenou infrastrukturu bez nových dependencies,
+- přímo automatizuje kritickou business cestu z `docs/runtime-verification.md`.
 
 ---
 
