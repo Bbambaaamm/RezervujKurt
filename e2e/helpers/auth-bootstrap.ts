@@ -2,12 +2,134 @@ import { expect, type Page } from '@playwright/test';
 
 const MAILPIT_BASE_URL = process.env.E2E_MAILPIT_URL ?? 'http://127.0.0.1:54324';
 const MAGIC_LINK_TIMEOUT_MS = Number(process.env.E2E_MAGIC_LINK_TIMEOUT_MS ?? '20000');
+const MAILPIT_FRESH_MESSAGE_TOLERANCE_MS = 5000;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 function escapeForRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function decodeCommonHtmlEntities(value: string): string {
+  return value
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#34;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>');
+}
+
+function normalizeMailpitContent(value: unknown): string {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  return decodeCommonHtmlEntities(value.replace(/=\r?\n/g, '').replace(/=3D/gi, '='));
+}
+
+function redactSensitive(value: string): string {
+  return value
+    .replace(/([?&](?:token|access_token|refresh_token|code)=)[^&\s"'<>]+/gi, '$1<redacted>')
+    .replace(/(token_hash=)[^&\s"'<>]+/gi, '$1<redacted>')
+    .replace(/(otp=)[^&\s"'<>]+/gi, '$1<redacted>')
+    .replace(/(Bearer\s+)[A-Za-z0-9._-]+/gi, '$1<redacted>')
+    .replace(/[A-Za-z0-9_-]{24,}\.[A-Za-z0-9._-]{24,}/g, '<redacted-jwt>');
+}
+
+function shortExcerpt(value: string): string {
+  if (!value.trim()) {
+    return '(prázdné)';
+  }
+
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  const excerpt = normalized.slice(0, 240);
+  return redactSensitive(excerpt);
+}
+
+type MailpitMessageDetail = {
+  Subject?: string;
+  Text?: string;
+  HTML?: string;
+  [key: string]: unknown;
+};
+
+function collectStringValues(value: unknown, collected: string[] = []): string[] {
+  if (typeof value === 'string') {
+    collected.push(value);
+    return collected;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectStringValues(item, collected);
+    }
+    return collected;
+  }
+
+  if (value && typeof value === 'object') {
+    for (const item of Object.values(value)) {
+      collectStringValues(item, collected);
+    }
+  }
+
+  return collected;
+}
+
+function extractMagicLink(messageBody: MailpitMessageDetail): string | undefined {
+  const normalizedText = normalizeMailpitContent(messageBody.Text);
+  const normalizedHtml = normalizeMailpitContent(messageBody.HTML);
+  const normalizedFields = collectStringValues(messageBody).map((value) => normalizeMailpitContent(value));
+  const verifyBase = `${SUPABASE_URL ?? 'http://127.0.0.1:54321'}/auth/v1/verify`;
+  const escapedVerifyBase = escapeForRegex(verifyBase);
+  const attributeRegexes = [
+    /href=["']([^"']*auth\/v1\/verify[^"']*)["']/i,
+    /action=["']([^"']*auth\/v1\/verify[^"']*)["']/i,
+  ];
+  const urlRegexes = [
+    new RegExp(`(${escapedVerifyBase}[^\\s"'<>)]*)`, 'i'),
+    /(https?:\/\/[^\s"'<>)]*auth\/v1\/verify[^\s"'<>)]*)/i,
+  ];
+
+  for (const source of [normalizedHtml, ...normalizedFields]) {
+    for (const regex of attributeRegexes) {
+      const matched = source.match(regex);
+      if (matched?.[1]) {
+        return decodeCommonHtmlEntities(matched[1]);
+      }
+    }
+  }
+
+  for (const source of [normalizedText, normalizedHtml, ...normalizedFields]) {
+    for (const regex of urlRegexes) {
+      const matched = source.match(regex);
+      if (matched?.[1]) {
+        return decodeCommonHtmlEntities(matched[1]);
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function buildMailpitDiagnostics(params: {
+  matchingMessagesCount: number;
+  latestMessage?: { ID?: string; To?: Array<{ Address?: string }> };
+  detailBody?: MailpitMessageDetail;
+  detailError?: string;
+}): string {
+  const { matchingMessagesCount, latestMessage, detailBody, detailError } = params;
+  const detailFields = detailBody ? Object.keys(detailBody).sort().join(', ') || '(žádné)' : '(nedostupné)';
+  const toAddresses = (latestMessage?.To ?? []).map((recipient) => recipient.Address ?? '(missing)').join(', ') || '(žádné)';
+  const subject = detailBody ? redactSensitive(String(detailBody.Subject ?? '(bez předmětu)')) : '(nedostupné)';
+  const textSnippet = detailBody ? shortExcerpt(normalizeMailpitContent(detailBody.Text)) : '(nedostupné)';
+  const htmlSnippet = detailBody ? shortExcerpt(normalizeMailpitContent(detailBody.HTML)) : '(nedostupné)';
+
+  return `messagesCount=${matchingMessagesCount}; latestMessageId=${latestMessage?.ID ?? '(žádné)'}; `
+    + `toAddresses=${toAddresses}; detailFields=${detailFields}; detailError=${detailError ?? '(žádná)'}; `
+    + `subject=${subject}; textSnippet=${textSnippet}; htmlSnippet=${htmlSnippet}`;
 }
 
 async function getVisiblePageText(page: Page): Promise<string> {
@@ -64,8 +186,8 @@ async function waitForOtpOutcomeOrMailpit(page: Page, email: string): Promise<st
       const createdRaw = message.CreatedAt ?? message.Created;
       const createdMs = createdRaw ? Date.parse(createdRaw) : Number.NaN;
 
-      // Zachováme ochranu proti starým zprávám: bez validního času zprávu raději nebereme.
-      return Number.isFinite(createdMs) && createdMs >= startedAt;
+      // Zachováme ochranu proti starým zprávám, ale Mailpit vrací čas bez milisekund.
+      return Number.isFinite(createdMs) && createdMs >= startedAt - MAILPIT_FRESH_MESSAGE_TOLERANCE_MS;
     });
 
     const latestMessage = freshMessages[0];
@@ -75,59 +197,20 @@ async function waitForOtpOutcomeOrMailpit(page: Page, email: string): Promise<st
         throw new Error(`Načtení zprávy z Mailpit selhalo se statusem ${messageResponse.status()}.`);
       }
 
-      const messageBody = (await messageResponse.json()) as {
-        Subject?: string;
-        Text?: string;
-        HTML?: string;
-        [key: string]: unknown;
-      };
+      const messageBody = (await messageResponse.json()) as MailpitMessageDetail;
+      const magicLink = extractMagicLink(messageBody);
 
-      const normalizedText = (messageBody.Text ?? '').replace(/&amp;/g, '&');
-      const normalizedHtml = (messageBody.HTML ?? '').replace(/&amp;/g, '&');
-      const verifyBase = `${SUPABASE_URL ?? 'http://127.0.0.1:54321'}/auth/v1/verify`;
-      const escapedVerifyBase = escapeForRegex(verifyBase);
-      const verifyRegex = new RegExp(`(${escapedVerifyBase}[^\\s"'<>]+)`, 'i');
-      const fallbackRegex = /(https?:\/\/[^\s"'<>]+auth\/v1\/verify[^\s"'<>]+)/i;
-      const hrefRegex = /href=["']([^"']*auth\/v1\/verify[^"']*)["']/i;
-      const actionRegex = /action=["']([^"']*auth\/v1\/verify[^"']*)["']/i;
-
-      const matched = normalizedText.match(verifyRegex)
-        ?? normalizedHtml.match(verifyRegex)
-        ?? normalizedText.match(fallbackRegex)
-        ?? normalizedHtml.match(fallbackRegex)
-        ?? normalizedHtml.match(hrefRegex)
-        ?? normalizedHtml.match(actionRegex);
-
-      if (matched?.[1]) {
-        return matched[1];
+      if (magicLink) {
+        return magicLink;
       }
 
-      const redactSensitive = (value: string): string => value
-        .replace(/([?&](?:token|access_token|refresh_token|code)=)[^&\s"'<>]+/gi, '$1<redacted>')
-        .replace(/(token_hash=)[^&\s"'<>]+/gi, '$1<redacted>')
-        .replace(/(otp=)[^&\s"'<>]+/gi, '$1<redacted>')
-        .replace(/(Bearer\s+)[A-Za-z0-9._-]+/gi, '$1<redacted>')
-        .replace(/[A-Za-z0-9_-]{24,}\.[A-Za-z0-9._-]{24,}/g, '<redacted-jwt>');
-
-      const shortExcerpt = (value: string): string => {
-        if (!value.trim()) {
-          return '(prázdné)';
-        }
-        const normalized = value.replace(/\s+/g, ' ').trim();
-        const excerpt = normalized.slice(0, 240);
-        return redactSensitive(excerpt);
-      };
-
-      const detailFields = Object.keys(messageBody).sort().join(', ') || '(žádné)';
-      const toAddresses = (latestMessage.To ?? []).map((recipient) => recipient.Address ?? '(missing)').join(', ') || '(žádné)';
-      const subject = redactSensitive(String(messageBody.Subject ?? '(bez předmětu)'));
-      const textSnippet = shortExcerpt(normalizedText);
-      const htmlSnippet = shortExcerpt(normalizedHtml);
       throw new Error(
         `Magic link pro ${email} nebyl nalezen v detailu Mailpit zprávy. `
-        + `messagesCount=${matchingMessages.length}; latestMessageId=${latestMessage.ID}; `
-        + `toAddresses=${toAddresses}; detailFields=${detailFields}; `
-        + `subject=${subject}; textSnippet=${textSnippet}; htmlSnippet=${htmlSnippet}`,
+        + buildMailpitDiagnostics({
+          matchingMessagesCount: matchingMessages.length,
+          latestMessage,
+          detailBody: messageBody,
+        }),
       );
     }
 
@@ -148,17 +231,22 @@ async function waitForOtpOutcomeOrMailpit(page: Page, email: string): Promise<st
       (message.To ?? []).some((recipient) => recipient.Address?.toLowerCase() === email.toLowerCase()),
     );
     const latestMessage = matchingMessages[0];
-    const toAddresses = (latestMessage?.To ?? []).map((recipient) => recipient.Address ?? '(missing)').join(', ') || '(žádné)';
-    let detailFields = '(nedostupné)';
+    let detailBody: MailpitMessageDetail | undefined;
+    let detailError: string | undefined;
     if (latestMessage?.ID) {
       const detailResponse = await page.request.get(`${MAILPIT_BASE_URL}/api/v1/message/${latestMessage.ID}`);
       if (detailResponse.ok()) {
-        const detailBody = (await detailResponse.json()) as Record<string, unknown>;
-        detailFields = Object.keys(detailBody).sort().join(', ') || '(žádné)';
+        detailBody = (await detailResponse.json()) as MailpitMessageDetail;
+      } else {
+        detailError = `status=${detailResponse.status()}`;
       }
     }
-    diagnostics = `messagesCount=${matchingMessages.length}; latestMessageId=${latestMessage?.ID ?? '(žádné)'}; `
-      + `toAddresses=${toAddresses}; detailFields=${detailFields}`;
+    diagnostics = buildMailpitDiagnostics({
+      matchingMessagesCount: matchingMessages.length,
+      latestMessage,
+      detailBody,
+      detailError,
+    });
   }
   throw new Error(
     `Magic link pro ${email} nebyl v Mailpit nalezen do ${MAGIC_LINK_TIMEOUT_MS} ms. URL: ${page.url()}. `
