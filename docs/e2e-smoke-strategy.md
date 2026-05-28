@@ -158,8 +158,8 @@ NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 npm run test:e2e:smoke
 Tento krok slouží pouze pro ověření přihlášení rolí a přípravu `storageState` souborů.
 
 ### Seed účty
-- member: `jan.novak@example.com`
-- admin: `spravce.arealu@example.com`
+- member: `e2e.member@example.com`
+- admin: `e2e.admin@example.com`
 
 ### Co test dělá
 1. Otevře `/prihlaseni` a odešle magic link přes existující OTP flow.
@@ -174,9 +174,15 @@ Tento krok slouží pouze pro ověření přihlášení rolí a přípravu `stor
 
 ### Spuštění
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 npm run test:e2e:auth
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 npm run test:e2e:auth:bootstrap
 ```
 
+
+
+Navazující lifecycle test spusť po bootstrapu:
+```bash
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_SERVICE_ROLE_KEY=<SERVICE_ROLE_KEY> npm run test:e2e:lifecycle:with-auth-bootstrap
+```
 Poznámky:
 - `e2e/.auth/*.json` je v `.gitignore`, soubory se necommitují.
 - Auth bootstrap je zapnutý jen pro auth script přes `PLAYWRIGHT_ENABLE_AUTH_SETUP=1`.
