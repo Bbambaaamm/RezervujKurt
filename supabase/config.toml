@@ -4,7 +4,9 @@ project_id = "rezervujkurt"
 site_url = "http://localhost:3000"
 additional_redirect_urls = [
   "http://localhost:3000",
-  "http://localhost:3000/rezervace"
+  "http://localhost:3000/rezervace",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:3000/rezervace"
 ]
 # Lokální dev/e2e: explicitně povolíme signup větev pro email OTP endpoint.
 # Bez toho může GoTrue vracet 422 "otp_disabled" i pro create_user=false.

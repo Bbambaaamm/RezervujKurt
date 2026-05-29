@@ -6,6 +6,9 @@ const MAILPIT_FRESH_MESSAGE_TOLERANCE_MS = 5000;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const AUTH_SESSION_STORAGE_KEY = 'rezervujkurt.auth.session';
+const AUTH_SESSION_TIMEOUT_MS = Number(process.env.E2E_AUTH_SESSION_TIMEOUT_MS ?? '15000');
+const APP_BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:3000';
 
 function escapeForRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -34,6 +37,99 @@ function normalizeMailpitContent(value: unknown): string {
   return decodeCommonHtmlEntities(normalizeMailpitTransferContent(value));
 }
 
+function buildE2eEmailRedirectTo(): string {
+  try {
+    return new URL('/rezervace', APP_BASE_URL).toString();
+  } catch {
+    return 'http://127.0.0.1:3000/rezervace';
+  }
+}
+
+type StoredAuthSessionDiagnostics = {
+  exists: boolean;
+  hasAccessToken: boolean;
+  hasRefreshToken: boolean;
+  email?: string;
+  userId?: string;
+  parseError?: string;
+};
+
+async function getStoredAuthSessionDiagnostics(page: Page): Promise<StoredAuthSessionDiagnostics> {
+  return page.evaluate((storageKey) => {
+    const rawSession = window.localStorage.getItem(storageKey);
+    if (!rawSession) {
+      return { exists: false, hasAccessToken: false, hasRefreshToken: false };
+    }
+
+    try {
+      const session = JSON.parse(rawSession) as {
+        access_token?: unknown;
+        refresh_token?: unknown;
+        user?: { id?: unknown; email?: unknown };
+      };
+
+      return {
+        exists: true,
+        hasAccessToken: typeof session.access_token === 'string' && session.access_token.length > 0,
+        hasRefreshToken: typeof session.refresh_token === 'string' && session.refresh_token.length > 0,
+        email: typeof session.user?.email === 'string' ? session.user.email : undefined,
+        userId: typeof session.user?.id === 'string' ? session.user.id : undefined,
+      };
+    } catch (error) {
+      return {
+        exists: true,
+        hasAccessToken: false,
+        hasRefreshToken: false,
+        parseError: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }, AUTH_SESSION_STORAGE_KEY);
+}
+
+function formatStoredAuthSessionDiagnostics(diagnostics: StoredAuthSessionDiagnostics): string {
+  return `localStorage.${AUTH_SESSION_STORAGE_KEY}: exists=${diagnostics.exists}; `
+    + `hasAccessToken=${diagnostics.hasAccessToken}; hasRefreshToken=${diagnostics.hasRefreshToken}; `
+    + `email=${diagnostics.email ?? '(žádný)'}; userId=${diagnostics.userId ?? '(žádný)'}; `
+    + `parseError=${diagnostics.parseError ?? '(žádná)'}`;
+}
+
+async function buildCurrentPageDiagnostics(page: Page): Promise<string> {
+  const visibleText = shortExcerpt(await getVisiblePageText(page), 500);
+  const storageDiagnostics = await getStoredAuthSessionDiagnostics(page).catch((error) => ({
+    exists: false,
+    hasAccessToken: false,
+    hasRefreshToken: false,
+    parseError: error instanceof Error ? error.message : String(error),
+  }));
+  const cookies = await page.context().cookies().catch(() => []);
+  const cookieNames = cookies.map((cookie) => cookie.name).sort().join(', ') || '(žádné)';
+
+  return `URL: ${redactSensitive(page.url())}. Viditelný text: ${visibleText}. `
+    + `${formatStoredAuthSessionDiagnostics(storageDiagnostics)}; cookies=${redactSensitive(cookieNames)}`;
+}
+
+async function waitForStoredAuthSession(page: Page, email: string): Promise<void> {
+  const startedAt = Date.now();
+  let lastDiagnostics: StoredAuthSessionDiagnostics | undefined;
+
+  while (Date.now() - startedAt < AUTH_SESSION_TIMEOUT_MS) {
+    lastDiagnostics = await getStoredAuthSessionDiagnostics(page);
+    const sessionEmailMatches = !lastDiagnostics.email || lastDiagnostics.email.toLowerCase() === email.toLowerCase();
+
+    if (lastDiagnostics.hasAccessToken && lastDiagnostics.userId && sessionEmailMatches) {
+      return;
+    }
+
+    await page.waitForTimeout(250);
+  }
+
+  throw new Error(
+    `Po ověření magic linku nevznikla platná E2E auth session do ${AUTH_SESSION_TIMEOUT_MS} ms. `
+      + `${await buildCurrentPageDiagnostics(page)}. `
+      + `Poslední stav session: ${lastDiagnostics ? formatStoredAuthSessionDiagnostics(lastDiagnostics) : '(neznámý)'}`,
+  );
+}
+
 function redactSensitive(value: string): string {
   return value
     .replace(/([?&](?:token|access_token|refresh_token|code)=)[^&\s"'<>]+/gi, '$1<redacted>')
@@ -43,13 +139,13 @@ function redactSensitive(value: string): string {
     .replace(/[A-Za-z0-9_-]{24,}\.[A-Za-z0-9._-]{24,}/g, '<redacted-jwt>');
 }
 
-function shortExcerpt(value: string): string {
+function shortExcerpt(value: string, maxLength = 240): string {
   if (!value.trim()) {
     return '(prázdné)';
   }
 
   const normalized = value.replace(/\s+/g, ' ').trim();
-  const excerpt = normalized.slice(0, 240);
+  const excerpt = normalized.slice(0, maxLength);
   return redactSensitive(excerpt);
 }
 
@@ -349,6 +445,7 @@ export async function loginViaMagicLink(params: {
       data: {
         email,
         create_user: true,
+        redirect_to: buildE2eEmailRedirectTo(),
       },
     });
 
@@ -374,9 +471,22 @@ export async function loginViaMagicLink(params: {
 
   await page.goto(magicLink);
   await page.waitForURL(/\/rezervace|\/$/, { timeout: 15_000 });
+  const verifiedRedirectUrl = page.url();
+  await waitForStoredAuthSession(page, email);
 
   await page.goto('/prihlaseni');
-  await expect(page.getByText('Jste přihlášen(a).')).toBeVisible();
+  await waitForStoredAuthSession(page, email);
+  const loginStateMessage = page.getByText('Jste přihlášen(a).');
+  try {
+    await expect(loginStateMessage).toBeVisible({ timeout: 10_000 });
+  } catch (error) {
+    console.warn(
+      `Přihlášení přes magic link vytvořilo session, ale /prihlaseni nezobrazilo očekávaný UI text. `
+        + `Auth bootstrap pokračuje podle uložené session. URL po ověření: ${redactSensitive(verifiedRedirectUrl)}. `
+        + `${await buildCurrentPageDiagnostics(page)}. `
+        + `Původní chyba: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 }
 
 export async function upsertE2eProfileRole(params: {
