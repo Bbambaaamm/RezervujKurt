@@ -31,6 +31,24 @@ export function buildOtpPayload(email: string, emailRedirectTo?: string, options
   };
 }
 
+export function getOtpFailureMessage(status: number, responseBody: string): string {
+  const fallbackMessage = `Supabase Auth OTP selhalo (${status}).`;
+
+  try {
+    const parsed = JSON.parse(responseBody) as { error_code?: unknown; msg?: unknown; message?: unknown };
+    const errorCode = typeof parsed.error_code === 'string' ? parsed.error_code : null;
+
+    if (status === 422 && errorCode === 'otp_disabled') {
+      return 'Přihlášení e-mailem není v Supabase Auth povolené. Restartujte lokální Supabase stack nebo zkontrolujte enable_signup v supabase/config.toml.';
+    }
+
+    const message = typeof parsed.msg === 'string' ? parsed.msg : typeof parsed.message === 'string' ? parsed.message : null;
+    return message ? `${fallbackMessage} ${message}` : fallbackMessage;
+  } catch {
+    return fallbackMessage;
+  }
+}
+
 export function getSupabaseOtpRequestConfig() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

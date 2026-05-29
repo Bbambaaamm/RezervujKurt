@@ -7,6 +7,7 @@ import {
   shouldUseOtpProxyForRuntime,
   resolveOtpEndpoint,
   normalizeOtpRedirectTo,
+  getOtpFailureMessage,
 } from '../lib/supabase/otp-proxy';
 
 test('getSupabaseOtpRequestConfig používá anon klíč a endpoint /auth/v1/otp', () => {
@@ -65,4 +66,17 @@ test('klient v Codespaces dev nepoužije cross-origin endpoint přímo', () => {
   process.env.NODE_ENV = 'development';
   const endpoint = resolveOtpEndpoint('https://example.supabase.local/auth/v1/otp', 'https://space-3000.app.github.dev');
   assert.equal(endpoint, '/api/auth/otp');
+});
+
+test('getOtpFailureMessage vysvětlí vypnutý email OTP signup v Supabase', () => {
+  const message = getOtpFailureMessage(422, '{"code":422,"error_code":"otp_disabled","msg":"Signups not allowed for otp"}');
+
+  assert.match(message, /Přihlášení e-mailem není v Supabase Auth povolené/);
+  assert.match(message, /enable_signup/);
+});
+
+test('getOtpFailureMessage zachová obecnou Supabase zprávu pro neznámou chybu', () => {
+  const message = getOtpFailureMessage(400, '{"msg":"Invalid login credentials"}');
+
+  assert.equal(message, 'Supabase Auth OTP selhalo (400). Invalid login credentials');
 });
