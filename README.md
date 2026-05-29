@@ -176,7 +176,13 @@ Rychlá kontrola:
 npx supabase stop && npx supabase start
 ```
 
-3. Po restartu odešli OTP request znovu.
+3. Pokud běží Next.js dev server, nech ho běžet nebo ho spusť znovu podle potřeby:
+
+```bash
+npm run dev
+```
+
+4. Po restartu Supabase odešli OTP request znovu.
 
 Poznámka: i když posíláš `create_user:false` (login flow), GoTrue stále kontroluje OTP/signup konfiguraci endpointu.
 
