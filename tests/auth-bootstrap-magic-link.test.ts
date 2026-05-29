@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { extractMagicLink } from '../e2e/helpers/auth-bootstrap';
+import { buildMailpitDiagnostics, extractMagicLink } from '../e2e/helpers/auth-bootstrap';
 
 const supabaseVerifyUrl = 'http://127.0.0.1:54321/auth/v1/verify?token=abc123&type=magiclink&redirect_to=http%3A%2F%2F127.0.0.1%3A3000%2Frezervace';
 
@@ -51,4 +51,27 @@ test('extractMagicLink neořízne plain-text URL o redirect_to a ignoruje uzaví
   });
 
   assert.equal(magicLink, plainTextUrl);
+});
+
+test('validní jediný kandidát bez odmítnutí se vrátí jako magic link a diagnostika ho označí jako accepted', () => {
+  const messageBody = {
+    Subject: 'Přihlášení do RezervujKurt',
+    Text: `Klikněte na odkaz níže pro přihlášení: Přihlásit se ( ${supabaseVerifyUrl} )`,
+    HTML: '',
+  };
+
+  const magicLink = extractMagicLink(messageBody);
+  const diagnostics = buildMailpitDiagnostics({
+    matchingMessagesCount: 1,
+    latestMessage: {
+      ID: 'message-1',
+      To: [{ Address: 'e2e.member@example.com' }],
+    },
+    detailBody: messageBody,
+  });
+
+  assert.equal(magicLink, supabaseVerifyUrl);
+  assert.match(diagnostics, /candidateCount=1/);
+  assert.match(diagnostics, /acceptedCandidateFound=true/);
+  assert.match(diagnostics, /rejectedCandidates=\(žádné\)/);
 });
