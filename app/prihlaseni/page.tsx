@@ -84,7 +84,7 @@ export default function LoginPage() {
     setIsSubmitting(false);
 
     if (signInError) {
-      setError('Přihlášení se nepodařilo. Zkontrolujte e-mail a zkuste to znovu.');
+      setError(signInError.message || 'Přihlášení se nepodařilo. Zkontrolujte e-mail a zkuste to znovu.');
       return;
     }
 
