@@ -6,7 +6,6 @@ const MAILPIT_FRESH_MESSAGE_TOLERANCE_MS = 5000;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const DEFAULT_SUPABASE_URL = 'http://127.0.0.1:54321';
 
 function escapeForRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -23,12 +22,16 @@ function decodeCommonHtmlEntities(value: string): string {
     .replace(/&gt;/gi, '>');
 }
 
-function normalizeMailpitContent(value: unknown): string {
+function normalizeMailpitTransferContent(value: unknown): string {
   if (typeof value !== 'string') {
     return '';
   }
 
-  return decodeCommonHtmlEntities(value.replace(/=\r?\n/g, '').replace(/=3D/gi, '='));
+  return value.replace(/=\r?\n/g, '').replace(/=3D/gi, '=');
+}
+
+function normalizeMailpitContent(value: unknown): string {
+  return decodeCommonHtmlEntities(normalizeMailpitTransferContent(value));
 }
 
 function redactSensitive(value: string): string {
@@ -57,113 +60,124 @@ type MailpitMessageDetail = {
   [key: string]: unknown;
 };
 
-function collectStringValues(value: unknown, collected: string[] = []): string[] {
-  if (typeof value === 'string') {
-    collected.push(value);
-    return collected;
-  }
+type MagicLinkCandidate = {
+  value: string;
+  source: string;
+};
 
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      collectStringValues(item, collected);
-    }
-    return collected;
-  }
-
-  if (value && typeof value === 'object') {
-    for (const item of Object.values(value)) {
-      collectStringValues(item, collected);
-    }
-  }
-
-  return collected;
-}
+type MagicLinkValidation = {
+  ok: boolean;
+  reason?: string;
+};
 
 function stripTrailingUrlNoise(value: string): string {
   let normalized = value.trim();
 
-  while (/[.,;!?\]}>]$/.test(normalized)) {
-    normalized = normalized.slice(0, -1);
+  while (/[.,;!?\])}>]$/.test(normalized)) {
+    normalized = normalized.slice(0, -1).trimEnd();
   }
 
   return normalized;
 }
 
-function isSupabaseVerifyMagicLink(value: string): boolean {
+function normalizeCandidateUrl(value: string): string {
+  return stripTrailingUrlNoise(decodeCommonHtmlEntities(value).replace(/\s+/g, ''));
+}
+
+function validateSupabaseVerifyMagicLink(value: string): MagicLinkValidation {
   try {
     const url = new URL(value);
-    const hasToken = Boolean(url.searchParams.get('token'));
+    const token = url.searchParams.get('token');
     const type = url.searchParams.get('type');
 
-    return url.pathname === '/auth/v1/verify' && hasToken && (!type || type === 'magiclink');
+    if (url.pathname !== '/auth/v1/verify') {
+      return { ok: false, reason: `cesta je ${url.pathname || '(prázdná)'}` };
+    }
+
+    if (!token) {
+      return { ok: false, reason: 'chybí token' };
+    }
+
+    if (/redacted/i.test(token)) {
+      return { ok: false, reason: 'token je redigovaný' };
+    }
+
+    if (type && type !== 'magiclink') {
+      return { ok: false, reason: `type je ${type}` };
+    }
+
+    return { ok: true };
   } catch {
-    return false;
+    return { ok: false, reason: 'URL nejde parsovat' };
   }
 }
 
-function collectMagicLinkCandidates(source: string): string[] {
-  const candidates: string[] = [];
-  const attributeRegex = /\b(?:href|action)\s*=\s*(["'])(.*?)\1/gi;
-  const bareUrlRegex = /https?:\/\/[^\s"'<>]+/gi;
+function collectMagicLinkCandidates(source: string, sourceLabel: string): MagicLinkCandidate[] {
+  const candidates: MagicLinkCandidate[] = [];
+  const attributeRegex = /\b(?:href|action)\s*=\s*(["'])([\s\S]*?)\1/gi;
+  const bareUrlRegex = /https?:\/\/[^\s"'<>()[\]{}]+/gi;
 
   for (const match of source.matchAll(attributeRegex)) {
     const value = match[2];
     if (value.includes('/auth/v1/verify')) {
-      candidates.push(value);
+      candidates.push({ value, source: `${sourceLabel}:atribut` });
     }
   }
 
   for (const match of source.matchAll(bareUrlRegex)) {
     const value = match[0];
     if (value.includes('/auth/v1/verify')) {
-      candidates.push(value);
+      candidates.push({ value, source: `${sourceLabel}:url` });
     }
   }
 
   return candidates;
 }
 
-export function extractMagicLink(messageBody: MailpitMessageDetail): string | undefined {
-  const normalizedText = normalizeMailpitContent(messageBody.Text);
-  const normalizedHtml = normalizeMailpitContent(messageBody.HTML);
-  const normalizedFields = collectStringValues(messageBody).map((value) => normalizeMailpitContent(value));
-  const sources = [normalizedText, normalizedHtml, ...normalizedFields];
-  const seenCandidates = new Set<string>();
+function buildMagicLinkSources(messageBody: MailpitMessageDetail): Array<{ label: string; value: string }> {
+  return [
+    { label: 'HTML', value: normalizeMailpitTransferContent(messageBody.HTML) },
+    { label: 'Text', value: normalizeMailpitContent(messageBody.Text) },
+  ].filter((source) => source.value.trim());
+}
 
-  for (const source of sources) {
-    for (const candidate of collectMagicLinkCandidates(source)) {
-      const normalizedCandidate = stripTrailingUrlNoise(decodeCommonHtmlEntities(candidate));
+function inspectMagicLinkCandidates(messageBody: MailpitMessageDetail): Array<MagicLinkCandidate & MagicLinkValidation> {
+  const seenCandidates = new Set<string>();
+  const inspected: Array<MagicLinkCandidate & MagicLinkValidation> = [];
+
+  for (const source of buildMagicLinkSources(messageBody)) {
+    for (const candidate of collectMagicLinkCandidates(source.value, source.label)) {
+      const normalizedCandidate = normalizeCandidateUrl(candidate.value);
       if (seenCandidates.has(normalizedCandidate)) {
         continue;
       }
 
       seenCandidates.add(normalizedCandidate);
-      if (isSupabaseVerifyMagicLink(normalizedCandidate)) {
-        return normalizedCandidate;
-      }
+      inspected.push({
+        value: normalizedCandidate,
+        source: candidate.source,
+        ...validateSupabaseVerifyMagicLink(normalizedCandidate),
+      });
     }
   }
 
-  const verifyBase = `${SUPABASE_URL ?? DEFAULT_SUPABASE_URL}/auth/v1/verify`;
-  const escapedVerifyBase = escapeForRegex(verifyBase);
-  const fallbackRegexes = [
-    new RegExp(`(${escapedVerifyBase}[^\\s"'<>)]*)`, 'i'),
-    /(https?:\/\/[^\s"'<>)]*auth\/v1\/verify[^\s"'<>)]*)/i,
-  ];
+  return inspected;
+}
 
-  for (const source of sources) {
-    for (const regex of fallbackRegexes) {
-      const matched = source.match(regex);
-      if (matched?.[1]) {
-        const normalizedCandidate = stripTrailingUrlNoise(decodeCommonHtmlEntities(matched[1]));
-        if (isSupabaseVerifyMagicLink(normalizedCandidate)) {
-          return normalizedCandidate;
-        }
-      }
-    }
+function formatRejectedMagicLinkCandidates(candidates: Array<MagicLinkCandidate & MagicLinkValidation>): string {
+  const rejected = candidates.filter((candidate) => !candidate.ok).slice(0, 5);
+
+  if (rejected.length === 0) {
+    return '(žádné)';
   }
 
-  return undefined;
+  return rejected
+    .map((candidate) => `${candidate.source}: ${candidate.reason ?? 'neznámý důvod'} (${shortExcerpt(candidate.value)})`)
+    .join(' | ');
+}
+
+export function extractMagicLink(messageBody: MailpitMessageDetail): string | undefined {
+  return inspectMagicLinkCandidates(messageBody).find((candidate) => candidate.ok)?.value;
 }
 
 function buildMailpitDiagnostics(params: {
@@ -178,9 +192,12 @@ function buildMailpitDiagnostics(params: {
   const subject = detailBody ? redactSensitive(String(detailBody.Subject ?? '(bez předmětu)')) : '(nedostupné)';
   const textSnippet = detailBody ? shortExcerpt(normalizeMailpitContent(detailBody.Text)) : '(nedostupné)';
   const htmlSnippet = detailBody ? shortExcerpt(normalizeMailpitContent(detailBody.HTML)) : '(nedostupné)';
+  const candidates = detailBody ? inspectMagicLinkCandidates(detailBody) : [];
+  const rejectedCandidates = detailBody ? formatRejectedMagicLinkCandidates(candidates) : '(nedostupné)';
 
   return `messagesCount=${matchingMessagesCount}; latestMessageId=${latestMessage?.ID ?? '(žádné)'}; `
     + `toAddresses=${toAddresses}; detailFields=${detailFields}; detailError=${detailError ?? '(žádná)'}; `
+    + `candidateCount=${candidates.length}; rejectedCandidates=${rejectedCandidates}; `
     + `subject=${subject}; textSnippet=${textSnippet}; htmlSnippet=${htmlSnippet}`;
 }
 
