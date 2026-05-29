@@ -180,7 +180,7 @@ export function extractMagicLink(messageBody: MailpitMessageDetail): string | un
   return inspectMagicLinkCandidates(messageBody).find((candidate) => candidate.ok)?.value;
 }
 
-function buildMailpitDiagnostics(params: {
+export function buildMailpitDiagnostics(params: {
   matchingMessagesCount: number;
   latestMessage?: { ID?: string; To?: Array<{ Address?: string }> };
   detailBody?: MailpitMessageDetail;
@@ -194,10 +194,12 @@ function buildMailpitDiagnostics(params: {
   const htmlSnippet = detailBody ? shortExcerpt(normalizeMailpitContent(detailBody.HTML)) : '(nedostupné)';
   const candidates = detailBody ? inspectMagicLinkCandidates(detailBody) : [];
   const rejectedCandidates = detailBody ? formatRejectedMagicLinkCandidates(candidates) : '(nedostupné)';
+  const acceptedCandidateFound = candidates.some((candidate) => candidate.ok);
 
   return `messagesCount=${matchingMessagesCount}; latestMessageId=${latestMessage?.ID ?? '(žádné)'}; `
     + `toAddresses=${toAddresses}; detailFields=${detailFields}; detailError=${detailError ?? '(žádná)'}; `
-    + `candidateCount=${candidates.length}; rejectedCandidates=${rejectedCandidates}; `
+    + `candidateCount=${candidates.length}; acceptedCandidateFound=${acceptedCandidateFound}; `
+    + `rejectedCandidates=${rejectedCandidates}; `
     + `subject=${subject}; textSnippet=${textSnippet}; htmlSnippet=${htmlSnippet}`;
 }
 
@@ -206,14 +208,18 @@ async function getVisiblePageText(page: Page): Promise<string> {
   return bodyText.replace(/\s+/g, ' ').trim();
 }
 
-async function waitForOtpOutcomeOrMailpit(page: Page, email: string): Promise<string> {
+async function waitForOtpOutcomeOrMailpit(
+  page: Page,
+  email: string,
+  options: { otpRequestAlreadyConfirmed?: boolean } = {},
+): Promise<string> {
   const messagesUrl = `${MAILPIT_BASE_URL}/api/v1/messages`;
 
   const otpErrorRegex = /Přihlášení se nepodařilo\.|Neplatné JSON tělo požadavku\.|Pole email musí být validní řetězec\.|Síťová chyba při volání Supabase Auth OTP\./i;
   const otpSuccessRegex = /Na e-mail byl odeslán odkaz pro přihlášení\.|Jste přihlášen\(a\)\./i;
 
   const startedAt = Date.now();
-  let otpRequestConfirmed = false;
+  let otpRequestConfirmed = options.otpRequestAlreadyConfirmed ?? false;
 
   while (Date.now() - startedAt < MAGIC_LINK_TIMEOUT_MS) {
     const visibleText = await getVisiblePageText(page);
@@ -357,7 +363,9 @@ export async function loginViaMagicLink(params: {
     await page.getByRole('button', { name: 'Poslat odkaz pro přihlášení' }).click();
   }
 
-  const magicLink = await waitForOtpOutcomeOrMailpit(page, email);
+  const magicLink = await waitForOtpOutcomeOrMailpit(page, email, {
+    otpRequestAlreadyConfirmed: createUser,
+  });
 
   const verifyLink = new RegExp(`auth\/v1\/verify.*${escapeForRegex(email)}`, 'i');
   if (!verifyLink.test(magicLink) && !magicLink.includes('auth/v1/verify')) {
