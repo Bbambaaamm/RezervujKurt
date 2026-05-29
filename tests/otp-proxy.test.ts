@@ -71,8 +71,9 @@ test('klient v Codespaces dev nepoužije cross-origin endpoint přímo', () => {
 test('getOtpFailureMessage vysvětlí vypnutý email OTP signup v Supabase', () => {
   const message = getOtpFailureMessage(422, '{"code":422,"error_code":"otp_disabled","msg":"Signups not allowed for otp"}');
 
-  assert.match(message, /Přihlášení e-mailem není v Supabase Auth povolené/);
+  assert.match(message, /otp_disabled/);
   assert.match(message, /enable_signup/);
+  assert.match(message, /npx supabase stop && npx supabase start/);
 });
 
 test('getOtpFailureMessage zachová obecnou Supabase zprávu pro neznámou chybu', () => {
