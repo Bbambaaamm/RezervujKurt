@@ -311,7 +311,15 @@ async function waitForOtpOutcomeOrMailpit(
 ): Promise<string> {
   const messagesUrl = `${MAILPIT_BASE_URL}/api/v1/messages`;
 
-  const otpErrorRegex = /Přihlášení se nepodařilo\.|Neplatné JSON tělo požadavku\.|Pole email musí být validní řetězec\.|Síťová chyba při volání Supabase Auth OTP\./i;
+  const otpErrorRegex = new RegExp([
+    'Přihlášení se nepodařilo\\.',
+    'Přihlášení e-mailem není v Supabase Auth povolené\\.',
+    'Supabase Auth OTP selhalo \\(\\d+\\)\\.',
+    'Chybí NEXT_PUBLIC_SUPABASE_URL nebo NEXT_PUBLIC_SUPABASE_ANON_KEY\\.',
+    'Neplatné JSON tělo požadavku\\.',
+    'Pole email musí být validní řetězec\\.',
+    'Síťová chyba při volání Supabase Auth OTP\\.',
+  ].join('|'), 'i');
   const otpSuccessRegex = /Na e-mail byl odeslán odkaz pro přihlášení\.|Jste přihlášen\(a\)\./i;
 
   const startedAt = Date.now();
