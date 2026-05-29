@@ -1,4 +1,4 @@
-import { buildOtpPayload, getSupabaseOtpRequestConfig, resolveOtpEndpoint } from '@/lib/supabase/otp-proxy';
+import { buildOtpPayload, getOtpFailureMessage, getSupabaseOtpRequestConfig, resolveOtpEndpoint } from '@/lib/supabase/otp-proxy';
 
 export type AuthSession = {
   access_token: string;
@@ -325,7 +325,7 @@ export const supabaseAuthClient = {
               body: responseBody,
             });
           }
-          return { error: new Error(`Supabase Auth OTP selhalo (${response.status}).`) };
+          return { error: new Error(getOtpFailureMessage(response.status, responseBody)) };
         }
         if (process.env.NODE_ENV === 'development') {
           const responseBody = await response.text();
