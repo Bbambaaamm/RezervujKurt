@@ -186,6 +186,42 @@ npm run dev
 
 Poznámka: i když posíláš `create_user:false` (login flow), GoTrue stále kontroluje OTP/signup konfiguraci endpointu.
 
+### Když `supabase start` spadne na health checku
+
+Pokud restart skončí hláškou typu `container is not ready: unhealthy` nebo `container is not ready: starting`, nejde už o `otp_disabled`, ale o selhání health checku lokálního Supabase CLI. V ukázkovém logu padají `vector`, `storage` a `studio`; pro odeslání magic linku jsou typicky důležité hlavně běžící `db`, `kong/api`, `auth` a `mailpit`.
+
+Doporučený postup:
+
+1. Nastartuj stack s ignorováním health checku pomocných služeb:
+
+```bash
+npx supabase stop && npx supabase start --ignore-health-check
+```
+
+2. Ověř, že Supabase vypsala lokální endpointy:
+
+```bash
+npx supabase status
+```
+
+3. Pokud status běží, zkus znovu poslat magic link a otevřít Mailpit. Pokud stack pořád nenaběhne, posbírej diagnostiku:
+
+```bash
+npx supabase start --debug
+docker ps -a --filter "label=com.supabase.cli.project=rezervujkurt"
+docker logs supabase_vector_rezervujkurt --tail 100
+docker logs supabase_storage_rezervujkurt --tail 100
+docker logs supabase_studio_rezervujkurt --tail 100
+```
+
+4. Pokud jsou lokální data zahoditelná, poslední čistá varianta je reset lokálních Supabase volume:
+
+```bash
+npx supabase stop --no-backup && npx supabase start --ignore-health-check
+```
+
+Pozor: `--no-backup` smaže lokální Supabase data. Použij ho jen tehdy, když nepotřebuješ zachovat lokální DB stav.
+
 ## Debug veřejného occupancy čtení pro `/rezervace`
 
 Rychlý anonymní REST test (bez osobních údajů), který má vrátit i `pending` rezervace:

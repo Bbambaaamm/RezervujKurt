@@ -74,6 +74,8 @@ test('getOtpFailureMessage vysvětlí vypnutý email OTP signup v Supabase', () 
   assert.match(message, /otp_disabled/);
   assert.match(message, /enable_signup/);
   assert.match(message, /npx supabase stop && npx supabase start/);
+  assert.match(message, /--ignore-health-check/);
+  assert.match(message, /npx supabase status/);
 });
 
 test('getOtpFailureMessage zachová obecnou Supabase zprávu pro neznámou chybu', () => {

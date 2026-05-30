@@ -314,6 +314,7 @@ async function waitForOtpOutcomeOrMailpit(
   const otpErrorRegex = new RegExp([
     'Přihlášení se nepodařilo\\.',
     'Přihlášení e-mailem není v Supabase Auth povolené\\.',
+    'Lokální Supabase Auth vrátilo otp_disabled\\.',
     'Supabase Auth OTP selhalo \\(\\d+\\)\\.',
     'Chybí NEXT_PUBLIC_SUPABASE_URL nebo NEXT_PUBLIC_SUPABASE_ANON_KEY\\.',
     'Neplatné JSON tělo požadavku\\.',
