@@ -39,7 +39,7 @@ export function getOtpFailureMessage(status: number, responseBody: string): stri
     const errorCode = typeof parsed.error_code === 'string' ? parsed.error_code : null;
 
     if (status === 422 && errorCode === 'otp_disabled') {
-      return 'Přihlášení e-mailem není v Supabase Auth povolené. Restartujte lokální Supabase stack nebo zkontrolujte enable_signup v supabase/config.toml.';
+      return 'Lokální Supabase Auth vrátilo otp_disabled. V supabase/config.toml musí být povolené [auth].enable_signup = true a [auth.email].enable_signup = true. Pokud už tam jsou, restartujte lokální Supabase stack příkazem: npx supabase stop && npx supabase start. Pokud start selže na health checku pomocných služeb, zkuste npx supabase start --ignore-health-check a ověřte npx supabase status.';
     }
 
     const message = typeof parsed.msg === 'string' ? parsed.msg : typeof parsed.message === 'string' ? parsed.message : null;
