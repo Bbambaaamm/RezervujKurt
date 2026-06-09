@@ -121,7 +121,7 @@ Předchozí verze dokumentu obsahovala interní rozpory (např. otevřené dluhy
 Následující body jsou záměrně oddělené jako budoucí rozvoj mimo scope původního MVP plánu:
 
 1. Rozšířená observabilita (strukturované logování, metriky, alerting).
-2. E2E smoke scénáře pro klíčové user/admin cesty nad runtime prostředím.
+2. Stabilizace E2E smoke scénářů nad runtime prostředím a jejich pozdější zapojení do CI.
 3. Produktové UX enhancementy (např. pokročilejší lokalizovaný date/time picker).
 4. Operational playbook (incident checklist, release runbook).
 
@@ -142,29 +142,26 @@ Následující body jsou záměrně oddělené jako budoucí rozvoj mimo scope p
 - Kritická cesta member/admin podle `docs/runtime-verification.md`:
   auth → pending create → admin approve/cancel → occupancy refresh.
 
-### Future backlog (bez nové feature implementace v tomto průchodu)
-- E2E smoke automatizace:
-  - V repozitáři už je zavedený Playwright skeleton (`playwright.config.mjs`, `e2e/smoke.anonymous.spec.ts`, `e2e/smoke.auth-bootstrap.spec.ts`).
-  - Další doporučený krok je doplnit member/admin end-to-end smoke přes existující auth bootstrap.
+### Stav E2E automatizace (9. 6. 2026)
+- Anonymous smoke: implementováno v `e2e/smoke.anonymous.spec.ts`.
+- Auth bootstrap: implementován pro oddělený member/admin `storageState`.
+- Approve lifecycle: implementován v `e2e/smoke.reservation-lifecycle.spec.ts`.
+- Cancel/release lifecycle: implementován přes oprávněný member flow v `/moje-rezervace`; veřejný grid následně ověřuje uvolnění slotu.
+- Bezpečný cleanup: lifecycle používá unikátní poznámku `E2E-LIFECYCLE` a cleanup před testem i v `finally` bez globálního mazání dat.
+- Automatizovaný běh v CI: budoucí krok až po opakovaně stabilním lokálním průchodu nad čistou Supabase.
 
-### Doporučený další krok (po 28. 5. 2026)
-**Cíl:** uzavřít mezeru mezi unit testy a runtime checklistem automatizací kritické role-based cesty.
+### Doporučený další krok
+**Cíl:** runtime ověřit celý autentizovaný lifecycle nad čistou lokální Supabase a teprve poté jej zapojit do CI.
 
-1. Přidat nový E2E test `e2e/smoke.reservation-lifecycle.spec.ts` pokrývající:
-   - member vytvoří `pending` rezervaci,
-   - admin provede `approve` nebo `cancel`,
-   - `/rezervace` ověří správné blokování/uvolnění slotu.
-2. Test navázat na existující `storageState` (`e2e/.auth/member.json`, `e2e/.auth/admin.json`) bez změny produkční logiky auth.
-3. Udržet determinismus testu:
-   - vypočítaný slot `+2 dny`,
-   - cleanup pouze E2E dat cílového slotu,
-   - žádné globální truncaty tabulek.
-4. Přidat script `test:e2e:lifecycle` a ponechat `test:e2e:smoke` jako rychlý anonymous gate.
+1. Spustit `npx supabase db reset` a získat lokální anon/service-role klíče z `npx supabase status`.
+2. Spustit `npm run test:e2e:lifecycle:with-auth-bootstrap` s lokálními Supabase proměnnými prostředí.
+3. Ověřit opakovaně celý invariant:
+   - `pending` blokuje slot,
+   - `approved` blokuje slot,
+   - `cancelled` slot uvolní.
+4. Pokud je scénář stabilní, přidat samostatný CI job se Supabase CLI a Playwright Chromium; neměnit kvůli tomu produkční auth logiku.
 
-**Proč je to doporučené:**
-- jde o nejmenší bezpečný inkrement s nejvyšším dopadem na důvěru v release,
-- využívá už připravenou infrastrukturu bez nových dependencies,
-- přímo automatizuje kritickou business cestu z `docs/runtime-verification.md`.
+**Aktuální omezení tohoto pracovního prostředí:** Supabase CLI ani Docker nejsou dostupné a stažení CLI přes `npx` končí HTTP 403. Kompletní runtime průchod zde proto nebylo možné potvrdit; nejde o potvrzenou chybu aplikace.
 
 ---
 
