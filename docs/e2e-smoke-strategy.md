@@ -149,8 +149,8 @@ NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 npm run test:e2e:smoke
   - `[auth].enable_signup = true`
   - `[auth.email].enable_signup = true`
   - `[auth.email].enable_confirmations = false`
-- Důvod: bez explicitního povolení signup větve může lokální GoTrue vracet `422 otp_disabled` (`Signups not allowed for otp`) i při volání `/auth/v1/otp` s `create_user:false`.
-- Po změně `supabase/config.toml` je nutný restart lokálního Supabase stacku (`npx supabase stop && npx supabase start`).
+- Veřejný magic-link formulář posílá `create_user:true`, aby se mohl přihlásit i nový člen, který ještě není v `auth.users`; profil mu automaticky založí databázový trigger.
+- Bez povolené signup větve vrací lokální GoTrue `422 otp_disabled` (`Signups not allowed for otp`). Po změně `supabase/config.toml` je nutný restart lokálního Supabase stacku (`npx supabase stop && npx supabase start`).
 
 
 ## H) Auth bootstrap runbook (member/admin storageState)

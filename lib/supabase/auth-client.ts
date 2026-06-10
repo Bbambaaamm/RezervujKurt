@@ -293,7 +293,7 @@ export const supabaseAuthClient = {
       return { data: { subscription: { unsubscribe() { listeners.delete(callback); } } } };
     },
     async signInWithOtp({ email, options }: { email: string; options?: { emailRedirectTo?: string } }) {
-      const payload = buildOtpPayload(email, options?.emailRedirectTo, { createUser: false });
+      const payload = buildOtpPayload(email, options?.emailRedirectTo, { createUser: true });
       const config = getSupabaseConfig();
       if (!config) return { error: new Error('Chybí NEXT_PUBLIC_SUPABASE_URL nebo NEXT_PUBLIC_SUPABASE_ANON_KEY.') };
       const directEndpoint = buildSupabaseOtpEndpoint(`${config.url}/auth/v1/otp`, payload.redirect_to);

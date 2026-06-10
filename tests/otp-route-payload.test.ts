@@ -24,11 +24,11 @@ test('route helper upřednostní redirect_to a neoreže pathname', () => {
 });
 
 
-test('route helper vytvoří login payload s create_user false', () => {
+test('route helper vytvoří veřejný magic-link payload s create_user true', () => {
   const redirectTo = resolveOtpRouteRedirectTo({
     redirect_to: 'https://example.app.github.dev/rezervace',
   });
 
-  const payload = buildOtpPayload('existing.user@example.com', redirectTo);
-  assert.equal(payload.create_user, false);
+  const payload = buildOtpPayload('new.user@example.com', redirectTo, { createUser: true });
+  assert.equal(payload.create_user, true);
 });
