@@ -1,8 +1,8 @@
-import { spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const projectRoot = resolve(import.meta.dirname, '..');
+const projectRoot = resolve(process.env.REZERVUJKURT_PROJECT_ROOT?.trim() || resolve(import.meta.dirname, '..'));
 const configPath = resolve(projectRoot, 'supabase/config.toml');
 const envPath = resolve(projectRoot, '.env.local');
 const dryRun = process.argv.includes('--dry-run');
@@ -74,19 +74,33 @@ function upsertEnvValues(source, values) {
   return `${result}\n`;
 }
 
+let activeSupabaseProcess = null;
+
 function runSupabaseCommand(command) {
-  const result = spawnSync('npx', ['supabase', command], {
-    cwd: projectRoot,
-    stdio: 'inherit',
+  return new Promise((resolveCommand, rejectCommand) => {
+    const child = spawn('npx', ['supabase', command], {
+      cwd: projectRoot,
+      stdio: 'inherit',
+    });
+    activeSupabaseProcess = child;
+
+    child.once('error', (error) => {
+      activeSupabaseProcess = null;
+      rejectCommand(error);
+    });
+
+    child.once('close', (code, signal) => {
+      activeSupabaseProcess = null;
+
+      if (code === 0) {
+        resolveCommand();
+        return;
+      }
+
+      const result = signal ? `signálem ${signal}` : `kódem ${code ?? 'neznámým'}`;
+      rejectCommand(new Error(`Příkaz npx supabase ${command} skončil ${result}.`));
+    });
   });
-
-  if (result.error) {
-    throw result.error;
-  }
-
-  if (result.status !== 0) {
-    throw new Error(`Příkaz npx supabase ${command} skončil s kódem ${result.status ?? 'neznámým'}.`);
-  }
 }
 
 const codespaceName = requireCodespacesValue('CODESPACE_NAME', /^[a-z0-9][a-z0-9-]*$/i);
@@ -109,7 +123,7 @@ codespacesConfig = upsertSectionString(codespacesConfig, 'auth', 'site_url', app
 codespacesConfig = addAuthRedirectUrls(codespacesConfig, [appOrigin, redirectUrl]);
 
 for (const expectedValue of [apiOrigin, appOrigin, redirectUrl]) {
-  if (!codespacesConfig.includes(`\"${expectedValue}\"`)) {
+  if (!codespacesConfig.includes(`"${expectedValue}"`)) {
     throw new Error(`Nepodařilo se připravit Codespaces konfiguraci pro ${expectedValue}.`);
   }
 }
@@ -127,14 +141,41 @@ const nextEnv = upsertEnvValues(originalEnv, {
   NEXT_PUBLIC_SUPABASE_AUTH_REDIRECT_URL: redirectUrl,
 });
 
+let configRestored = false;
+
+function restoreOriginalConfig() {
+  if (configRestored) return;
+  writeFileSync(configPath, originalConfig);
+  configRestored = true;
+}
+
+function handleTerminationSignal(signal) {
+  activeSupabaseProcess?.kill(signal);
+
+  try {
+    restoreOriginalConfig();
+  } catch (error) {
+    console.error('Po přerušení se nepodařilo obnovit supabase/config.toml.', error);
+  }
+
+  process.exit(signal === 'SIGINT' ? 130 : 143);
+}
+
+const handleSigint = () => handleTerminationSignal('SIGINT');
+const handleSigterm = () => handleTerminationSignal('SIGTERM');
+
 writeFileSync(envPath, nextEnv);
 writeFileSync(configPath, codespacesConfig);
+process.once('SIGINT', handleSigint);
+process.once('SIGTERM', handleSigterm);
 
 try {
-  runSupabaseCommand('stop');
-  runSupabaseCommand('start');
+  await runSupabaseCommand('stop');
+  await runSupabaseCommand('start');
 } finally {
-  writeFileSync(configPath, originalConfig);
+  process.removeListener('SIGINT', handleSigint);
+  process.removeListener('SIGTERM', handleSigterm);
+  restoreOriginalConfig();
 }
 
 console.info('\nSupabase byla spuštěna s veřejnou Codespaces URL pro magic link.');
