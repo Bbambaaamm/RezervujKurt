@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   buildOtpPayload,
+  buildSupabaseOtpEndpoint,
   getSupabaseOtpRequestConfig,
   shouldUseOtpProxyForRuntime,
   resolveOtpEndpoint,
@@ -82,4 +83,22 @@ test('getOtpFailureMessage zachová obecnou Supabase zprávu pro neznámou chybu
   const message = getOtpFailureMessage(400, '{"msg":"Invalid login credentials"}');
 
   assert.equal(message, 'Supabase Auth OTP selhalo (400). Invalid login credentials');
+});
+
+test('buildSupabaseOtpEndpoint přidá redirect_to jako query parametr Supabase OTP endpointu', () => {
+  const endpoint = buildSupabaseOtpEndpoint(
+    'http://127.0.0.1:54321/auth/v1/otp',
+    'http://127.0.0.1:3000/rezervace',
+  );
+  const url = new URL(endpoint);
+
+  assert.equal(url.origin, 'http://127.0.0.1:54321');
+  assert.equal(url.pathname, '/auth/v1/otp');
+  assert.equal(url.searchParams.get('redirect_to'), 'http://127.0.0.1:3000/rezervace');
+});
+
+test('buildSupabaseOtpEndpoint bez redirectu zachová původní endpoint', () => {
+  const endpoint = 'http://127.0.0.1:54321/auth/v1/otp';
+
+  assert.equal(buildSupabaseOtpEndpoint(endpoint), endpoint);
 });

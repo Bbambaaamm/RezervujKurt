@@ -1,4 +1,4 @@
-import { buildOtpPayload, getOtpFailureMessage, getSupabaseOtpRequestConfig, resolveOtpEndpoint } from '@/lib/supabase/otp-proxy';
+import { buildOtpPayload, buildSupabaseOtpEndpoint, getOtpFailureMessage, getSupabaseOtpRequestConfig, resolveOtpEndpoint } from '@/lib/supabase/otp-proxy';
 
 export type AuthSession = {
   access_token: string;
@@ -296,7 +296,7 @@ export const supabaseAuthClient = {
       const payload = buildOtpPayload(email, options?.emailRedirectTo, { createUser: false });
       const config = getSupabaseConfig();
       if (!config) return { error: new Error('Chybí NEXT_PUBLIC_SUPABASE_URL nebo NEXT_PUBLIC_SUPABASE_ANON_KEY.') };
-      const directEndpoint = `${config.url}/auth/v1/otp`;
+      const directEndpoint = buildSupabaseOtpEndpoint(`${config.url}/auth/v1/otp`, payload.redirect_to);
       const windowOrigin = typeof window !== 'undefined' ? window.location.origin : undefined;
       const endpoint = resolveOtpEndpoint(directEndpoint, windowOrigin);
       const useProxy = endpoint === '/api/auth/otp';
