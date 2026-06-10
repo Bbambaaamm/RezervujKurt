@@ -75,7 +75,7 @@ Podrobnější historický audit MVP je v `docs-next-step.md`. Tento dokument od
 
 Cíl fáze: odstranit mezery, které snižují reprodukovatelnost a spolehlivost každého dalšího pull requestu.
 
-## [ ] T1 — Zprovoznit neinteraktivní ESLint kontrolu
+## [-] T1 — Zprovoznit neinteraktivní ESLint kontrolu
 
 **Priorita:** P0  
 **Problém:** `npm run lint` spouští interaktivní průvodce a v CI nebo neinteraktivním terminálu končí chybou.
@@ -88,10 +88,10 @@ Cíl fáze: odstranit mezery, které snižují reprodukovatelnost a spolehlivost
 
 **Akceptační kritéria:**
 
-- [ ] `npm run lint` nevyžaduje uživatelský vstup;
-- [ ] příkaz končí úspěšně na čistém checkoutu;
-- [ ] nejsou vypnutá klíčová React, Hooks nebo Next.js pravidla bez zdůvodnění;
-- [ ] případné výjimky jsou minimální a zdokumentované.
+- [x] `npm run lint` nevyžaduje uživatelský vstup;
+- [x] příkaz končí úspěšně na čistém checkoutu;
+- [x] nejsou vypnutá klíčová React, Hooks nebo Next.js pravidla bez zdůvodnění;
+- [x] případné výjimky jsou minimální a zdokumentované.
 
 **Povinné ověření:**
 
@@ -99,7 +99,7 @@ Cíl fáze: odstranit mezery, které snižují reprodukovatelnost a spolehlivost
 - `npm run test`
 - `npm run build`
 
-**Potvrzení:** datum `—`, důkaz `—`.
+**Potvrzení:** implementace a povinné lokální ověření `10. 6. 2026`; čeká na potvrzení vlastníka projektu a doplnění commit/PR důkazu.
 
 ## [ ] T2 — Přidat lint do CI Build Gate
 
