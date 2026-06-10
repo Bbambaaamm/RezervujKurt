@@ -92,9 +92,11 @@ test('reservation lifecycle smoke: pending -> approved -> cancelled uvolní slot
 
     const pendingRow = adminPage
       .locator('tr')
+      .filter({ has: adminPage.getByRole('button', { name: 'Schválit' }) })
       .filter({ hasText: formattedReservationDate })
       .filter({ hasText: '10:00:00' })
-      .filter({ hasText: '10:30:00' });
+      .filter({ hasText: '10:30:00' })
+      .filter({ hasText: 'Kurt 1' });
 
     await expect(pendingRow).toHaveCount(1);
     await pendingRow.getByRole('button', { name: 'Schválit' }).click();
