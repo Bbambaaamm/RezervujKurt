@@ -133,7 +133,7 @@ Cíl fáze: odstranit mezery, které snižují reprodukovatelnost a spolehlivost
 
 **Potvrzení:** implementace a lokální kontrola `10. 6. 2026`; čeká na potvrzení vlastníka projektu a doplnění commit/PR důkazu.
 
-## [ ] T4 — Vyřešit dočasný adresář unit testů
+## [-] T4 — Vyřešit dočasný adresář unit testů
 
 **Priorita:** P2  
 **Problém:** `npm run test` po dokončení ponechává `.tmp-tests/` jako neversionovaný artefakt.
@@ -142,16 +142,16 @@ Cíl fáze: odstranit mezery, které snižují reprodukovatelnost a spolehlivost
 
 **Akceptační kritéria:**
 
-- [ ] po `npm run test` nezůstane nechtěná změna pracovního stromu;
-- [ ] testy se uklidí i při běžném úspěšném dokončení;
-- [ ] testovací výstup zůstane diagnosticky použitelný při selhání.
+- [x] po `npm run test` nezůstane nechtěná změna pracovního stromu;
+- [x] testy se uklidí i při běžném úspěšném dokončení;
+- [x] testovací výstup zůstane diagnosticky použitelný při selhání.
 
 **Povinné ověření:**
 
 - `npm run test`
 - `git status --short`
 
-**Potvrzení:** datum `—`, důkaz `—`.
+**Potvrzení:** implementace a povinné lokální ověření `10. 6. 2026`; čeká na potvrzení vlastníka projektu a doplnění commit/PR důkazu.
 
 ## [ ] T5 — Připnout podporovanou verzi Node.js
 
