@@ -205,7 +205,7 @@ Cíl fáze: prokázat, že autentizovaný lifecycle test je dostatečně stabiln
 - [x] každé dosud evidované selhání je klasifikované jako produktová regrese, nestabilita testu, problém dat nebo CI infrastruktury; ve vzorku E1 dosud žádné selhání nenastalo;
 - [x] žádné nevysvětlené selhání nezůstává uzavřené bez dalšího kroku;
 - [x] opravy nesnižují produkční auth nebo RLS ochrany jen kvůli testu;
-- [x] diagnostické artefakty zachovávají trace každého neúspěšného pokusu včetně prvního pokusu před retry a screenshot, pokud selhání nastane po vytvoření stránky.
+- [x] diagnostické artefakty zachovávají a publikují trace každého neúspěšného pokusu včetně prvního pokusu před úspěšným retry a screenshot, pokud selhání nastane po vytvoření stránky.
 
 **Potvrzení:** dosavadní běhy a diagnostický postup vyhodnoceny `10. 6. 2026`; čeká na úspěšný běh upraveného workflow, průběžné vyhodnocování budoucích selhání a potvrzení vlastníka projektu.
 

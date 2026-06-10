@@ -45,7 +45,7 @@ K 10. 6. 2026 je evidováno šest dokončených automatických PR běhů bez ret
 
 ## Diagnostika selhání
 
-Playwright ukládá trace každého neúspěšného pokusu do `test-results/` a při selhání po vytvoření stránky také screenshot. Workflow tento adresář při selhání nahraje jako artefakt `playwright-lifecycle-failure`, takže je zachovaný i rozhodující první pokus před případným retry. Infrastrukturní chyby před spuštěním browseru se určují z trace a logu workflow; screenshot u nich nemusí existovat.
+Playwright ukládá trace každého neúspěšného pokusu do `test-results/` a při selhání po vytvoření stránky také screenshot. Workflow se pokusí tento adresář nahrát jako artefakt `playwright-lifecycle-failure` vždy po lifecycle kroku, tedy i když retry obnoví úspěšný výsledek. Pokud čistý běh nevytvoří žádnou diagnostiku, `if-no-files-found: ignore` ponechá upload krok úspěšný bez artefaktu. Infrastrukturní chyby před spuštěním browseru se určují z trace a logu workflow; screenshot u nich nemusí existovat.
 
 Při klasifikaci použijte následující rozlišení:
 
