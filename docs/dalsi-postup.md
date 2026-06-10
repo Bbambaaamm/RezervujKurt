@@ -181,19 +181,19 @@ Cíl fáze: odstranit mezery, které snižují reprodukovatelnost a spolehlivost
 
 Cíl fáze: prokázat, že autentizovaný lifecycle test je dostatečně stabilní pro povinný branch protection check.
 
-## [ ] E1 — Evidovat reprezentativní automatické PR běhy
+## [-] E1 — Evidovat reprezentativní automatické PR běhy
 
 **Priorita:** P0  
 **Zdroj evidence:** `docs/e2e-pr-stability-log.md`
 
 **Akceptační kritéria:**
 
-- [ ] je evidováno alespoň 5, ideálně 10 dokončených automatických PR běhů;
-- [ ] každý záznam obsahuje PR, Actions run, commit, typ změny, první výsledek a délku;
-- [ ] ruční a zrušené běhy nejsou započítané jako úspěšný vzorek;
-- [ ] zastoupené změny nejsou pouze dokumentační.
+- [x] je evidováno alespoň 5, ideálně 10 dokončených automatických PR běhů;
+- [x] každý záznam obsahuje PR, Actions run, commit, typ změny, první výsledek a délku;
+- [x] ruční a zrušené běhy nejsou započítané jako úspěšný vzorek;
+- [x] zastoupené změny nejsou pouze dokumentační.
 
-**Potvrzení:** datum `—`, důkaz `—`.
+**Potvrzení:** minimální vzorek pěti automatických PR běhů doplněn `10. 6. 2026`; čeká na potvrzení vlastníka projektu a případné rozšíření na doporučených deset běhů.
 
 ## [ ] E2 — Vyhodnotit každé E2E selhání
 
