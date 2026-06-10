@@ -31,6 +31,15 @@ export function buildOtpPayload(email: string, emailRedirectTo?: string, options
   };
 }
 
+export function buildSupabaseOtpEndpoint(endpoint: string, emailRedirectTo?: string): string {
+  const redirectTo = normalizeOtpRedirectTo(emailRedirectTo);
+  if (!redirectTo) return endpoint;
+
+  const url = new URL(endpoint);
+  url.searchParams.set('redirect_to', redirectTo);
+  return url.toString();
+}
+
 export function getOtpFailureMessage(status: number, responseBody: string): string {
   const fallbackMessage = `Supabase Auth OTP selhalo (${status}).`;
 

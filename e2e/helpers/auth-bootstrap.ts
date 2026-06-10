@@ -1,5 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 
+import { buildSupabaseOtpEndpoint } from '../../lib/supabase/otp-proxy';
+
 const MAILPIT_BASE_URL = process.env.E2E_MAILPIT_URL ?? 'http://127.0.0.1:54324';
 const MAGIC_LINK_TIMEOUT_MS = Number(process.env.E2E_MAGIC_LINK_TIMEOUT_MS ?? '20000');
 const MAILPIT_FRESH_MESSAGE_TOLERANCE_MS = 5000;
@@ -446,7 +448,9 @@ export async function loginViaMagicLink(params: {
       throw new Error('Pro E2E signup chybí NEXT_PUBLIC_SUPABASE_URL nebo NEXT_PUBLIC_SUPABASE_ANON_KEY.');
     }
 
-    const response = await page.request.post(`${SUPABASE_URL}/auth/v1/otp`, {
+    const emailRedirectTo = buildE2eEmailRedirectTo();
+    const otpEndpoint = buildSupabaseOtpEndpoint(`${SUPABASE_URL}/auth/v1/otp`, emailRedirectTo);
+    const response = await page.request.post(otpEndpoint, {
       headers: {
         'Content-Type': 'application/json',
         apikey: SUPABASE_ANON_KEY,
@@ -454,7 +458,7 @@ export async function loginViaMagicLink(params: {
       data: {
         email,
         create_user: true,
-        redirect_to: buildE2eEmailRedirectTo(),
+        redirect_to: emailRedirectTo,
       },
     });
 
