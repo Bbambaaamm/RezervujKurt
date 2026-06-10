@@ -76,9 +76,9 @@ function upsertEnvValues(source, values) {
 
 let activeSupabaseProcess = null;
 
-function runSupabaseCommand(command) {
+function runSupabaseCommand(command, args = []) {
   return new Promise((resolveCommand, rejectCommand) => {
-    const child = spawn('npx', ['supabase', command], {
+    const child = spawn('npx', ['supabase', command, ...args], {
       cwd: projectRoot,
       stdio: 'inherit',
     });
@@ -171,7 +171,10 @@ process.once('SIGTERM', handleSigterm);
 
 try {
   await runSupabaseCommand('stop');
-  await runSupabaseCommand('start');
+  await runSupabaseCommand('start', [
+    '--exclude',
+    'storage-api,imgproxy,logflare,vector',
+  ]);
 } finally {
   process.removeListener('SIGINT', handleSigint);
   process.removeListener('SIGTERM', handleSigterm);
