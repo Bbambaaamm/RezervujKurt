@@ -116,22 +116,22 @@ Cíl fáze: odstranit mezery, které snižují reprodukovatelnost a spolehlivost
 
 **Potvrzení:** implementace a lokální ověření `10. 6. 2026`; čeká na úspěšný GitHub Actions běh, potvrzení vlastníka projektu a doplnění commit/PR důkazu.
 
-## [ ] T3 — Sjednotit README se skutečným stavem projektu
+## [-] T3 — Sjednotit README se skutečným stavem projektu
 
 **Priorita:** P1  
 **Problém:** README stále část projektu popisuje jako budoucí Supabase/auth základ, přestože core MVP je implementované.
 
 **Akceptační kritéria:**
 
-- [ ] README stručně popisuje aktuálně dostupné funkce;
-- [ ] obsahuje aktuální lokální setup a potřebné env proměnné;
-- [ ] uvádí všechny důležité testovací a kontrolní příkazy;
-- [ ] odkazuje na tento checklist, runtime checklist a E2E strategii;
-- [ ] budoucí funkce nejsou prezentované jako hotové.
+- [x] README stručně popisuje aktuálně dostupné funkce;
+- [x] obsahuje aktuální lokální setup a potřebné env proměnné;
+- [x] uvádí všechny důležité testovací a kontrolní příkazy;
+- [x] odkazuje na tento checklist, runtime checklist a E2E strategii;
+- [x] budoucí funkce nejsou prezentované jako hotové.
 
 **Povinné ověření:** ruční kontrola odkazů a příkazů na čistém checkoutu.
 
-**Potvrzení:** datum `—`, důkaz `—`.
+**Potvrzení:** implementace a lokální kontrola `10. 6. 2026`; čeká na potvrzení vlastníka projektu a doplnění commit/PR důkazu.
 
 ## [ ] T4 — Vyřešit dočasný adresář unit testů
 

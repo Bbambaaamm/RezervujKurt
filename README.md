@@ -1,273 +1,176 @@
 # RezervujKurt
 
-Webový rezervační systém pro tenisové kurty TJ Baník Stříbro.
+Webový rezervační systém pro tenisové kurty TJ Baník Stříbro. Aplikace používá Next.js App Router a lokální nebo hostovanou Supabase jako zdroj dat a autentizace.
 
-## Stack
-- Next.js (App Router)
-- TypeScript
-- Tailwind CSS
-- Připraveno pro Supabase + Vercel
+## Aktuálně dostupné funkce
 
-## Spuštění projektu přímo z GitHubu
+- veřejný denní přehled obsazenosti kurtů bez zveřejnění osobních údajů;
+- přihlášení e-mailem přes Supabase magic link a zachování uživatelské session;
+- vytvoření čekající rezervace přihlášeným uživatelem;
+- ochrana proti duplicitám a překryvům rezervací v UI i databázi;
+- přehled vlastních rezervací a zrušení povolené budoucí rezervace;
+- administrátorské schválení nebo zrušení čekající rezervace;
+- auditní stopa vytvoření rezervace a změn jejího stavu;
+- unit testy a Playwright smoke scénáře pro anonymní i autentizovaný průchod.
 
-### Varianta A (doporučeno): GitHub Codespaces
-1. Otevři repozitář na GitHubu.
-2. Klikni na **Code** → **Codespaces** → **Create codespace on main**.
-3. Po otevření terminálu v Codespaces spusť čistou instalaci závislostí (pomůže předejít chybám typu `ENOTEMPTY` nebo `next: not found`):
+Rozsah potvrzeného MVP a navazující práci eviduje [řídicí checklist](docs/dalsi-postup.md). Funkce jako blokace kurtů, produktové notifikace, platby nebo další poskytovatelé přihlášení jsou plánované, ale nejsou součástí aktuálně dokončeného základu.
+
+## Technologie
+
+- Next.js 15 (App Router), React 19 a TypeScript;
+- Tailwind CSS;
+- Supabase (PostgreSQL, Row Level Security a Auth);
+- Node.js test runner a Playwright;
+- GitHub Actions pro build gate a E2E lifecycle.
+
+## Lokální spuštění
+
+### Předpoklady
+
+- Node.js a npm; repozitář zatím nepřipíná podporovanou verzi, CI používá Node.js 20;
+- Docker pro lokální Supabase;
+- Supabase CLI spouštěné přes `npx` nebo nainstalované samostatně.
+
+### 1. Instalace závislostí
+
+Na čistém checkoutu použij reprodukovatelnou instalaci podle `package-lock.json`:
 
 ```bash
-rm -rf node_modules package-lock.json
-npm install
+npm ci
+```
+
+### 2. Spuštění lokální Supabase
+
+```bash
+npx supabase start
+```
+
+První spuštění stáhne potřebné kontejnery. Migrace a seed se při čistém startu aplikují z adresáře `supabase/`. Pro opětovné vytvoření lokální databáze použij:
+
+```bash
+npx supabase db reset
+```
+
+Pozor: reset odstraní aktuální lokální databázová data.
+
+### 3. Nastavení prostředí
+
+Vytvoř `.env.local` a doplň hodnoty vypsané příkazem `npx supabase status`:
+
+```dotenv
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<lokální anon key>
+NEXT_PUBLIC_SUPABASE_REDIRECT_URL=http://localhost:3000
+```
+
+| Proměnná | Povinnost | Účel |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | ano | URL Supabase API používaná aplikací |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ano | veřejný anon/publishable klíč pro klientská a veřejná API volání |
+| `NEXT_PUBLIC_SUPABASE_REDIRECT_URL` | doporučeno | veřejný origin aplikace pro návrat z magic linku |
+| `NEXT_PUBLIC_SUPABASE_AUTH_REDIRECT_URL` | volitelná kompatibilita | starší alternativa redirect originu; pokud je nastavena i předchozí proměnná, přednost má `NEXT_PUBLIC_SUPABASE_REDIRECT_URL` |
+| `SUPABASE_SERVICE_ROLE_KEY` | pouze autentizované E2E | serverový klíč pro přípravu profilů a cílený úklid E2E dat; nesmí se použít ve frontend kódu ani commitnout |
+
+Soubor `.env.local` se necommituje. V Codespaces použij pro frontend i Supabase API veřejné URL přesměrovaných portů `3000` a `54321`. Stejný frontend host nastav také do `auth.site_url` a `auth.additional_redirect_urls` v lokální `supabase/config.toml` a poté Supabase restartuj. Verzovaná konfigurace musí zůstat na bezpečných `localhost` výchozích hodnotách.
+
+### 4. Spuštění aplikace
+
+```bash
 npm run dev
 ```
 
-4. V panelu **Ports** otevři port `3000` v prohlížeči.
+Aplikace je lokálně dostupná na [http://localhost:3000](http://localhost:3000). Lokální e-maily s magic linkem lze otevřít v Mailpit rozhraní, jehož URL vypíše `npx supabase status`.
 
-5. Pokud by instalace i tak selhala, spusť ještě:
+## Kontroly kvality
 
-```bash
-npm cache verify
-rm -rf node_modules package-lock.json
-npm install
-```
-
-> Poznámka: V Codespaces není potřeba lokální instalace Node.js, běh probíhá v cloudovém vývojovém prostředí GitHubu.
-
-### Varianta B: Klon repozitáře z GitHubu do lokálního počítače
-```bash
-git clone <URL_REPOZITARE>
-cd RezervujKurt
-npm install
-npm run dev
-```
-
-Poté otevři `http://localhost:3000`.
-
-## Spuštění projektu (lokálně)
-
-### 1) Předpoklady
-- Nainstalovaný Node.js a npm.
-
-> Poznámka: V repozitáři není definovaná povinná verze Node.js (`engines`), takže použij aktuální LTS verzi Node.js.
-
-### 2) Instalace závislostí
-V kořeni projektu spusť:
+Základní kontroly odpovídající workflow **Build Gate**:
 
 ```bash
-npm install
-```
-
-### 3) Spuštění vývojového serveru
-```bash
-npm run dev
-```
-
-Po spuštění otevři v prohlížeči:
-
-- http://localhost:3000
-
-### 4) Produkční build a spuštění (volitelně)
-Vytvoření build artefaktů:
-
-```bash
+npm run lint
+npm run test
+npm run check:rls
 npm run build
 ```
 
-Spuštění aplikace v produkčním režimu:
+Před produkčním releasem spusť přísnější kontrolu RLS migrací:
+
+```bash
+npm run check:rls:prod
+```
+
+Produkční build lze lokálně spustit až po úspěšném `npm run build`:
 
 ```bash
 npm run start
 ```
 
-### 5) Kontrola lint pravidel (volitelně)
+## E2E testy
+
+Playwright používá Chromium a ve výchozím nastavení si spustí Next.js dev server. Před prvním lokálním během nainstaluj prohlížeč:
+
 ```bash
-npm run lint
+npx playwright install chromium
 ```
+
+Lokální Supabase musí běžet. Před autentizovanými scénáři exportuj do aktuálního shellu lokální URL, anon key a service-role key:
+
+```bash
+eval "$(npx supabase status -o env \
+  --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
+  --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_ANON_KEY \
+  --override-name auth.service_role_key=SUPABASE_SERVICE_ROLE_KEY)"
+```
+
+Service-role key používej pouze v lokálním nebo zabezpečeném CI prostředí. Dostupné scénáře:
+
+```bash
+# Anonymní read-only smoke
+npm run test:e2e:smoke
+
+# Vytvoření member/admin session přes lokální Mailpit
+npm run test:e2e:auth:bootstrap
+
+# Rezervační lifecycle; vyžaduje již připravené session soubory
+npm run test:e2e:lifecycle
+
+# Doporučený autentizovaný průchod včetně přípravy session
+npm run test:e2e:lifecycle:with-auth-bootstrap
+```
+
+Pokud aplikace neběží na výchozím `http://127.0.0.1:3000`, nastav `PLAYWRIGHT_BASE_URL`. Přesné předpoklady, seed účty a stabilizační pravidla popisuje [E2E smoke strategie](docs/e2e-smoke-strategy.md).
 
 ## Dostupné npm skripty
-- `npm run dev` – spustí vývojový server (Next.js).
-- `npm run build` – vytvoří produkční build.
-- `npm run start` – spustí aplikaci z produkčního buildu.
-- `npm run lint` – spustí ESLint kontrolu.
-- `npm run test` – spustí unit testy (TypeScript build + `node --test`).
 
-## Struktura
-- `app/` – stránky (Domů, Rezervace, Přihlášení, Admin)
-- `components/` – sdílené UI komponenty
-- `lib/` – doménové typy a mock data
-- `docs/runtime-verification.md` – runtime checklist pro lokální Supabase ověření
+| Příkaz | Popis |
+|---|---|
+| `npm run dev` | Spustí Next.js vývojový server. |
+| `npm run build` | Vytvoří produkční build. |
+| `npm run start` | Spustí vytvořený produkční build. |
+| `npm run lint` | Spustí neinteraktivní ESLint kontrolu. |
+| `npm run test` | Spustí unit testy; aktuálně je aliasem `test:unit`. |
+| `npm run test:unit` | Přeloží testovací TypeScript a spustí Node.js test runner. |
+| `npm run check:rls` | Ověří bezpečnostní invariantu RLS migrací pro vývoj. |
+| `npm run check:rls:prod` | Spustí přísnější release kontrolu RLS migrací. |
+| `npm run test:e2e:smoke` | Spustí anonymní Playwright smoke scénář. |
+| `npm run test:e2e:auth` | Spustí auth bootstrap; kompatibilní alias `test:e2e:auth:bootstrap`. |
+| `npm run test:e2e:auth:bootstrap` | Připraví a ověří member/admin Playwright session. |
+| `npm run test:e2e:lifecycle` | Spustí autentizovaný rezervační lifecycle s existující session. |
+| `npm run test:e2e:lifecycle:with-auth-bootstrap` | Připraví session a následně spustí lifecycle. |
 
-## Runtime verification (Production Confidence Pass)
+## Struktura repozitáře
 
-Pro manuální runtime smoke průchod použij checklist v `docs/runtime-verification.md`.
+- `app/` – stránky a API route pro auth OTP proxy;
+- `components/` – sdílené UI komponenty;
+- `lib/` – doménové typy, Supabase klienti a aplikační služby;
+- `supabase/` – lokální konfigurace, migrace, seed a e-mailová šablona;
+- `tests/` – unit a integrační testy spouštěné přes Node.js test runner;
+- `e2e/` – Playwright smoke a lifecycle scénáře;
+- `.github/workflows/` – build gate a automatizované E2E ověření;
+- `docs/` – aktivní projektový checklist a provozní/testovací dokumentace.
 
-## Aktuální stav (MVP základ)
-- české UI a základní layout
-- denní přehled všech 3 kurtů na jedné stránce
-- hodinové sloty a vizuální rozlišení stavu
-- základ připravený pro další napojení na Supabase
+## Související dokumentace
 
-## Další kroky
-1. Přidat Supabase schéma (profiles, reservations, payments, audit log...).
-2. Napojit autentizaci (Google, Apple, e-mail).
-3. Implementovat formulář rezervace a workflow schvalování.
-4. Přidat notifikační e-mail službu (placeholder/service vrstva).
-
-## Supabase (základ schématu)
-V repozitáři je připravená inicializační migrace a seed:
-- `supabase/migrations/20260514120000_init_reservation_schema.sql`
-- `supabase/seed.sql`
-
-Příklad spuštění přes Supabase CLI:
-
-```bash
-supabase db reset
-```
-
-Případně samostatně:
-
-```bash
-supabase migration up
-psql "$SUPABASE_DB_URL" -f supabase/seed.sql
-```
-
-
-## Supabase Auth (magic link) – lokální ověření redirect URL
-
-Pokud se v Mailpitu objevuje `127.0.0.1` v magic linku, postupuj přesně takto (CLI musí načíst aktuální `supabase/config.toml`):
-
-```bash
-npx supabase stop
-npx supabase start
-```
-
-Poté:
-1. V aplikaci odešli nový magic link (přihlášení přes e-mail).
-2. Otevři Mailpit inbox a zkontroluj odkaz v e-mailu.
-3. Ověř, že tlačítko/odkaz používá `{{ .ConfirmationURL }}` (ne ručně skládané `{{ .SiteURL }}/auth/v1/verify?...`).
-4. Ověř, že query parametr `redirect_to` odpovídá hodnotě z request payloadu (např. `/rezervace`).
-
-Poznámka: v tomto repozitáři je magic link šablona explicitně nastavena v `supabase/config.toml` přes `[auth.email.template.magic_link]` a HTML šablonu `supabase/templates/magic_link.html`.
-
-### Codespaces poznámka k magic link hostu
-V GitHub Codespaces musí magic link v e-mailové šabloně používat veřejný Supabase API host na portu `54321` (např. `https://cautious-waddle-q7pv7r4599g4fqp5-54321.app.github.dev`), ne lokální `127.0.0.1`.
-
-Pokud by link mířil na `127.0.0.1`, e-mail otevřený mimo kontejner nedokončí ověření, protože localhost adresa je dostupná jen uvnitř Codespace kontejneru.
-
-
-## Troubleshooting: `422 otp_disabled` při volání `/auth/v1/otp`
-
-Pokud Supabase vrátí odpověď:
-
-- `HTTP 422`
-- `error_code: "otp_disabled"`
-- `msg: "Signups not allowed for otp"`
-
-neznamená to nutně chybný payload. V lokálním GoTrue se to stává, když běžící Auth instance ještě nepoužívá aktuální `supabase/config.toml` (nebo má vypnuté signup větve pro email OTP).
-
-Rychlá kontrola:
-
-1. Ověř v `supabase/config.toml`, že jsou aktivní:
-   - `[auth].enable_signup = true`
-   - `[auth.email].enable_signup = true`
-2. Restartuj lokální Supabase stack, aby GoTrue načetl config znovu:
-
-```bash
-npx supabase stop && npx supabase start
-```
-
-3. Pokud běží Next.js dev server, nech ho běžet nebo ho spusť znovu podle potřeby:
-
-```bash
-npm run dev
-```
-
-4. Po restartu Supabase odešli OTP request znovu.
-
-Poznámka: i když posíláš `create_user:false` (login flow), GoTrue stále kontroluje OTP/signup konfiguraci endpointu.
-
-### Když `supabase start` spadne na health checku
-
-Pokud restart skončí hláškou typu `container is not ready: unhealthy` nebo `container is not ready: starting`, nejde už o `otp_disabled`, ale o selhání health checku lokálního Supabase CLI. V ukázkovém logu padají `vector`, `storage` a `studio`; pro odeslání magic linku jsou typicky důležité hlavně běžící `db`, `kong/api`, `auth` a `mailpit`.
-
-Doporučený postup:
-
-1. Nastartuj stack s ignorováním health checku pomocných služeb:
-
-```bash
-npx supabase stop && npx supabase start --ignore-health-check
-```
-
-2. Ověř, že Supabase vypsala lokální endpointy:
-
-```bash
-npx supabase status
-```
-
-3. Pokud status běží, zkus znovu poslat magic link a otevřít Mailpit. Pokud stack pořád nenaběhne, posbírej diagnostiku:
-
-```bash
-npx supabase start --debug
-docker ps -a --filter "label=com.supabase.cli.project=rezervujkurt"
-docker logs supabase_vector_rezervujkurt --tail 100
-docker logs supabase_storage_rezervujkurt --tail 100
-docker logs supabase_studio_rezervujkurt --tail 100
-```
-
-4. Pokud jsou lokální data zahoditelná, poslední čistá varianta je reset lokálních Supabase volume:
-
-```bash
-npx supabase stop --no-backup && npx supabase start --ignore-health-check
-```
-
-Pozor: `--no-backup` smaže lokální Supabase data. Použij ho jen tehdy, když nepotřebuješ zachovat lokální DB stav.
-
-## Debug veřejného occupancy čtení pro `/rezervace`
-
-Rychlý anonymní REST test (bez osobních údajů), který má vrátit i `pending` rezervace:
-
-```bash
-curl \
-  -H "apikey: $NEXT_PUBLIC_SUPABASE_ANON_KEY" \
-  -H "Authorization: Bearer $NEXT_PUBLIC_SUPABASE_ANON_KEY" \
-  "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/reservations?select=id,court_id,reservation_date,time_from,time_to,status&reservation_date=eq.2026-05-21&status=in.(pending,approved)"
-```
-
-Očekávání: odpověď obsahuje `pending` rezervaci pro daný den (např. `court_id=2`, `time_from=16:00:00`, `time_to=18:00:00`).
-
-
-## Codespace host rotation
-
-Při vytvoření nového Codespace se změní veřejný host. Aby fungovalo přihlášení přes magic link, je potřeba sjednotit host ve frontend env i v Supabase konfiguraci.
-
-1. Zjisti `CODESPACE_NAME`:
-   - v aktivním Codespace obvykle `echo $CODESPACE_NAME`,
-   - případně z URL otevřeného portu (část před `-3000.app.github.dev`).
-2. Nastav `.env.local`:
-
-```bash
-NEXT_PUBLIC_SUPABASE_URL=https://<CODESPACE_NAME>-54321.app.github.dev
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<publishable key z npx supabase status>
-NEXT_PUBLIC_SUPABASE_REDIRECT_URL=https://<CODESPACE_NAME>-3000.app.github.dev
-```
-
-3. Uprav `supabase/config.toml`:
-   - `auth.site_url` na aktuální frontend host (např. `https://<CODESPACE_NAME>-3000.app.github.dev`),
-   - `auth.additional_redirect_urls` minimálně pro root a `/rezervace` na stejném hostu.
-   - v commitu drž bezpečný výchozí stav (`localhost`) a runtime host nastavuj lokálně podle runbooku.
-4. Ověř, že `supabase/templates/magic_link.html` stále používá pouze `{{ .ConfirmationURL }}`.
-5. Po změně konfigurace proveď restart Supabase:
-
-```bash
-npx supabase stop && npx supabase start
-```
-
-6. Odešli nový magic link. Staré magic linky po změně hostu/configu už nejsou validní.
-
-## Supabase/Codespaces env sanity check (rychlý postup)
-
-1. `NEXT_PUBLIC_SUPABASE_URL` v `.env.local` musí mít stejný host jako API endpoint z `npx supabase status` i jako endpoint použitý ve Studio.
-2. `NEXT_PUBLIC_SUPABASE_REDIRECT_URL` a `NEXT_PUBLIC_SUPABASE_AUTH_REDIRECT_URL` musí odpovídat aktuálnímu frontend hostu (`localhost` vs. Codespaces veřejná URL).
-3. `supabase/config.toml` drž v repozitáři s localhost defaultem; Codespaces host nastavuj jen lokálně podle runbooku výše.
-4. Po změně `supabase/config.toml` restartuj lokální Supabase (`npx supabase stop && npx supabase start`), jinak hrozí redirect mismatch.
-5. Pokud je v DEV na `/rezervace` viditelná fallback hláška, runtime verifikace není validní, dokud neopravíš chybu čtení ze Supabase.
+- [Další postup projektu](docs/dalsi-postup.md) – aktivní zdroj pravdy pro priority a podmínky dokončení;
+- [Runtime verification checklist](docs/runtime-verification.md) – ruční ověření aplikace nad lokální Supabase;
+- [E2E smoke strategie](docs/e2e-smoke-strategy.md) – rozsah, předpoklady a spouštění Playwright scénářů;
+- [E2E PR stability log](docs/e2e-pr-stability-log.md) – evidence automatických PR běhů.
