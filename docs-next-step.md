@@ -121,7 +121,7 @@ Předchozí verze dokumentu obsahovala interní rozpory (např. otevřené dluhy
 Následující body jsou záměrně oddělené jako budoucí rozvoj mimo scope původního MVP plánu:
 
 1. Rozšířená observabilita (strukturované logování, metriky, alerting).
-2. Stabilizace E2E smoke scénářů v ručně spouštěném CI runtime a následné povýšení na automatický PR gate.
+2. Stabilizace E2E smoke scénářů v automatickém PR ověřování a následné nastavení lifecycle jobu jako povinného checku.
 3. Produktové UX enhancementy (např. pokročilejší lokalizovaný date/time picker).
 4. Operational playbook (incident checklist, release runbook).
 
@@ -142,27 +142,25 @@ Následující body jsou záměrně oddělené jako budoucí rozvoj mimo scope p
 - Kritická cesta member/admin podle `docs/runtime-verification.md`:
   auth → pending create → admin approve/cancel → occupancy refresh.
 
-### Stav E2E automatizace (9. 6. 2026)
+### Stav E2E automatizace (10. 6. 2026)
 - Anonymous smoke: implementováno v `e2e/smoke.anonymous.spec.ts`.
 - Auth bootstrap: implementován pro oddělený member/admin `storageState`.
 - Approve lifecycle: implementován v `e2e/smoke.reservation-lifecycle.spec.ts`.
 - Cancel/release lifecycle: implementován přes oprávněný member flow v `/moje-rezervace`; veřejný grid následně ověřuje uvolnění slotu.
 - Bezpečný cleanup: lifecycle používá unikátní poznámku `E2E-LIFECYCLE` a cleanup před testem i v `finally` bez globálního mazání dat.
-- Ruční CI runtime ověření: implementováno v `.github/workflows/e2e-lifecycle.yml`; workflow na čistém GitHub runneru spustí lokální Supabase, auth bootstrap a celý lifecycle.
-- Povinný automatický PR gate: zatím záměrně nezapojen, dokud ruční workflow neprokáže opakovanou stabilitu.
+- Ruční CI runtime ověření: tři po sobě jdoucí běhy workflow `E2E Lifecycle Verification` skončily úspěšně.
+- Automatické PR ověřování: workflow se spouští pro každý pull request a nadále podporuje ruční `workflow_dispatch`.
+- Povinný branch protection check: zatím záměrně nezapojen; bude následovat až po ověření stability v běžném PR provozu.
 
 ### Doporučený další krok
-**Cíl:** ověřit stabilitu autentizovaného lifecycle v reprodukovatelném CI runtime a až poté jej povýšit na automatický gate.
+**Cíl:** ověřit stabilitu autentizovaného lifecycle v běžném PR provozu a až poté jej nastavit jako povinný check.
 
-1. V GitHub Actions ručně spustit workflow `E2E Lifecycle Verification`.
-2. Ověřit několik po sobě jdoucích úspěšných běhů nad čistou lokální Supabase:
-   - `pending` blokuje slot,
-   - `approved` blokuje slot,
-   - `cancelled` slot uvolní.
+1. Ověřit alespoň 5–10 automatických PR běhů bez retry, ideálně nad různými typy změn.
+2. Sledovat medián a nejhorší délku jobu a rozlišovat chyby aplikace od výpadků instalace Supabase CLI nebo Playwrightu.
 3. Při selhání stáhnout artefakt `playwright-lifecycle-failure` a odstranit konkrétní zdroj nestability; nesnižovat kvůli tomu ochrany produkční auth logiky.
-4. Po stabilizaci rozšířit trigger workflow o `pull_request` (případně `push` do `main`) a rozhodnout, zda má být job povinným branch protection checkem.
+4. Po potvrzení stability nastavit job `Auth lifecycle nad lokální Supabase` jako povinný check v GitHub Branch protection / Rulesets; změna workflow ani trigger `push` do `main` k tomu nejsou potřeba.
 
-**Aktuální omezení tohoto pracovního prostředí:** Supabase CLI ani Docker nejsou dostupné a stažení CLI přes `npx` končí HTTP 403. Kompletní runtime průchod zde proto stále nelze provést lokálně; nově přidaný ruční GitHub Actions workflow slouží jako izolované ověřovací prostředí, nikoli jako potvrzení úspěšného runtime běhu.
+**Aktuální omezení tohoto pracovního prostředí:** Supabase CLI ani Docker zde nejsou dostupné, takže kompletní lifecycle nelze spustit lokálně. Runtime ověření zajišťuje GitHub Actions workflow nad čistým runnerem.
 
 ---
 

@@ -183,9 +183,9 @@ Navazující lifecycle test spusť po bootstrapu:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 NEXT_PUBLIC_SUPABASE_ANON_KEY=<ANON_KEY> SUPABASE_SERVICE_ROLE_KEY=<SERVICE_ROLE_KEY> npm run test:e2e:lifecycle:with-auth-bootstrap
 ```
-### Ruční CI ověření autentizovaného lifecycle
+### Automatické PR ověření autentizovaného lifecycle
 
-Workflow `.github/workflows/e2e-lifecycle.yml` je záměrně dostupný pouze přes `workflow_dispatch`. Na čistém GitHub runneru:
+Workflow `.github/workflows/e2e-lifecycle.yml` se po třech po sobě jdoucích úspěšných ručních bězích spouští pro každý `pull_request` a nadále podporuje `workflow_dispatch`. Na čistém GitHub runneru:
 
 1. nainstaluje připnutou verzi Supabase CLI,
 2. spustí lokální Supabase včetně migrací a seedu,
@@ -194,7 +194,7 @@ Workflow `.github/workflows/e2e-lifecycle.yml` je záměrně dostupný pouze př
 5. spustí auth bootstrap a celý reservation lifecycle,
 6. při pádu uloží Playwright artefakty a vždy zastaví Supabase stack.
 
-Ruční trigger je přechodný bezpečnostní krok. Workflow se má rozšířit o `pull_request` až po několika stabilních bězích; do té doby nemá blokovat běžný build gate.
+Automatické PR běhy jsou další stabilizační fáze. Job zatím nemá být povinným branch protection checkem; toto nastavení má následovat až po alespoň 5–10 úspěšných PR bězích bez retry, ideálně nad různými změnami.
 
 Poznámky:
 - `e2e/.auth/*.json` je v `.gitignore`, soubory se necommitují.
