@@ -27,7 +27,7 @@ Rozsah potvrzeného MVP a navazující práci eviduje [řídicí checklist](docs
 
 ### Předpoklady
 
-- Node.js a npm; repozitář zatím nepřipíná podporovanou verzi, CI používá Node.js 20;
+- Node.js 22 LTS a npm; při použití nvm verzi aktivuje příkaz `nvm use`;
 - Docker pro lokální Supabase;
 - Supabase CLI spouštěné přes `npx` nebo nainstalované samostatně.
 
