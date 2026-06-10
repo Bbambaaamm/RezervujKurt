@@ -81,6 +81,41 @@ npm run dev
 
 Aplikace je lokálně dostupná na [http://localhost:3000](http://localhost:3000). Lokální e-maily s magic linkem lze otevřít v Mailpit rozhraní, jehož URL vypíše `npx supabase status`.
 
+### Řešení chyby `127.0.0.1:54321 refused to connect` u magic linku
+
+Magic link nejprve vede na Supabase Auth endpoint `/auth/v1/verify` a teprve po ověření přesměruje prohlížeč do aplikace. Adresa `127.0.0.1` proto funguje jen tehdy, když prohlížeč i Supabase běží na stejném počítači.
+
+#### Lokální vývoj na vlastním počítači
+
+Ověř, že současně běží Supabase i aplikace:
+
+```bash
+npx supabase status
+npm run dev
+```
+
+Pokud Supabase neběží, spusť ji příkazem `npx supabase start`. Potom si vyžádej nový magic link; starý odkaz mohl vypršet nebo už být použitý.
+
+#### GitHub Codespaces
+
+V Codespaces výpis `npx supabase status` stále ukazuje interní adresu `127.0.0.1:54321`, ale prohlížeč potřebuje veřejnou URL přesměrovaného portu. Použij projektový příkaz:
+
+```bash
+npm run supabase:start:codespaces
+```
+
+Příkaz automaticky:
+
+- odvodí veřejné adresy portů `3000` a `54321` z Codespaces proměnných;
+- spustí Supabase s veřejným `api.external_url`, aby `ConfirmationURL` v e-mailu neobsahovala `127.0.0.1`;
+- nastaví veřejný auth redirect a dočasně jej přidá do allowlistu;
+- aktualizuje ignorovaný `.env.local` pro frontend;
+- po startu obnoví verzovaný `supabase/config.toml`, takže hostname konkrétního Codespace nezůstane v Gitu.
+
+V panelu **Ports** nastav porty `3000` a `54321` na **Public**, restartuj `npm run dev` a vyžádej si nový magic link. Nový odkaz musí začínat veřejnou adresou ve tvaru `https://<CODESPACE_NAME>-54321.app.github.dev/auth/v1/verify` a parametr `redirect_to` musí mířit na veřejný port `3000` s cestou `/rezervace`.
+
+Pro nasazenou aplikaci tento vývojový příkaz nepoužívej. Produkční `NEXT_PUBLIC_SUPABASE_URL` musí ukazovat na hostovaný Supabase projekt a auth redirect na veřejnou HTTPS adresu aplikace.
+
 ## Kontroly kvality
 
 Základní kontroly odpovídající workflow **Build Gate**:
