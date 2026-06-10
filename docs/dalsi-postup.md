@@ -75,7 +75,7 @@ Podrobnější historický audit MVP je v `docs-next-step.md`. Tento dokument od
 
 Cíl fáze: odstranit mezery, které snižují reprodukovatelnost a spolehlivost každého dalšího pull requestu.
 
-## [-] T1 — Zprovoznit neinteraktivní ESLint kontrolu
+## [x] T1 — Zprovoznit neinteraktivní ESLint kontrolu
 
 **Priorita:** P0  
 **Problém:** `npm run lint` spouští interaktivní průvodce a v CI nebo neinteraktivním terminálu končí chybou.
@@ -99,9 +99,9 @@ Cíl fáze: odstranit mezery, které snižují reprodukovatelnost a spolehlivost
 - `npm run test`
 - `npm run build`
 
-**Potvrzení:** implementace a povinné lokální ověření `10. 6. 2026`; čeká na potvrzení vlastníka projektu a doplnění commit/PR důkazu.
+**Potvrzení:** dokončeno a technicky ověřeno `10. 6. 2026`; důkaz [PR #159](https://github.com/Bbambaaamm/RezervujKurt/pull/159/checks).
 
-## [-] T2 — Přidat lint do CI Build Gate
+## [x] T2 — Přidat lint do CI Build Gate
 
 **Priorita:** P0  
 **Závisí na:** T1
@@ -110,13 +110,13 @@ Cíl fáze: odstranit mezery, které snižují reprodukovatelnost a spolehlivost
 
 - [x] workflow `Build Gate` obsahuje samostatný lint krok;
 - [x] lint selhání zastaví job;
-- [ ] alespoň jeden pull request prokáže úspěšný běh celého workflow.
+- [x] alespoň jeden pull request prokáže úspěšný běh celého workflow.
 
 **Povinné ověření:** odkaz na úspěšný GitHub Actions běh.
 
-**Potvrzení:** implementace a lokální ověření `10. 6. 2026`; čeká na úspěšný GitHub Actions běh, potvrzení vlastníka projektu a doplnění commit/PR důkazu.
+**Potvrzení:** dokončeno a potvrzeno úspěšným Build Gate během `10. 6. 2026`; důkaz [PR #160](https://github.com/Bbambaaamm/RezervujKurt/pull/160/checks).
 
-## [-] T3 — Sjednotit README se skutečným stavem projektu
+## [x] T3 — Sjednotit README se skutečným stavem projektu
 
 **Priorita:** P1  
 **Problém:** README stále část projektu popisuje jako budoucí Supabase/auth základ, přestože core MVP je implementované.
@@ -131,9 +131,9 @@ Cíl fáze: odstranit mezery, které snižují reprodukovatelnost a spolehlivost
 
 **Povinné ověření:** ruční kontrola odkazů a příkazů na čistém checkoutu.
 
-**Potvrzení:** implementace a lokální kontrola `10. 6. 2026`; čeká na potvrzení vlastníka projektu a doplnění commit/PR důkazu.
+**Potvrzení:** dokončeno a ručně ověřeno `10. 6. 2026`; důkaz [PR #161](https://github.com/Bbambaaamm/RezervujKurt/pull/161) a navazující aktualizace [PR #169](https://github.com/Bbambaaamm/RezervujKurt/pull/169).
 
-## [-] T4 — Vyřešit dočasný adresář unit testů
+## [x] T4 — Vyřešit dočasný adresář unit testů
 
 **Priorita:** P2  
 **Problém:** `npm run test` po dokončení ponechává `.tmp-tests/` jako neversionovaný artefakt.
@@ -151,9 +151,9 @@ Cíl fáze: odstranit mezery, které snižují reprodukovatelnost a spolehlivost
 - `npm run test`
 - `git status --short`
 
-**Potvrzení:** implementace a povinné lokální ověření `10. 6. 2026`; čeká na potvrzení vlastníka projektu a doplnění commit/PR důkazu.
+**Potvrzení:** dokončeno a technicky ověřeno `10. 6. 2026`; důkaz [PR #162](https://github.com/Bbambaaamm/RezervujKurt/pull/162).
 
-## [-] T5 — Připnout podporovanou verzi Node.js
+## [x] T5 — Připnout podporovanou verzi Node.js
 
 **Priorita:** P1  
 **Problém:** CI používalo Node.js 20 po ukončení jeho podpory, zatímco lokální vývoj neměl podporovanou verzi formálně deklarovanou.
@@ -167,13 +167,13 @@ Cíl fáze: odstranit mezery, které snižují reprodukovatelnost a spolehlivost
 
 **Povinné ověření:** `node --version`, `npm ci`, `npm run test`, `npm run build`.
 
-**Potvrzení:** implementace a povinné lokální ověření na Node.js 22 LTS `10. 6. 2026`; čeká na potvrzení vlastníka projektu a doplnění commit/PR důkazu.
+**Potvrzení:** dokončeno a ověřeno v CI na Node.js 22 LTS `10. 6. 2026`; důkaz [PR #163](https://github.com/Bbambaaamm/RezervujKurt/pull/163/checks).
 
 ### Potvrzení dokončení Fáze 1
 
-- [ ] Všechny položky T1–T5 jsou dokončené nebo je vlastník projektu výslovně odložil.
-- [ ] Build Gate je zelený na reprezentativním pull requestu.
-- [ ] V tabulce Evidence dokončení jsou odkazy na výsledky.
+- [x] Všechny položky T1–T5 jsou dokončené nebo je vlastník projektu výslovně odložil.
+- [x] Build Gate je zelený na reprezentativním pull requestu.
+- [x] V tabulce Evidence dokončení jsou odkazy na výsledky.
 
 ---
 
@@ -526,10 +526,10 @@ Každý bod před zahájením musí dostat samostatná akceptační kritéria a 
 
 # 4. Souhrnný stav
 
-| Oblast | Stav při založení | Podmínka uzavření |
+| Oblast | Aktuální stav | Podmínka uzavření |
 |---|---|---|
 | Core MVP | Hotovo | Regresní testy zůstávají zelené |
-| Technický quality gate | Nehotovo | T1–T5 potvrzené |
+| Technický quality gate | Hotovo | T1–T5 potvrzené |
 | E2E stabilita v PR | Rozpracováno | E1–E4 potvrzené |
 | Staging a produkční připravenost | Neověřeno | P1–P7 potvrzené |
 | Produktové dokončení | Částečné | Potřebné F položky potvrzené nebo vědomě odložené |
@@ -537,9 +537,9 @@ Každý bod před zahájením musí dostat samostatná akceptační kritéria a 
 
 ## Doporučená nejbližší položka
 
-**T1 — Zprovoznit neinteraktivní ESLint kontrolu.**
+**E3 — Potvrdit provozní náklady lifecycle jobu.**
 
-Důvod: jde o malou, bezpečnou a dobře ověřitelnou změnu, která uzavře konkrétní mezeru současného quality gate a umožní navazující T2.
+Důvod: technický quality gate T1–T5 je potvrzený a evidence E2E běhů již obsahuje medián i nejhorší pozorovanou délku. Zbývá rozhodnout, zda jsou runtime, timeout a spotřeba GitHub Actions přijatelné před nastavením lifecycle jobu jako povinného checku.
 
 # 5. Evidence dokončení
 
@@ -547,7 +547,11 @@ Do této tabulky se zapisují pouze položky označené `[x]` po založení doku
 
 | ID | Datum | Commit / PR / Actions run | Ověřil | Poznámka |
 |---|---|---|---|---|
-| — | — | — | — | — |
+| T1 | 2026-06-10 | [PR #159 / commit `661846f`](https://github.com/Bbambaaamm/RezervujKurt/pull/159/checks) | vlastník projektu, technická kontrola Codex | Neinteraktivní lint, unit testy a build úspěšné; tři známá lint warnings bez chyb. |
+| T2 | 2026-06-10 | [PR #160 / commit `04f2f28`](https://github.com/Bbambaaamm/RezervujKurt/pull/160/checks) | vlastník projektu, technická kontrola Codex | Build Gate včetně lint kroku úspěšný. |
+| T3 | 2026-06-10 | [PR #161 / commit `0c14bbc`](https://github.com/Bbambaaamm/RezervujKurt/pull/161), [PR #169 / commit `f0ea454`](https://github.com/Bbambaaamm/RezervujKurt/pull/169) | vlastník projektu, technická kontrola Codex | README ručně porovnáno s konfigurací, skripty a související dokumentací. |
+| T4 | 2026-06-10 | [PR #162 / commit `e835b66`](https://github.com/Bbambaaamm/RezervujKurt/pull/162) | vlastník projektu, technická kontrola Codex | Po 125 úspěšných testech nezůstal `.tmp-tests/` ani změna pracovního stromu. |
+| T5 | 2026-06-10 | [PR #163 / commit `37867f7`](https://github.com/Bbambaaamm/RezervujKurt/pull/163/checks) | vlastník projektu, technická kontrola Codex | Node.js 22 je sjednocený v projektu i CI; Build Gate na Node.js 22 úspěšný. |
 
 # 6. Rozhodnutí a změny rozsahu
 
