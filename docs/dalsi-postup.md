@@ -153,21 +153,21 @@ Cíl fáze: odstranit mezery, které snižují reprodukovatelnost a spolehlivost
 
 **Potvrzení:** implementace a povinné lokální ověření `10. 6. 2026`; čeká na potvrzení vlastníka projektu a doplnění commit/PR důkazu.
 
-## [ ] T5 — Připnout podporovanou verzi Node.js
+## [-] T5 — Připnout podporovanou verzi Node.js
 
 **Priorita:** P1  
-**Problém:** CI používá Node.js 20, ale lokální vývoj nemá stejnou verzi formálně deklarovanou.
+**Problém:** CI používalo Node.js 20 po ukončení jeho podpory, zatímco lokální vývoj neměl podporovanou verzi formálně deklarovanou.
 
 **Akceptační kritéria:**
 
-- [ ] podporovaná verze je uvedena alespoň v `package.json` nebo standardním version souboru;
-- [ ] README používá stejnou verzi;
-- [ ] CI a lokální doporučení si neodporují;
-- [ ] `npm ci`, testy a build na zvolené verzi projdou.
+- [x] podporovaná verze je uvedena alespoň v `package.json` nebo standardním version souboru;
+- [x] README používá stejnou verzi;
+- [x] CI a lokální doporučení si neodporují;
+- [x] `npm ci`, testy a build na zvolené verzi projdou.
 
 **Povinné ověření:** `node --version`, `npm ci`, `npm run test`, `npm run build`.
 
-**Potvrzení:** datum `—`, důkaz `—`.
+**Potvrzení:** implementace a povinné lokální ověření na Node.js 22 LTS `10. 6. 2026`; čeká na potvrzení vlastníka projektu a doplnění commit/PR důkazu.
 
 ### Potvrzení dokončení Fáze 1
 
