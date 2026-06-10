@@ -183,6 +183,19 @@ Navazující lifecycle test spusť po bootstrapu:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 NEXT_PUBLIC_SUPABASE_ANON_KEY=<ANON_KEY> SUPABASE_SERVICE_ROLE_KEY=<SERVICE_ROLE_KEY> npm run test:e2e:lifecycle:with-auth-bootstrap
 ```
+### Ruční CI ověření autentizovaného lifecycle
+
+Workflow `.github/workflows/e2e-lifecycle.yml` je záměrně dostupný pouze přes `workflow_dispatch`. Na čistém GitHub runneru:
+
+1. nainstaluje připnutou verzi Supabase CLI,
+2. spustí lokální Supabase včetně migrací a seedu,
+3. exportuje lokální URL, anon key a service-role key do prostředí jobu,
+4. nainstaluje Playwright Chromium,
+5. spustí auth bootstrap a celý reservation lifecycle,
+6. při pádu uloží Playwright artefakty a vždy zastaví Supabase stack.
+
+Ruční trigger je přechodný bezpečnostní krok. Workflow se má rozšířit o `pull_request` až po několika stabilních bězích; do té doby nemá blokovat běžný build gate.
+
 Poznámky:
 - `e2e/.auth/*.json` je v `.gitignore`, soubory se necommitují.
 - Auth bootstrap je zapnutý jen pro auth script přes `PLAYWRIGHT_ENABLE_AUTH_SETUP=1`.

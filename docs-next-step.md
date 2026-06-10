@@ -121,7 +121,7 @@ Předchozí verze dokumentu obsahovala interní rozpory (např. otevřené dluhy
 Následující body jsou záměrně oddělené jako budoucí rozvoj mimo scope původního MVP plánu:
 
 1. Rozšířená observabilita (strukturované logování, metriky, alerting).
-2. Stabilizace E2E smoke scénářů nad runtime prostředím a jejich pozdější zapojení do CI.
+2. Stabilizace E2E smoke scénářů v ručně spouštěném CI runtime a následné povýšení na automatický PR gate.
 3. Produktové UX enhancementy (např. pokročilejší lokalizovaný date/time picker).
 4. Operational playbook (incident checklist, release runbook).
 
@@ -148,20 +148,21 @@ Následující body jsou záměrně oddělené jako budoucí rozvoj mimo scope p
 - Approve lifecycle: implementován v `e2e/smoke.reservation-lifecycle.spec.ts`.
 - Cancel/release lifecycle: implementován přes oprávněný member flow v `/moje-rezervace`; veřejný grid následně ověřuje uvolnění slotu.
 - Bezpečný cleanup: lifecycle používá unikátní poznámku `E2E-LIFECYCLE` a cleanup před testem i v `finally` bez globálního mazání dat.
-- Automatizovaný běh v CI: budoucí krok až po opakovaně stabilním lokálním průchodu nad čistou Supabase.
+- Ruční CI runtime ověření: implementováno v `.github/workflows/e2e-lifecycle.yml`; workflow na čistém GitHub runneru spustí lokální Supabase, auth bootstrap a celý lifecycle.
+- Povinný automatický PR gate: zatím záměrně nezapojen, dokud ruční workflow neprokáže opakovanou stabilitu.
 
 ### Doporučený další krok
-**Cíl:** runtime ověřit celý autentizovaný lifecycle nad čistou lokální Supabase a teprve poté jej zapojit do CI.
+**Cíl:** ověřit stabilitu autentizovaného lifecycle v reprodukovatelném CI runtime a až poté jej povýšit na automatický gate.
 
-1. Spustit `npx supabase db reset` a získat lokální anon/service-role klíče z `npx supabase status`.
-2. Spustit `npm run test:e2e:lifecycle:with-auth-bootstrap` s lokálními Supabase proměnnými prostředí.
-3. Ověřit opakovaně celý invariant:
+1. V GitHub Actions ručně spustit workflow `E2E Lifecycle Verification`.
+2. Ověřit několik po sobě jdoucích úspěšných běhů nad čistou lokální Supabase:
    - `pending` blokuje slot,
    - `approved` blokuje slot,
    - `cancelled` slot uvolní.
-4. Pokud je scénář stabilní, přidat samostatný CI job se Supabase CLI a Playwright Chromium; neměnit kvůli tomu produkční auth logiku.
+3. Při selhání stáhnout artefakt `playwright-lifecycle-failure` a odstranit konkrétní zdroj nestability; nesnižovat kvůli tomu ochrany produkční auth logiky.
+4. Po stabilizaci rozšířit trigger workflow o `pull_request` (případně `push` do `main`) a rozhodnout, zda má být job povinným branch protection checkem.
 
-**Aktuální omezení tohoto pracovního prostředí:** Supabase CLI ani Docker nejsou dostupné a stažení CLI přes `npx` končí HTTP 403. Kompletní runtime průchod zde proto nebylo možné potvrdit; nejde o potvrzenou chybu aplikace.
+**Aktuální omezení tohoto pracovního prostředí:** Supabase CLI ani Docker nejsou dostupné a stažení CLI přes `npx` končí HTTP 403. Kompletní runtime průchod zde proto stále nelze provést lokálně; nově přidaný ruční GitHub Actions workflow slouží jako izolované ověřovací prostředí, nikoli jako potvrzení úspěšného runtime běhu.
 
 ---
 
