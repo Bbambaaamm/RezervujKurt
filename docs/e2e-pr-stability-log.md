@@ -12,6 +12,8 @@ Ověřit stabilitu workflow `E2E Lifecycle Verification` v automatickém PR prov
 - Ruční běhy přes `workflow_dispatch`, zrušené běhy a běhy s přeskočeným lifecycle jobem se do vzorku nezapočítávají.
 - Běh se zapisuje až po dokončení, aby evidence neobsahovala dlouhodobý stav „Čeká na ověření“.
 - Selhání se klasifikuje jako produktová regrese, nestabilita testu, problém testovacích dat nebo problém CI infrastruktury. Neznámá příčina zůstává otevřeným blokátorem.
+- Klasifikace musí vycházet z prvního neúspěšného pokusu. Úspěšný retry je signál možné nestability, nikoli důvod původní selhání ignorovat.
+- U každého selhání se zapisuje konkrétní příčina, navazující oprava nebo issue a výsledek opakovaného ověření.
 - Evidence se aktualizuje v některém následujícím PR; dodatečný commit pouze kvůli výsledku právě běžícího checku by spustil nový běh a znejasnil vyhodnocení.
 
 ## Evidence automatických PR běhů
@@ -23,7 +25,7 @@ Ověřit stabilitu workflow `E2E Lifecycle Verification` v automatickém PR prov
 | 3 | [#161](https://github.com/Bbambaaamm/RezervujKurt/pull/161) | [run 27291238013](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27291238013) | `0c14bbc` | Dokumentace | Úspěch | 3m 2s | První evidovaný pokus, bez retry |
 | 4 | [#162](https://github.com/Bbambaaamm/RezervujKurt/pull/162) | [run 27292237088](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27292237088) | `e835b66` | Testovací infrastruktura | Úspěch | 3m 9s | První evidovaný pokus, bez retry |
 | 5 | [#163](https://github.com/Bbambaaamm/RezervujKurt/pull/163) | [run 27292820773](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27292820773) | `37867f7` | Runtime a CI konfigurace | Úspěch | 4m 4s | První evidovaný pokus, bez retry |
-| 6 | — | — | — | — | — | — | — |
+| 6 | [#164](https://github.com/Bbambaaamm/RezervujKurt/pull/164) | [run 27294076829](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27294076829) | `dd460e9` | E2E evidence a řídicí checklist | Úspěch | 3m 21s | První evidovaný pokus, bez retry |
 | 7 | — | — | — | — | — | — | — |
 | 8 | — | — | — | — | — | — | — |
 | 9 | — | — | — | — | — | — | — |
@@ -31,14 +33,28 @@ Ověřit stabilitu workflow `E2E Lifecycle Verification` v automatickém PR prov
 
 ## Průběžné vyhodnocení
 
-K 10. 6. 2026 je evidováno pět dokončených automatických PR běhů bez retry. Vzorek obsahuje čtyři nedokumentační změny a jednu dokumentační změnu. Medián délky lifecycle jobu je `3m 9s`, nejhorší pozorovaná délka je `4m 4s`; jde o průběžný podklad pro E3, nikoli o potvrzení přijatelnosti provozních nákladů vlastníkem projektu.
+K 10. 6. 2026 je evidováno šest dokončených automatických PR běhů bez retry. Vzorek obsahuje čtyři nedokumentační změny a dvě dokumentační změny. Žádný z evidovaných prvních pokusů neselhal, takže nevzniklo selhání vyžadující klasifikaci ani otevřený nevysvětlený blokátor. Medián délky lifecycle jobu je `3m 9s`, nejhorší pozorovaná délka je `4m 4s`; jde o průběžný podklad pro E3, nikoli o potvrzení přijatelnosti provozních nákladů vlastníkem projektu.
 
 ## Postup zápisu dokončeného běhu
 
 1. V detailu GitHub Actions ověřit událost `pull_request`, název jobu `Auth lifecycle nad lokální Supabase` a první pokus bez retry.
 2. Zapsat odkazy na PR a konkrétní Actions run, krátký commit SHA, typ změny, závěr prvního pokusu a délku jobu.
-3. Při selhání stáhnout artefakt `playwright-lifecycle-failure`, určit klasifikaci a uvést odkaz na navazující opravu nebo issue.
-4. Zrušený nebo ručně spuštěný běh nezapisovat jako úspěšný ani neúspěšný vzorek.
+3. Při selhání stáhnout artefakt `playwright-lifecycle-failure` a pro první neúspěšný pokus projít Playwright trace, screenshot, chybový kontext a log kroku workflow.
+4. Zapsat jednu z povolených klasifikací, konkrétní příčinu, odkaz na opravu nebo issue a výsledek navazujícího ověření. Pokud příčinu nelze doložit, ponechat ji jako otevřený blokátor.
+5. Zrušený nebo ručně spuštěný běh nezapisovat jako úspěšný ani neúspěšný vzorek.
+
+## Diagnostika selhání
+
+Playwright ukládá trace každého neúspěšného pokusu do `test-results/` a při selhání po vytvoření stránky také screenshot. Workflow tento adresář při selhání nahraje jako artefakt `playwright-lifecycle-failure`, takže je zachovaný i rozhodující první pokus před případným retry. Infrastrukturní chyby před spuštěním browseru se určují z trace a logu workflow; screenshot u nich nemusí existovat.
+
+Při klasifikaci použijte následující rozlišení:
+
+- **produktová regrese** — aplikace, auth nebo databázové chování neodpovídá očekávanému produkčnímu kontraktu;
+- **nestabilita testu** — produktový stav je správný, ale test závisí na nespolehlivém čekání, selektoru nebo pořadí;
+- **problém testovacích dat** — příčinou je kolize, neprovedený cleanup nebo neplatný fixture stav;
+- **problém CI infrastruktury** — selže runner, instalace, lokální Supabase, síť nebo jiná infrastruktura mimo produkt a testovací data.
+
+Klasifikace nesmí vést k oslabení produkční autentizace, RLS politik ani databázové ochrany proti kolizím pouze proto, aby E2E test prošel.
 
 ## Kritéria pro nastavení povinného checku
 
