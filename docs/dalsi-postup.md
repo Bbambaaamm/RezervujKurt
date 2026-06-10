@@ -195,19 +195,19 @@ Cíl fáze: prokázat, že autentizovaný lifecycle test je dostatečně stabiln
 
 **Potvrzení:** minimální vzorek pěti automatických PR běhů doplněn `10. 6. 2026`; čeká na potvrzení vlastníka projektu a případné rozšíření na doporučených deset běhů.
 
-## [ ] E2 — Vyhodnotit každé E2E selhání
+## [-] E2 — Vyhodnotit každé E2E selhání
 
 **Priorita:** P0  
 **Závisí na:** průběžných výsledcích E1
 
 **Akceptační kritéria:**
 
-- [ ] každé selhání je klasifikované jako produktová regrese, nestabilita testu, problém dat nebo CI infrastruktury;
-- [ ] žádné nevysvětlené selhání nezůstává uzavřené bez dalšího kroku;
-- [ ] opravy nesnižují produkční auth nebo RLS ochrany jen kvůli testu;
-- [ ] diagnostické artefakty stačí k určení příčiny.
+- [x] každé dosud evidované selhání je klasifikované jako produktová regrese, nestabilita testu, problém dat nebo CI infrastruktury; ve vzorku E1 dosud žádné selhání nenastalo;
+- [x] žádné nevysvětlené selhání nezůstává uzavřené bez dalšího kroku;
+- [x] opravy nesnižují produkční auth nebo RLS ochrany jen kvůli testu;
+- [x] diagnostické artefakty zachovávají a publikují trace každého neúspěšného pokusu včetně prvního pokusu před úspěšným retry a screenshot, pokud selhání nastane po vytvoření stránky.
 
-**Potvrzení:** datum `—`, důkaz `—`.
+**Potvrzení:** dosavadní běhy a diagnostický postup vyhodnoceny `10. 6. 2026`; čeká na úspěšný běh upraveného workflow, průběžné vyhodnocování budoucích selhání a potvrzení vlastníka projektu.
 
 ## [ ] E3 — Potvrdit provozní náklady lifecycle jobu
 
