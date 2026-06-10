@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { buildOtpPayload, getSupabaseOtpRequestConfig, isValidOtpEmail } from '@/lib/supabase/otp-proxy';
+import { buildOtpPayload, buildSupabaseOtpEndpoint, getSupabaseOtpRequestConfig, isValidOtpEmail } from '@/lib/supabase/otp-proxy';
 import { resolveOtpRouteRedirectTo } from '@/lib/supabase/otp-route-payload';
 
 export async function POST(request: NextRequest) {
@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const { endpoint, headers } = getSupabaseOtpRequestConfig();
+    const otpEndpoint = buildSupabaseOtpEndpoint(endpoint, supabasePayload.redirect_to);
 
     if (process.env.NODE_ENV === 'development') {
       console.info('[auth] otp proxy redirect_to:', {
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
       console.info('[auth] otp proxy supabase payload:', supabasePayload);
     }
 
-    const response = await fetch(endpoint, {
+    const response = await fetch(otpEndpoint, {
       method: 'POST',
       headers,
       body: JSON.stringify(supabasePayload),
