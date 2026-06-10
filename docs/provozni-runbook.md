@@ -8,10 +8,10 @@ Před použitím runbooku musí vlastník projektu doplnit následující údaje
 
 | Role | Odpovědnost | Povinný kontakt mimo repozitář |
 |---|---|---|
-| Release owner | rozhodnutí GO/NO-GO, potvrzení commitu a koordinace nasazení | jméno a primární komunikační kanál |
-| Database owner | migrace, záloha, kontrola RLS a databázový rollback/forward fix | jméno a eskalační kontakt |
-| Incident owner | převzetí incidentu, komunikace a rozhodnutí o omezení provozu | jméno, telefon nebo pohotovostní kanál |
-| Product owner | rozhodnutí o přijatelnosti výpadku a ručním zpracování rezervací | jméno a primární komunikační kanál |
+| Release owner | rozhodnutí GO/NO-GO, potvrzení commitu a koordinace nasazení | Michal Bartoněk |
+| Database owner | migrace, záloha, kontrola RLS a databázový rollback/forward fix | Michal Bartoněk |
+| Incident owner | převzetí incidentu, komunikace a rozhodnutí o omezení provozu | Michal Bartoněk |
+| Product owner | rozhodnutí o přijatelnosti výpadku a ručním zpracování rezervací | Michal Bartoněk |
 
 Release se nesmí zahájit, pokud není pro daný termín dostupný alespoň release owner a database owner. Produkční provoz se nesmí označit za připravený bez určeného incident ownera.
 
