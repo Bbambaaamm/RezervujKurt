@@ -55,6 +55,46 @@ test('Codespaces helper po SIGINT obnoví původní Supabase konfiguraci', async
   }
 });
 
+test('Codespaces helper nespouští nepoužívané služby s problematickými healthchecky', async () => {
+  const fixtureRoot = await mkdtemp(join(tmpdir(), 'rezervujkurt-codespaces-'));
+  const supabaseDirectory = join(fixtureRoot, 'supabase');
+  const binDirectory = join(fixtureRoot, 'bin');
+  const configPath = join(supabaseDirectory, 'config.toml');
+  const callsPath = join(fixtureRoot, 'npx-calls');
+
+  await mkdir(supabaseDirectory, { recursive: true });
+  await mkdir(binDirectory, { recursive: true });
+  await writeFile(configPath, originalConfig);
+
+  const fakeNpxPath = join(binDirectory, 'npx');
+  await writeFile(fakeNpxPath, `#!/bin/sh\nprintf '%s\\n' "$*" >> "${callsPath}"\n`);
+  await chmod(fakeNpxPath, 0o755);
+
+  try {
+    const child = spawn(process.execPath, [helperPath], {
+      env: {
+        ...process.env,
+        CODESPACE_NAME: 'test-space',
+        GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN: 'app.github.dev',
+        PATH: `${binDirectory}:${process.env.PATH ?? ''}`,
+        REZERVUJKURT_PROJECT_ROOT: fixtureRoot,
+      },
+      stdio: 'ignore',
+    });
+    const result = await waitForExit(child);
+
+    assert.equal(result.code, 0);
+    assert.equal(result.signal, null);
+    assert.deepEqual((await readFile(callsPath, 'utf8')).trim().split('\n'), [
+      'supabase stop',
+      'supabase start --exclude storage-api,imgproxy,logflare,vector',
+    ]);
+    assert.equal(await readFile(configPath, 'utf8'), originalConfig);
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+  }
+});
+
 async function waitFor(check: () => Promise<boolean>, timeoutMs = 5_000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
 

@@ -108,6 +108,7 @@ Příkaz automaticky:
 
 - odvodí veřejné adresy portů `3000` a `54321` z Codespaces proměnných;
 - spustí Supabase s veřejným `api.external_url`, aby `ConfirmationURL` v e-mailu neobsahovala `127.0.0.1`;
+- v Codespaces vynechá nepoužívané služby Storage, Imgproxy, Logflare a Vector, jejichž healthcheck může v dev containeru selhat i po úspěšném startu procesu;
 - nastaví veřejný auth redirect a dočasně jej přidá do allowlistu;
 - aktualizuje ignorovaný `.env.local` pro frontend;
 - po startu obnoví verzovaný `supabase/config.toml`, takže hostname konkrétního Codespace nezůstane v Gitu.
