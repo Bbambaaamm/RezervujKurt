@@ -209,18 +209,18 @@ Cíl fáze: prokázat, že autentizovaný lifecycle test je dostatečně stabiln
 
 **Potvrzení:** dosavadní běhy a diagnostický postup vyhodnoceny `10. 6. 2026`; čeká na úspěšný běh upraveného workflow, průběžné vyhodnocování budoucích selhání a potvrzení vlastníka projektu.
 
-## [ ] E3 — Potvrdit provozní náklady lifecycle jobu
+## [x] E3 — Potvrdit provozní náklady lifecycle jobu
 
 **Priorita:** P1
 
 **Akceptační kritéria:**
 
-- [ ] je známý přibližný medián délky jobu;
-- [ ] je známá nejhorší pozorovaná délka;
-- [ ] timeout 20 minut je potvrzený jako přiměřený nebo upravený s odůvodněním;
-- [ ] spotřeba GitHub Actions je pro každý PR přijatelná.
+- [x] je známý přibližný medián délky jobu;
+- [x] je známá nejhorší pozorovaná délka;
+- [x] timeout 20 minut je potvrzený jako přiměřený nebo upravený s odůvodněním;
+- [x] spotřeba GitHub Actions je pro každý PR přijatelná.
 
-**Potvrzení:** datum `—`, důkaz `—`.
+**Potvrzení:** dokončeno `10. 6. 2026`; nákladový rozbor a podmínky opětovného posouzení jsou v `docs/e2e-pr-stability-log.md`, důkaz commit `8dcd757`.
 
 ## [ ] E4 — Nastavit lifecycle jako povinný check
 
@@ -537,9 +537,9 @@ Každý bod před zahájením musí dostat samostatná akceptační kritéria a 
 
 ## Doporučená nejbližší položka
 
-**E3 — Potvrdit provozní náklady lifecycle jobu.**
+**E1 a E2 — Potvrdit reprezentativnost a diagnostickou připravenost E2E evidence.**
 
-Důvod: technický quality gate T1–T5 je potvrzený a evidence E2E běhů již obsahuje medián i nejhorší pozorovanou délku. Zbývá rozhodnout, zda jsou runtime, timeout a spotřeba GitHub Actions přijatelné před nastavením lifecycle jobu jako povinného checku.
+Důvod: technické podmínky obou položek jsou splněné a E3 potvrdilo přijatelné provozní náklady. Před E4 ještě musí vlastník projektu potvrdit minimální vzorek E1 a úspěšný běh workflow s diagnostickými artefakty podle E2; teprve potom lze lifecycle bezpečně nastavit jako povinný check.
 
 # 5. Evidence dokončení
 
@@ -552,6 +552,7 @@ Do této tabulky se zapisují pouze položky označené `[x]` po založení doku
 | T3 | 2026-06-10 | [PR #161 / commit `0c14bbc`](https://github.com/Bbambaaamm/RezervujKurt/pull/161), [PR #169 / commit `f0ea454`](https://github.com/Bbambaaamm/RezervujKurt/pull/169) | vlastník projektu, technická kontrola Codex | README ručně porovnáno s konfigurací, skripty a související dokumentací. |
 | T4 | 2026-06-10 | [PR #162 / commit `e835b66`](https://github.com/Bbambaaamm/RezervujKurt/pull/162) | vlastník projektu, technická kontrola Codex | Po 125 úspěšných testech nezůstal `.tmp-tests/` ani změna pracovního stromu. |
 | T5 | 2026-06-10 | [PR #163 / commit `37867f7`](https://github.com/Bbambaaamm/RezervujKurt/pull/163/checks) | vlastník projektu, technická kontrola Codex | Node.js 22 je sjednocený v projektu i CI; Build Gate na Node.js 22 úspěšný. |
+| E3 | 2026-06-10 | commit `8dcd757` | vlastník projektu, technická kontrola Codex | Medián `3m 9s`, maximum `4m 4s`; 20minutový timeout ponechán a provoz standardního runneru ve veřejném repozitáři vyhodnocen jako přijatelný. |
 
 # 6. Rozhodnutí a změny rozsahu
 

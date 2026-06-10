@@ -33,7 +33,31 @@ Ověřit stabilitu workflow `E2E Lifecycle Verification` v automatickém PR prov
 
 ## Průběžné vyhodnocení
 
-K 10. 6. 2026 je evidováno šest dokončených automatických PR běhů bez retry. Vzorek obsahuje čtyři nedokumentační změny a dvě dokumentační změny. Žádný z evidovaných prvních pokusů neselhal, takže nevzniklo selhání vyžadující klasifikaci ani otevřený nevysvětlený blokátor. Medián délky lifecycle jobu je `3m 9s`, nejhorší pozorovaná délka je `4m 4s`; jde o průběžný podklad pro E3, nikoli o potvrzení přijatelnosti provozních nákladů vlastníkem projektu.
+K 10. 6. 2026 je evidováno šest dokončených automatických PR běhů bez retry. Vzorek obsahuje čtyři nedokumentační změny a dvě dokumentační změny. Žádný z evidovaných prvních pokusů neselhal, takže nevzniklo selhání vyžadující klasifikaci ani otevřený nevysvětlený blokátor. Medián délky lifecycle jobu je `3m 9s` a nejhorší pozorovaná délka je `4m 4s`.
+
+## Vyhodnocení provozních nákladů
+
+Vyhodnocení vychází ze šesti běhů uvedených výše a z konfigurace standardního runneru `ubuntu-latest` s limitem `timeout-minutes: 20`.
+
+| Ukazatel | Výsledek | Dopad |
+|---|---:|---|
+| Součet skutečné délky vzorku | `19m 51s` | Průměrně přibližně `3m 19s` na PR |
+| Medián skutečné délky | `3m 9s` | Běžný PR čeká na lifecycle přibližně tři minuty |
+| Nejhorší pozorovaná délka | `4m 4s` | Dosavadní maximum využívá přibližně 20 % timeoutu |
+| Konzervativní účtovací odhad vzorku | `25 minut` | GitHub u privátních repozitářů zaokrouhluje každý job nahoru na celou minutu |
+| Konzervativní odhad pro 100 PR za měsíc | `400 minut` | Odhad používá čtyři účtované minuty na typický běh bez retry |
+
+Repozitář je k datu vyhodnocení veřejný a workflow používá standardní GitHub-hosted runner. Podle dokumentace GitHubu proto běhy nemají účtované Actions minuty. Pokud by se repozitář změnil na privátní, je nutné odhad znovu porovnat s tarifem vlastníka; při současném mediánu odpovídá jeden úspěšný běh konzervativně čtyřem účtovaným minutám. Diagnostický artefakt se nahrává pouze při vzniku souborů v `test-results/` a má retenční dobu sedm dní, takže šest úspěšných běhů nevytvořilo evidovaný artefaktový náklad.
+
+Timeout 20 minut zůstává přiměřený. Je téměř pětinásobkem nejhorší pozorované délky, ponechává rezervu pro první stažení Docker obrazů a pomalejší GitHub runner, ale stále ukončí zaseknutý lokální Supabase nebo Playwright běh výrazně dříve než výchozí šestihodinový limit GitHub-hosted jobu. Zkrácení timeoutu by při malém vzorku nepřineslo měřitelnou úsporu běžných úspěšných běhů, protože timeout není rezervovaná ani předem účtovaná kapacita.
+
+**Závěr:** provozní náklady lifecycle jobu jsou pro spuštění na každém pull requestu přijatelné. Předpoklad platí, dokud repozitář zůstává veřejný, používá standardní runner a délka jobu se významně nezvýší. Náklady je vhodné znovu posoudit při změně viditelnosti repozitáře, runneru, překročení deseti minut mediánu nebo při pravidelných retry.
+
+**Použité externí podklady (ověřeno 10. 6. 2026):**
+
+- [GitHub Actions billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions) — standardní GitHub-hosted runnery jsou pro veřejné repozitáře bez účtovaných minut;
+- [Viewing job execution time](https://docs.github.com/en/actions/monitoring-and-troubleshooting-workflows/monitoring-workflows/viewing-job-execution-time) — u privátních repozitářů se účtované minuty jobu zaokrouhlují nahoru;
+- [GitHub-hosted runners reference](https://docs.github.com/en/actions/reference/runners/github-hosted-runners) — `ubuntu-latest` patří mezi standardní GitHub-hosted runnery.
 
 ## Postup zápisu dokončeného běhu
 
