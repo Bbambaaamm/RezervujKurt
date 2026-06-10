@@ -23,15 +23,70 @@ Rozsah potvrzeného MVP a navazující práci eviduje [řídicí checklist](docs
 - Node.js test runner a Playwright;
 - GitHub Actions pro build gate a E2E lifecycle.
 
+## Rychlý start v GitHub Codespaces
+
+Codespaces je doporučená cesta, pokud nechceš lokálně připravovat Node.js a Docker. Postup počítá s novým Codespace vytvořeným z tohoto repozitáře.
+
+### 1. Nainstaluj závislosti
+
+```bash
+npm ci
+```
+
+### 2. Spusť lokální Supabase pro Codespaces
+
+```bash
+npm run supabase:start:codespaces
+```
+
+Příkaz odvodí veřejné adresy z Codespaces prostředí, spustí lokální Supabase a zapíše URL aplikace a API do ignorovaného souboru `.env.local`. Verzovaný `supabase/config.toml` po startu vrátí do původního stavu. Při prvním běhu může stažení Supabase CLI a Docker obrazů trvat několik minut.
+
+Potom zobraz lokální klíče:
+
+```bash
+npx supabase status
+```
+
+Z výpisu zkopíruj hodnotu **anon key** do `.env.local`:
+
+```dotenv
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<lokální anon key>
+```
+
+Tento krok je na čistém checkoutu nutný: Codespaces skript automaticky nastavuje URL, ale lokální anon key do souboru nedoplňuje.
+
+### 3. Spusť aplikaci
+
+```bash
+npm run dev
+```
+
+V panelu **Ports** nastav porty `3000` a `54321` na **Public**. U portu `3000` zvol **Open in Browser**. Port `54321` musí být veřejný, aby šel otevřít Supabase magic link; port `3000` musí být veřejný, aby se z něj přihlášení mohlo vrátit do aplikace.
+
+Pro přihlášení otevři Mailpit přes port `54324` v panelu **Ports**, v aplikaci si vyžádej magic link a otevři nejnovější zprávu. Odkaz musí používat adresu ve tvaru `https://<CODESPACE_NAME>-54321.app.github.dev/auth/v1/verify` a vracet se na port `3000` s cestou `/rezervace`.
+
+> Po změně `.env.local` vždy restartuj `npm run dev`, protože Next.js načítá veřejné proměnné při startu serveru.
+
+### Další spuštění stejného Codespace
+
+Po zastavení nebo restartu Codespace spusť znovu:
+
+```bash
+npm run supabase:start:codespaces
+npm run dev
+```
+
+Pokud se změnil název Codespace nebo jeho veřejné URL, skript `.env.local` aktualizuje. Hodnota `NEXT_PUBLIC_SUPABASE_ANON_KEY` zůstane zachovaná.
+
 ## Lokální spuštění
 
 ### Předpoklady
 
-- Node.js 22 LTS a npm; při použití nvm verzi aktivuje příkaz `nvm use`;
-- Docker pro lokální Supabase;
+- Node.js 22 LTS a npm; při použití nvm aktivuj verzi příkazem `nvm use`;
+- běžící Docker;
 - Supabase CLI spouštěné přes `npx` nebo nainstalované samostatně.
 
-### 1. Instalace závislostí
+### 1. Nainstaluj závislosti
 
 Na čistém checkoutu použij reprodukovatelnou instalaci podle `package-lock.json`:
 
@@ -39,83 +94,75 @@ Na čistém checkoutu použij reprodukovatelnou instalaci podle `package-lock.js
 npm ci
 ```
 
-### 2. Spuštění lokální Supabase
+### 2. Spusť lokální Supabase
 
 ```bash
 npx supabase start
 ```
 
-První spuštění stáhne potřebné kontejnery. Migrace a seed se při čistém startu aplikují z adresáře `supabase/`. Pro opětovné vytvoření lokální databáze použij:
+První spuštění stáhne potřebné kontejnery. Migrace a seed se při čistém startu aplikují z adresáře `supabase/`. Stav služeb a lokální klíče zobrazíš příkazem:
+
+```bash
+npx supabase status
+```
+
+Pro opětovné vytvoření databáze použij `npx supabase db reset`. Reset odstraní všechna aktuální data v lokální databázi a znovu aplikuje migrace a seed.
+
+### 3. Nastav prostředí
+
+Vytvoř lokální konfiguraci z připravené šablony:
+
+```bash
+cp .env.example .env.local
+```
+
+V `.env.local` nahraď `your-local-anon-key` hodnotou **anon key** z `npx supabase status`. Pro standardní lokální běh ponech tyto hodnoty:
+
+```dotenv
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<lokální anon key>
+NEXT_PUBLIC_SUPABASE_REDIRECT_URL=http://localhost:3000/rezervace
+NEXT_PUBLIC_SUPABASE_AUTH_REDIRECT_URL=http://localhost:3000/rezervace
+```
+
+Soubor `.env.local` se necommituje.
+
+| Proměnná | Povinnost | Účel |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | ano | URL Supabase API používaná aplikací. |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ano | Veřejný anon/publishable klíč pro klientská a veřejná API volání. |
+| `NEXT_PUBLIC_SUPABASE_REDIRECT_URL` | doporučeno | Absolutní URL pro návrat z magic linku; aplikace vždy použije cestu `/rezervace`. |
+| `NEXT_PUBLIC_SUPABASE_AUTH_REDIRECT_URL` | volitelná kompatibilita | Starší alternativa redirect URL; při nastavení obou proměnných má přednost `NEXT_PUBLIC_SUPABASE_REDIRECT_URL`. |
+| `SUPABASE_SERVICE_ROLE_KEY` | pouze autentizované E2E | Serverový klíč pro přípravu profilů a cílený úklid E2E dat; nesmí se použít ve frontend kódu ani commitnout. |
+
+### 4. Spusť aplikaci
+
+```bash
+npm run dev
+```
+
+Aplikace je dostupná na [http://localhost:3000](http://localhost:3000). Lokální e-maily s magic linkem otevřeš v Mailpit rozhraní, jehož URL vypíše `npx supabase status`.
+
+## Řešení častých problémů
+
+### Magic link hlásí `127.0.0.1:54321 refused to connect`
+
+- **Lokálně:** ověř `npx supabase status`; pokud služby neběží, spusť `npx supabase start`. Potom si vyžádej nový magic link, protože starý mohl vypršet nebo už být použitý.
+- **V Codespaces:** nepoužívej běžné `npx supabase start`. Spusť `npm run supabase:start:codespaces`, nastav porty `3000` a `54321` na **Public**, restartuj `npm run dev` a vyžádej si nový magic link.
+
+### Aplikace hlásí chybějící Supabase konfiguraci
+
+Ověř, že `.env.local` obsahuje neprázdné hodnoty `NEXT_PUBLIC_SUPABASE_URL` a `NEXT_PUBLIC_SUPABASE_ANON_KEY`, a poté restartuj vývojový server.
+
+### Supabase po změně migrací používá staré schéma
 
 ```bash
 npx supabase db reset
 ```
 
-Pozor: reset odstraní aktuální lokální databázová data.
+Tento příkaz smaže lokální databázová data. Nepoužívej jej proti hostovanému produkčnímu projektu.
 
-### 3. Nastavení prostředí
-
-Vytvoř `.env.local` a doplň hodnoty vypsané příkazem `npx supabase status`:
-
-```dotenv
-NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<lokální anon key>
-NEXT_PUBLIC_SUPABASE_REDIRECT_URL=http://localhost:3000
-```
-
-| Proměnná | Povinnost | Účel |
-|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | ano | URL Supabase API používaná aplikací |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ano | veřejný anon/publishable klíč pro klientská a veřejná API volání |
-| `NEXT_PUBLIC_SUPABASE_REDIRECT_URL` | doporučeno | veřejný origin aplikace pro návrat z magic linku |
-| `NEXT_PUBLIC_SUPABASE_AUTH_REDIRECT_URL` | volitelná kompatibilita | starší alternativa redirect originu; pokud je nastavena i předchozí proměnná, přednost má `NEXT_PUBLIC_SUPABASE_REDIRECT_URL` |
-| `SUPABASE_SERVICE_ROLE_KEY` | pouze autentizované E2E | serverový klíč pro přípravu profilů a cílený úklid E2E dat; nesmí se použít ve frontend kódu ani commitnout |
-
-Soubor `.env.local` se necommituje. V Codespaces použij pro frontend i Supabase API veřejné URL přesměrovaných portů `3000` a `54321`. Stejný frontend host nastav také do `auth.site_url` a `auth.additional_redirect_urls` v lokální `supabase/config.toml` a poté Supabase restartuj. Verzovaná konfigurace musí zůstat na bezpečných `localhost` výchozích hodnotách.
-
-### 4. Spuštění aplikace
-
-```bash
-npm run dev
-```
-
-Aplikace je lokálně dostupná na [http://localhost:3000](http://localhost:3000). Lokální e-maily s magic linkem lze otevřít v Mailpit rozhraní, jehož URL vypíše `npx supabase status`.
-
-### Řešení chyby `127.0.0.1:54321 refused to connect` u magic linku
-
-Magic link nejprve vede na Supabase Auth endpoint `/auth/v1/verify` a teprve po ověření přesměruje prohlížeč do aplikace. Adresa `127.0.0.1` proto funguje jen tehdy, když prohlížeč i Supabase běží na stejném počítači.
-
-#### Lokální vývoj na vlastním počítači
-
-Ověř, že současně běží Supabase i aplikace:
-
-```bash
-npx supabase status
-npm run dev
-```
-
-Pokud Supabase neběží, spusť ji příkazem `npx supabase start`. Potom si vyžádej nový magic link; starý odkaz mohl vypršet nebo už být použitý.
-
-#### GitHub Codespaces
-
-V Codespaces výpis `npx supabase status` stále ukazuje interní adresu `127.0.0.1:54321`, ale prohlížeč potřebuje veřejnou URL přesměrovaného portu. Použij projektový příkaz:
-
-```bash
-npm run supabase:start:codespaces
-```
-
-Příkaz automaticky:
-
-- odvodí veřejné adresy portů `3000` a `54321` z Codespaces proměnných;
-- spustí Supabase s veřejným `api.external_url`, aby `ConfirmationURL` v e-mailu neobsahovala `127.0.0.1`;
-- v Codespaces vynechá nepoužívané služby Storage, Imgproxy, Logflare a Vector, jejichž healthcheck může v dev containeru selhat i po úspěšném startu procesu;
-- nastaví veřejný auth redirect a dočasně jej přidá do allowlistu;
-- aktualizuje ignorovaný `.env.local` pro frontend;
-- po startu obnoví verzovaný `supabase/config.toml`, takže hostname konkrétního Codespace nezůstane v Gitu.
-
-V panelu **Ports** nastav porty `3000` a `54321` na **Public**, restartuj `npm run dev` a vyžádej si nový magic link. Nový odkaz musí začínat veřejnou adresou ve tvaru `https://<CODESPACE_NAME>-54321.app.github.dev/auth/v1/verify` a parametr `redirect_to` musí mířit na veřejný port `3000` s cestou `/rezervace`.
-
-Pro nasazenou aplikaci tento vývojový příkaz nepoužívej. Produkční `NEXT_PUBLIC_SUPABASE_URL` musí ukazovat na hostovaný Supabase projekt a auth redirect na veřejnou HTTPS adresu aplikace.
+> `npm run supabase:start:codespaces` je pouze vývojový příkaz. Produkční aplikace musí používat hostovaný Supabase projekt a veřejné HTTPS redirect URL.
 
 ## Kontroly kvality
 
@@ -187,6 +234,7 @@ Pokud aplikace neběží na výchozím `http://127.0.0.1:3000`, nastav `PLAYWRIG
 | `npm run test:unit` | Přeloží testovací TypeScript a spustí Node.js test runner. |
 | `npm run check:rls` | Ověří bezpečnostní invariantu RLS migrací pro vývoj. |
 | `npm run check:rls:prod` | Spustí přísnější release kontrolu RLS migrací. |
+| `npm run supabase:start:codespaces` | Spustí lokální Supabase s veřejnými URL aktuálního Codespace a aktualizuje `.env.local`. |
 | `npm run test:e2e:smoke` | Spustí anonymní Playwright smoke scénář. |
 | `npm run test:e2e:auth` | Spustí auth bootstrap; kompatibilní alias `test:e2e:auth:bootstrap`. |
 | `npm run test:e2e:auth:bootstrap` | Připraví a ověří member/admin Playwright session. |
