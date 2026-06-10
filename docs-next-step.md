@@ -118,6 +118,8 @@ Předchozí verze dokumentu obsahovala interní rozpory (např. otevřené dluhy
 ---
 
 ## Future / production readiness backlog
+
+> Aktivní řízení navazujících úkolů, akceptačních kritérií a potvrzení dokončení je vedeno v `docs/dalsi-postup.md`.
 Následující body jsou záměrně oddělené jako budoucí rozvoj mimo scope původního MVP plánu:
 
 1. Rozšířená observabilita (strukturované logování, metriky, alerting).
