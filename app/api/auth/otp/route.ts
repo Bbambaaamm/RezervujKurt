@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   }
 
   const redirectTo = resolveOtpRouteRedirectTo(payload);
-  const supabasePayload = buildOtpPayload(email, redirectTo, { createUser: false });
+  const supabasePayload = buildOtpPayload(email, redirectTo, { createUser: true });
 
   try {
     const { endpoint, headers } = getSupabaseOtpRequestConfig();
