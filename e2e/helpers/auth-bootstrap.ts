@@ -489,7 +489,7 @@ export async function loginViaMagicLink(params: {
 
   await page.goto('/prihlaseni');
   await waitForStoredAuthSession(page, email);
-  const loginStateMessage = page.getByText('Jste přihlášen(a).');
+  const loginStateMessage = page.getByText('Jste přihlášen(a).', { exact: true }).first();
   try {
     await expect(loginStateMessage).toBeVisible({ timeout: 10_000 });
   } catch (error) {
@@ -500,6 +500,22 @@ export async function loginViaMagicLink(params: {
         + `Původní chyba: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
+}
+
+export function buildE2eProfileUpsertData(params: {
+  id: string;
+  email: string;
+  role: 'user' | 'admin';
+}) {
+  const { id, email, role } = params;
+  const fullName = email.split('@')[0]?.trim() || 'E2E uživatel';
+
+  return {
+    id,
+    email,
+    full_name: fullName,
+    role,
+  };
 }
 
 export async function upsertE2eProfileRole(params: {
@@ -543,13 +559,7 @@ export async function upsertE2eProfileRole(params: {
     params: {
       on_conflict: 'id',
     },
-    data: [
-      {
-        id: user.id,
-        email,
-        role,
-      },
-    ],
+    data: [buildE2eProfileUpsertData({ id: user.id, email, role })],
   });
 
   if (!upsertResponse.ok()) {
