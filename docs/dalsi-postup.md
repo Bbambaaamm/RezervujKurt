@@ -101,20 +101,20 @@ Cíl fáze: odstranit mezery, které snižují reprodukovatelnost a spolehlivost
 
 **Potvrzení:** implementace a povinné lokální ověření `10. 6. 2026`; čeká na potvrzení vlastníka projektu a doplnění commit/PR důkazu.
 
-## [ ] T2 — Přidat lint do CI Build Gate
+## [-] T2 — Přidat lint do CI Build Gate
 
 **Priorita:** P0  
 **Závisí na:** T1
 
 **Akceptační kritéria:**
 
-- [ ] workflow `Build Gate` obsahuje samostatný lint krok;
-- [ ] lint selhání zastaví job;
+- [x] workflow `Build Gate` obsahuje samostatný lint krok;
+- [x] lint selhání zastaví job;
 - [ ] alespoň jeden pull request prokáže úspěšný běh celého workflow.
 
 **Povinné ověření:** odkaz na úspěšný GitHub Actions běh.
 
-**Potvrzení:** datum `—`, důkaz `—`.
+**Potvrzení:** implementace a lokální ověření `10. 6. 2026`; čeká na úspěšný GitHub Actions běh, potvrzení vlastníka projektu a doplnění commit/PR důkazu.
 
 ## [ ] T3 — Sjednotit README se skutečným stavem projektu
 
