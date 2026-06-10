@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "check:rls": "node scripts/check-rls.js",
     "check:rls:prod": "RLS_RELEASE_MODE=prod node scripts/check-rls.js",
-    "test:unit": "rm -rf .tmp-tests && tsc -p tsconfig.test.json && node --test --test-concurrency=1 $(find .tmp-tests/tests -name '*.test.js' -print)",
+    "test:unit": "node scripts/run-unit-tests.mjs",
     "test": "npm run test:unit",
     "test:e2e:smoke": "playwright test e2e/smoke.anonymous.spec.ts",
     "test:e2e:auth": "PLAYWRIGHT_ENABLE_AUTH_SETUP=1 playwright test e2e/smoke.auth-bootstrap.spec.ts",
