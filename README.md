@@ -15,6 +15,8 @@ Webový rezervační systém pro tenisové kurty TJ Baník Stříbro. Aplikace p
 
 Rozsah potvrzeného MVP a navazující práci eviduje [řídicí checklist](docs/dalsi-postup.md). Funkce jako blokace kurtů, produktové notifikace, platby nebo další poskytovatelé přihlášení jsou plánované, ale nejsou součástí aktuálně dokončeného základu.
 
+Pro bezpečné nasazení a řešení výpadků slouží [provozní release, incident a rollback runbook](docs/provozni-runbook.md). Konkrétní vlastníci a neveřejné kontakty musí být před produkčním použitím doplněné v provozní evidenci.
+
 ## Technologie
 
 - Next.js 15 (App Router), React 19 a TypeScript;
