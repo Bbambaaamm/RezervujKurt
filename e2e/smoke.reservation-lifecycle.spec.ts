@@ -5,7 +5,7 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const COURT_ID = 1;
 const TIME_FROM = '10:00:00';
-const TIME_TO = '11:00:00';
+const TIME_TO = '10:30:00';
 const E2E_RESERVATION_NOTE = 'E2E-LIFECYCLE';
 
 function getTargetDate(daysAhead: number): string {
@@ -80,7 +80,7 @@ test('reservation lifecycle smoke: pending -> approved -> cancelled uvolní slot
     await expect(memberPage.getByText('Rezervace vytvořena.')).toBeVisible();
     await expect(
       memberPage.getByRole('button', {
-        name: /Kurt 1, 10:00 až 10:30, stav obsazeno/i,
+        name: /Kurt 1, 10:00 až 10:30, stav čeká na schválení/i,
       }),
     ).toBeVisible();
 
@@ -94,7 +94,7 @@ test('reservation lifecycle smoke: pending -> approved -> cancelled uvolní slot
       .locator('tr')
       .filter({ hasText: formattedReservationDate })
       .filter({ hasText: '10:00:00' })
-      .filter({ hasText: '11:00:00' });
+      .filter({ hasText: '10:30:00' });
 
     await expect(pendingRow).toHaveCount(1);
     await pendingRow.getByRole('button', { name: 'Schválit' }).click();
@@ -117,7 +117,7 @@ test('reservation lifecycle smoke: pending -> approved -> cancelled uvolní slot
       .locator('tr')
       .filter({ hasText: formattedReservationDate })
       .filter({ hasText: '10:00:00' })
-      .filter({ hasText: '11:00:00' })
+      .filter({ hasText: '10:30:00' })
       .filter({ hasText: 'Kurt 1' });
 
     await expect(approvedRow).toHaveCount(1);
