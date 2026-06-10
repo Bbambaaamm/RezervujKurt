@@ -336,19 +336,21 @@ Cíl fáze: ověřit aplikaci nad prostředím, které odpovídá budoucímu pro
 
 **Potvrzení:** datum `—`, důkaz `—`.
 
-## [ ] P6 — Sepsat release, incident a rollback runbook
+## [-] P6 — Sepsat release, incident a rollback runbook
 
 **Priorita:** P1
 
+**Runbook:** `docs/provozni-runbook.md`
+
 **Akceptační kritéria:**
 
-- [ ] release checklist obsahuje migrace, env, build, smoke a potvrzení vlastníka;
-- [ ] rollback postup rozlišuje aplikaci a databázové migrace;
-- [ ] incident postup obsahuje kontakty, diagnostiku a rozhodnutí o omezení provozu;
-- [ ] je popsáno, jak zabránit rezervacím při nespolehlivé obsazenosti;
+- [x] release checklist obsahuje migrace, env, build, smoke a potvrzení vlastníka;
+- [x] rollback postup rozlišuje aplikaci a databázové migrace;
+- [ ] incident postup obsahuje konkrétní provozní kontakty, diagnostiku a rozhodnutí o omezení provozu; role a bezpečné uložení kontaktů jsou definované, jména musí doplnit vlastník mimo veřejný repozitář;
+- [x] je popsáno, jak zabránit rezervacím při nespolehlivé obsazenosti;
 - [ ] runbook byl alespoň jednou nanečisto projitý.
 
-**Potvrzení:** datum `—`, důkaz `—`.
+**Potvrzení:** rozpracováno `10. 6. 2026`; dokumentační část je v `docs/provozni-runbook.md`, dokončení čeká na určení provozních kontaktů a evidovaný nácvik.
 
 ## [ ] P7 — Provést produkční confidence pass
 
