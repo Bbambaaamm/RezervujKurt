@@ -220,7 +220,7 @@ Cíl fáze: prokázat, že autentizovaný lifecycle test je dostatečně stabiln
 - [x] timeout 20 minut je potvrzený jako přiměřený nebo upravený s odůvodněním;
 - [x] spotřeba GitHub Actions je pro každý PR přijatelná.
 
-**Potvrzení:** dokončeno `10. 6. 2026`; nákladový rozbor a podmínky opětovného posouzení jsou v `docs/e2e-pr-stability-log.md`, důkaz commit `8dcd757`.
+**Potvrzení:** dokončeno `10. 6. 2026`; nákladový rozbor a podmínky opětovného posouzení jsou v `docs/e2e-pr-stability-log.md`, důkaz commit `fa0b19a`.
 
 ## [ ] E4 — Nastavit lifecycle jako povinný check
 
@@ -552,7 +552,7 @@ Do této tabulky se zapisují pouze položky označené `[x]` po založení doku
 | T3 | 2026-06-10 | [PR #161 / commit `0c14bbc`](https://github.com/Bbambaaamm/RezervujKurt/pull/161), [PR #169 / commit `f0ea454`](https://github.com/Bbambaaamm/RezervujKurt/pull/169) | vlastník projektu, technická kontrola Codex | README ručně porovnáno s konfigurací, skripty a související dokumentací. |
 | T4 | 2026-06-10 | [PR #162 / commit `e835b66`](https://github.com/Bbambaaamm/RezervujKurt/pull/162) | vlastník projektu, technická kontrola Codex | Po 125 úspěšných testech nezůstal `.tmp-tests/` ani změna pracovního stromu. |
 | T5 | 2026-06-10 | [PR #163 / commit `37867f7`](https://github.com/Bbambaaamm/RezervujKurt/pull/163/checks) | vlastník projektu, technická kontrola Codex | Node.js 22 je sjednocený v projektu i CI; Build Gate na Node.js 22 úspěšný. |
-| E3 | 2026-06-10 | commit `8dcd757` | vlastník projektu, technická kontrola Codex | Medián `3m 9s`, maximum `4m 4s`; 20minutový timeout ponechán a provoz standardního runneru ve veřejném repozitáři vyhodnocen jako přijatelný. |
+| E3 | 2026-06-10 | commit `fa0b19a` | vlastník projektu, technická kontrola Codex | Medián `3m 9s`, maximum `4m 4s`; 20minutový timeout ponechán a provoz standardního runneru ve veřejném repozitáři vyhodnocen jako přijatelný. |
 
 # 6. Rozhodnutí a změny rozsahu
 
