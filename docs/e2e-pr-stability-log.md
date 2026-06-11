@@ -26,14 +26,14 @@ Ověřit stabilitu workflow `E2E Lifecycle Verification` v automatickém PR prov
 | 4 | [#162](https://github.com/Bbambaaamm/RezervujKurt/pull/162) | [run 27292237088](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27292237088) | `e835b66` | Testovací infrastruktura | Úspěch | 3m 9s | První evidovaný pokus, bez retry |
 | 5 | [#163](https://github.com/Bbambaaamm/RezervujKurt/pull/163) | [run 27292820773](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27292820773) | `37867f7` | Runtime a CI konfigurace | Úspěch | 4m 4s | První evidovaný pokus, bez retry |
 | 6 | [#164](https://github.com/Bbambaaamm/RezervujKurt/pull/164) | [run 27294076829](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27294076829) | `dd460e9` | E2E evidence a řídicí checklist | Úspěch | 3m 21s | První evidovaný pokus, bez retry |
-| 7 | — | — | — | — | — | — | — |
+| 7 | [#173](https://github.com/Bbambaaamm/RezervujKurt/pull/173) | [run 27324983652](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27324983652) | `604b37f` | Dokumentace a potvrzení E1 | Úspěch | 2m 56s | První pokus bez retry; úspěšný běh workflow s diagnostickým upload krokem |
 | 8 | — | — | — | — | — | — | — |
 | 9 | — | — | — | — | — | — | — |
 | 10 | — | — | — | — | — | — | — |
 
 ## Průběžné vyhodnocení
 
-K 10. 6. 2026 je evidováno šest dokončených automatických PR běhů bez retry. Vzorek obsahuje čtyři nedokumentační změny a dvě dokumentační změny. Žádný z evidovaných prvních pokusů neselhal, takže nevzniklo selhání vyžadující klasifikaci ani otevřený nevysvětlený blokátor. Medián délky lifecycle jobu je `3m 9s` a nejhorší pozorovaná délka je `4m 4s`.
+K 11. 6. 2026 je evidováno sedm dokončených automatických PR běhů bez retry. Vzorek obsahuje čtyři nedokumentační změny a tři dokumentační změny. Žádný z evidovaných prvních pokusů neselhal, takže nevzniklo selhání vyžadující klasifikaci ani otevřený nevysvětlený blokátor. Sedmý běh ověřil aktuální workflow s diagnostickým upload krokem. Medián délky lifecycle jobu je `3m 9s` a nejhorší pozorovaná délka je `4m 4s`.
 
 ## Vyhodnocení provozních nákladů
 

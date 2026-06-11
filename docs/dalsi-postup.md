@@ -195,7 +195,7 @@ Cíl fáze: prokázat, že autentizovaný lifecycle test je dostatečně stabiln
 
 **Potvrzení:** minimální reprezentativní vzorek šesti automatických PR běhů potvrzen vlastníkem projektu `11. 6. 2026`; rozšíření na doporučených deset běhů zůstává nepovinným průběžným zpřesněním evidence.
 
-## [-] E2 — Vyhodnotit každé E2E selhání
+## [x] E2 — Vyhodnotit každé E2E selhání
 
 **Priorita:** P0  
 **Závisí na:** průběžných výsledcích E1
@@ -207,7 +207,7 @@ Cíl fáze: prokázat, že autentizovaný lifecycle test je dostatečně stabiln
 - [x] opravy nesnižují produkční auth nebo RLS ochrany jen kvůli testu;
 - [x] diagnostické artefakty zachovávají a publikují trace každého neúspěšného pokusu včetně prvního pokusu před úspěšným retry a screenshot, pokud selhání nastane po vytvoření stránky.
 
-**Potvrzení:** dosavadní běhy a diagnostický postup vyhodnoceny `10. 6. 2026`; čeká na úspěšný běh upraveného workflow, průběžné vyhodnocování budoucích selhání a potvrzení vlastníka projektu.
+**Potvrzení:** dokončeno `11. 6. 2026`; aktuální workflow s diagnostickým upload krokem úspěšně proběhlo v [PR #173 / run 27324983652](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27324983652) a vlastník projektu výsledek potvrdil sloučením PR. Budoucí selhání se nadále vyhodnocují průběžně podle `docs/e2e-pr-stability-log.md`.
 
 ## [x] E3 — Potvrdit provozní náklady lifecycle jobu
 
@@ -539,9 +539,9 @@ Každý bod před zahájením musí dostat samostatná akceptační kritéria a 
 
 ## Doporučená nejbližší položka
 
-**E2 — Potvrdit diagnostickou připravenost E2E evidence.**
+**E4 — Nastavit lifecycle jako povinný check.**
 
-Důvod: E1 je potvrzené na minimálním reprezentativním vzorku šesti automatických PR běhů a E3 potvrdilo přijatelné provozní náklady. Před E4 ještě musí proběhnout úspěšný běh workflow s diagnostickými artefakty podle E2 a vlastník projektu musí potvrdit jeho diagnostickou připravenost; teprve potom lze lifecycle bezpečně nastavit jako povinný check.
+Důvod: E1–E3 jsou potvrzené, evidence neobsahuje nevysvětlené selhání a aktuální workflow s diagnostickým upload krokem úspěšně proběhlo. Další změna se provádí v GitHub Rulesets nebo Branch protection: job `Auth lifecycle nad lokální Supabase` je potřeba nastavit jako povinný a ověřit blokaci sloučení na testovacím pull requestu.
 
 # 5. Evidence dokončení
 
@@ -555,6 +555,7 @@ Do této tabulky se zapisují pouze položky označené `[x]` po založení doku
 | T4 | 2026-06-10 | [PR #162 / commit `e835b66`](https://github.com/Bbambaaamm/RezervujKurt/pull/162) | vlastník projektu, technická kontrola Codex | Po 125 úspěšných testech nezůstal `.tmp-tests/` ani změna pracovního stromu. |
 | T5 | 2026-06-10 | [PR #163 / commit `37867f7`](https://github.com/Bbambaaamm/RezervujKurt/pull/163/checks) | vlastník projektu, technická kontrola Codex | Node.js 22 je sjednocený v projektu i CI; Build Gate na Node.js 22 úspěšný. |
 | E1 | 2026-06-11 | [PR #159–#164 a související Actions běhy](e2e-pr-stability-log.md) | vlastník projektu, technická kontrola Codex | Potvrzen minimální reprezentativní vzorek šesti automatických PR běhů bez retry; čtyři z nich zahrnují nedokumentační změny. |
+| E2 | 2026-06-11 | [PR #173 / run 27324983652](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27324983652) | vlastník projektu, technická kontrola Codex | Aktuální workflow s diagnostickým upload krokem prošlo bez retry; dosavadní evidence neobsahuje selhání vyžadující klasifikaci ani nevysvětlený blokátor. |
 | E3 | 2026-06-10 | commit `fa0b19a` | vlastník projektu, technická kontrola Codex | Medián `3m 9s`, maximum `4m 4s`; 20minutový timeout ponechán a provoz standardního runneru ve veřejném repozitáři vyhodnocen jako přijatelný. |
 
 # 6. Rozhodnutí a změny rozsahu
