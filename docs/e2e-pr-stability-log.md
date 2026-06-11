@@ -35,7 +35,7 @@ Ověřit stabilitu workflow `E2E Lifecycle Verification` v automatickém PR prov
 
 [PR #175](https://github.com/Bbambaaamm/RezervujKurt/pull/175) spustil dočasně řízené selhání po otevření stránky. [Actions run 27327043964](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27327043964) skončil podle očekávání neúspěchem za `3m 5s` a publikoval artefakt `playwright-lifecycle-failure` o velikosti `876 KB` s digestem `sha256:bd91ec2a95c2c010542c0fd6482c70407aa46ae16d4af3153c9c514370ff53f1`. Tím je potvrzeno, že upload krok při reálném browserovém selhání diagnostický artefakt vytvoří.
 
-Vlastník projektu stažený artefakt zkontroloval a dodanými screenshoty potvrdil trace a screenshot prvního neúspěšného browserového pokusu i zachování diagnostiky retry. Dočasná aktivace řízeného selhání i testovací větev byly po běhu odstraněny, aby následující pull requesty znovu spouštěly skutečný lifecycle scénář. Tím je diagnostické kritérium E2 splněné. Tento záměrný neúspěch se nezapočítává do vzorku stability E1 ani se neklasifikuje jako produktová regrese.
+Vlastník projektu stažený artefakt zkontroloval a dodanými screenshoty potvrdil trace a screenshot prvního neúspěšného browserového pokusu i zachování diagnostiky retry. Diagnostická změna z commitu `a13ebcd` byla sloučena do cílové větve merge commitem `258a332`; standardní lifecycle byl obnoven až následným commitem `cf1b016`. Cílová větev proto mezi těmito dvěma commity dočasně obsahovala úmyslně selhávající konfiguraci. Tím je diagnostické kritérium E2 splněné. Tento záměrný neúspěch se nezapočítává do vzorku stability E1 ani se neklasifikuje jako produktová regrese.
 
 ## Průběžné vyhodnocení
 
@@ -85,7 +85,7 @@ Playwright ukládá trace každého neúspěšného pokusu do `test-results/` a 
 2. změna neoslabila produkční autentizaci, RLS, databázové migrace ani ochranu proti kolizím;
 3. artefakt `playwright-lifecycle-failure` obsahoval trace a screenshot prvního neúspěšného pokusu;
 4. artefakt zachoval také diagnostiku retry;
-5. testovací změna byla před sloučením odstraněna a výsledek vlastník projektu potvrdil dodanými screenshoty.
+5. diagnostická změna byla sloučena commitem `258a332` a standardní lifecycle následně obnovil commit `cf1b016`; výsledek vlastník projektu potvrdil dodanými screenshoty.
 
 Ruční nebo záměrně neúspěšný běh se nezapočítává do vzorku stability E1; slouží pouze jako důkaz diagnostické připravenosti E2.
 

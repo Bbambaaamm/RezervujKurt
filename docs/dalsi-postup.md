@@ -207,7 +207,7 @@ Cíl fáze: prokázat, že autentizovaný lifecycle test je dostatečně stabiln
 - [x] opravy nesnižují produkční auth nebo RLS ochrany jen kvůli testu;
 - [x] řízený neúspěšný browserový pokus prokázal, že diagnostický artefakt obsahuje trace a screenshot prvního neúspěšného pokusu i diagnostiku retry.
 
-**Potvrzení:** dokončeno `11. 6. 2026`; [PR #175 / run 27327043964](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27327043964) řízeným browserovým selháním publikoval artefakt `playwright-lifecycle-failure` o velikosti `876 KB`. Vlastník projektu stažený artefakt zkontroloval a dodanými screenshoty potvrdil trace a screenshot prvního neúspěšného pokusu i diagnostiku retry. Dočasná aktivace selhání byla následně odstraněna a produkční auth ani RLS ochrany nebyly oslabeny.
+**Potvrzení:** dokončeno `11. 6. 2026`; [PR #175 / run 27327043964](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27327043964) řízeným browserovým selháním publikoval artefakt `playwright-lifecycle-failure` o velikosti `876 KB`. Vlastník projektu stažený artefakt zkontroloval a dodanými screenshoty potvrdil trace a screenshot prvního neúspěšného pokusu i diagnostiku retry. Diagnostická změna `a13ebcd` byla sloučena commitem `258a332` a standardní lifecycle následně obnovil commit `cf1b016`; produkční auth ani RLS ochrany nebyly oslabeny.
 
 ## [x] E3 — Potvrdit provozní náklady lifecycle jobu
 
