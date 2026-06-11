@@ -17,6 +17,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
+      - name: Řízená diagnostika E4 - ověření blokace sloučení
+        run: |
+          echo "Řízené selhání E4: required lifecycle check musí zablokovat sloučení tohoto PR."
+          exit 1
+
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
