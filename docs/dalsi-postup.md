@@ -181,7 +181,7 @@ Cíl fáze: odstranit mezery, které snižují reprodukovatelnost a spolehlivost
 
 Cíl fáze: prokázat, že autentizovaný lifecycle test je dostatečně stabilní pro povinný branch protection check.
 
-## [-] E1 — Evidovat reprezentativní automatické PR běhy
+## [x] E1 — Evidovat reprezentativní automatické PR běhy
 
 **Priorita:** P0  
 **Zdroj evidence:** `docs/e2e-pr-stability-log.md`
@@ -193,7 +193,7 @@ Cíl fáze: prokázat, že autentizovaný lifecycle test je dostatečně stabiln
 - [x] ruční a zrušené běhy nejsou započítané jako úspěšný vzorek;
 - [x] zastoupené změny nejsou pouze dokumentační.
 
-**Potvrzení:** minimální vzorek pěti automatických PR běhů doplněn `10. 6. 2026`; čeká na potvrzení vlastníka projektu a případné rozšíření na doporučených deset běhů.
+**Potvrzení:** minimální reprezentativní vzorek šesti automatických PR běhů potvrzen vlastníkem projektu `11. 6. 2026`; rozšíření na doporučených deset běhů zůstává nepovinným průběžným zpřesněním evidence.
 
 ## [-] E2 — Vyhodnotit každé E2E selhání
 
@@ -539,9 +539,9 @@ Každý bod před zahájením musí dostat samostatná akceptační kritéria a 
 
 ## Doporučená nejbližší položka
 
-**E1 a E2 — Potvrdit reprezentativnost a diagnostickou připravenost E2E evidence.**
+**E2 — Potvrdit diagnostickou připravenost E2E evidence.**
 
-Důvod: technické podmínky obou položek jsou splněné a E3 potvrdilo přijatelné provozní náklady. Před E4 ještě musí vlastník projektu potvrdit minimální vzorek E1 a úspěšný běh workflow s diagnostickými artefakty podle E2; teprve potom lze lifecycle bezpečně nastavit jako povinný check.
+Důvod: E1 je potvrzené na minimálním reprezentativním vzorku šesti automatických PR běhů a E3 potvrdilo přijatelné provozní náklady. Před E4 ještě musí proběhnout úspěšný běh workflow s diagnostickými artefakty podle E2 a vlastník projektu musí potvrdit jeho diagnostickou připravenost; teprve potom lze lifecycle bezpečně nastavit jako povinný check.
 
 # 5. Evidence dokončení
 
@@ -554,6 +554,7 @@ Do této tabulky se zapisují pouze položky označené `[x]` po založení doku
 | T3 | 2026-06-10 | [PR #161 / commit `0c14bbc`](https://github.com/Bbambaaamm/RezervujKurt/pull/161), [PR #169 / commit `f0ea454`](https://github.com/Bbambaaamm/RezervujKurt/pull/169) | vlastník projektu, technická kontrola Codex | README ručně porovnáno s konfigurací, skripty a související dokumentací. |
 | T4 | 2026-06-10 | [PR #162 / commit `e835b66`](https://github.com/Bbambaaamm/RezervujKurt/pull/162) | vlastník projektu, technická kontrola Codex | Po 125 úspěšných testech nezůstal `.tmp-tests/` ani změna pracovního stromu. |
 | T5 | 2026-06-10 | [PR #163 / commit `37867f7`](https://github.com/Bbambaaamm/RezervujKurt/pull/163/checks) | vlastník projektu, technická kontrola Codex | Node.js 22 je sjednocený v projektu i CI; Build Gate na Node.js 22 úspěšný. |
+| E1 | 2026-06-11 | [PR #159–#164 a související Actions běhy](e2e-pr-stability-log.md) | vlastník projektu, technická kontrola Codex | Potvrzen minimální reprezentativní vzorek šesti automatických PR běhů bez retry; čtyři z nich zahrnují nedokumentační změny. |
 | E3 | 2026-06-10 | commit `fa0b19a` | vlastník projektu, technická kontrola Codex | Medián `3m 9s`, maximum `4m 4s`; 20minutový timeout ponechán a provoz standardního runneru ve veřejném repozitáři vyhodnocen jako přijatelný. |
 
 # 6. Rozhodnutí a změny rozsahu
