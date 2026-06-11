@@ -222,25 +222,25 @@ Cíl fáze: prokázat, že autentizovaný lifecycle test je dostatečně stabiln
 
 **Potvrzení:** dokončeno `10. 6. 2026`; nákladový rozbor a podmínky opětovného posouzení jsou v `docs/e2e-pr-stability-log.md`, důkaz commit `fa0b19a`.
 
-## [ ] E4 — Nastavit lifecycle jako povinný check
+## [-] E4 — Nastavit lifecycle jako povinný check
 
 **Priorita:** P0  
 **Závisí na:** E1, E2, E3
 
 **Akceptační kritéria:**
 
-- [ ] job `Auth lifecycle nad lokální Supabase` je nastaven v Rulesets nebo Branch protection jako povinný;
-- [ ] pull request nelze sloučit při jeho selhání;
-- [ ] název povinného checku odpovídá názvu skutečného jobu;
-- [ ] změna je ověřena na testovacím pull requestu.
+- [x] job `Auth lifecycle nad lokální Supabase` je nastaven v Rulesets nebo Branch protection jako povinný;
+- [x] pull request nelze sloučit při jeho selhání;
+- [x] název povinného checku odpovídá názvu skutečného jobu;
+- [ ] změna je ověřena na testovacím pull requestu s dohledatelným odkazem na PR a neúspěšný Actions run.
 
-**Potvrzení:** datum `—`, důkaz `—`.
+**Potvrzení:** konfigurace dokončena `11. 6. 2026`; aktivní Ruleset [`Ochrana hlavní větve` (ID `17551296`)](https://github.com/Bbambaaamm/RezervujKurt/settings/rules/17551296) cílí na výchozí větev, bez bypass aktérů vyžaduje pull request, uzavření review vláken a úspěch checků `Auth lifecycle nad lokální Supabase` a `Build Gate` a blokuje smazání i force-push. Praktické ověření blokace sloučení zůstává otevřené, dokud evidence nebude obsahovat odkaz na konkrétní testovací PR a jeho neúspěšný Actions run.
 
 ### Potvrzení dokončení Fáze 2
 
 - [ ] E1–E4 jsou dokončené.
 - [x] E2E evidence neobsahuje nevysvětlené selhání prvního pokusu.
-- [ ] Lifecycle je součástí ochrany cílové větve.
+- [ ] Lifecycle je nakonfigurovaný v ochraně cílové větve; chybí evidovaný test blokace sloučení.
 
 ---
 
@@ -539,9 +539,9 @@ Každý bod před zahájením musí dostat samostatná akceptační kritéria a 
 
 ## Doporučená nejbližší položka
 
-**E4 — Nastavit lifecycle jako povinný check.**
+**E4 — Doložit praktickou blokaci sloučení povinným lifecycle checkem.**
 
-Důvod: E1–E3 jsou dokončené, evidence neobsahuje nevysvětlené selhání a vlastník projektu potvrdil obsah diagnostického artefaktu z řízeného selhání. Další změna se provádí v GitHub Rulesets nebo Branch protection: job `Auth lifecycle nad lokální Supabase` je potřeba nastavit jako povinný a ověřit blokaci sloučení na testovacím pull requestu.
+Důvod: Ruleset je aktivní a správně nakonfigurovaný, ale evidence neobsahuje odkaz na testovací pull request a neúspěšný Actions run, na kterých GitHub skutečně zablokoval sloučení. Po doplnění tohoto jediného důkazu lze E4 a Fázi 2 uzavřít a pokračovat položkou P1.
 
 # 5. Evidence dokončení
 
