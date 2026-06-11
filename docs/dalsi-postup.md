@@ -248,19 +248,21 @@ Cíl fáze: prokázat, že autentizovaný lifecycle test je dostatečně stabiln
 
 Cíl fáze: ověřit aplikaci nad prostředím, které odpovídá budoucímu produkčnímu provozu, nikoli pouze nad lokální Supabase.
 
-## [ ] P1 — Definovat cílová prostředí a vlastnictví konfigurace
+## [-] P1 — Definovat cílová prostředí a vlastnictví konfigurace
 
 **Priorita:** P0
 
+**Návrh prostředí:** [`docs/prostredi.md`](prostredi.md)
+
 **Akceptační kritéria:**
 
-- [ ] je rozhodnuto, zda budou existovat `development`, `staging` a `production` prostředí;
-- [ ] každé prostředí má určený Supabase projekt a aplikační URL;
-- [ ] je zdokumentováno, kde se spravují secrets a kdo k nim má přístup;
-- [ ] produkční secrets nejsou uložené v repozitáři ani veřejné dokumentaci;
-- [ ] redirect URL pro auth jsou explicitně povolené pro každé prostředí.
+- [x] je rozhodnuto, zda budou existovat `development`, `staging` a `production` prostředí;
+- [ ] každé prostředí má určený Supabase projekt a aplikační URL — poskytovatelé a oddělení jsou rozhodnuté, konkrétní Vercel URL a Supabase project refs zatím chybí;
+- [x] je zdokumentováno, kde se spravují secrets a kdo k nim má přístup;
+- [x] produkční secrets nejsou uložené v repozitáři ani veřejné dokumentaci;
+- [ ] redirect URL pro auth jsou explicitně povolené pro každé prostředí — pravidla jsou popsaná, konkrétní staging a production URL se doplní po vytvoření projektů.
 
-**Potvrzení:** datum `—`, důkaz `—`.
+**Potvrzení:** částečně rozhodnuto `11. 6. 2026`; důkaz `docs/prostredi.md`. P1 zůstává rozpracované do doplnění konkrétních Vercel URL, Supabase project refs a ověření auth redirectů.
 
 ## [ ] P2 — Ověřit migrace na čisté staging databázi
 
