@@ -152,17 +152,15 @@ Následující body jsou záměrně oddělené jako budoucí rozvoj mimo scope p
 - Bezpečný cleanup: lifecycle používá unikátní poznámku `E2E-LIFECYCLE` a cleanup před testem i v `finally` bez globálního mazání dat.
 - Automatické PR ověřování: sedm evidovaných běhů bez retry potvrdilo minimální reprezentativní vzorek; medián jobu je `3m 9s` a nejhorší pozorovaná délka `4m 4s`.
 - Diagnostický běh [PR #175 / run 27327043964](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27327043964) publikoval artefakt `playwright-lifecycle-failure`; vlastník projektu dodanými screenshoty potvrdil trace a screenshot prvního neúspěšného pokusu i diagnostiku retry.
-- Povinný branch protection check: zatím nezapojen; po dokončení E1–E3 je aktuálním dalším krokem E4.
+- Povinný branch protection check: dokončeno; Ruleset vyžaduje job `Auth lifecycle nad lokální Supabase` a [PR #183](https://github.com/Bbambaaamm/RezervujKurt/pull/183) prakticky potvrdil blokaci standardního sloučení při jeho selhání.
 
 ### Doporučený další krok
-**Cíl:** nastavit lifecycle job jako povinný check a ověřit, že jeho selhání skutečně blokuje sloučení pull requestu.
+**Cíl:** pokračovat položkou P1 a definovat cílová prostředí a vlastnictví konfigurace.
 
-1. V GitHub Rulesets nebo Branch protection pro cílovou větev přidat required status check `Auth lifecycle nad lokální Supabase`.
-2. Ověřit, že název vybraného checku přesně odpovídá názvu jobu z workflow.
-3. Na testovacím pull requestu potvrdit, že neúspěšný nebo nedokončený lifecycle check blokuje sloučení.
-4. Výsledek zapsat k E4 do `docs/dalsi-postup.md`; produkční autentizaci, RLS ani lifecycle test kvůli ověření neoslabovat.
-
-**Aktuální omezení tohoto pracovního prostředí:** změna Rulesets nebo Branch protection vyžaduje oprávnění správce repozitáře a následné ověření přímo na GitHubu. Autoritativní aktuální stav a akceptační kritéria jsou vždy v `docs/dalsi-postup.md`.
+1. Rozhodnout, zda budou existovat oddělená `development`, `staging` a `production` prostředí.
+2. Přiřadit každému prostředí Supabase projekt a aplikační URL.
+3. Určit správu secrets, vlastníky přístupů a povolené auth redirect URL.
+4. Autoritativní akceptační kritéria a evidenci vést v `docs/dalsi-postup.md`.
 
 ---
 
