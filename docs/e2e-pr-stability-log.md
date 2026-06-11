@@ -98,6 +98,29 @@ Při klasifikaci použijte následující rozlišení:
 
 Klasifikace nesmí vést k oslabení produkční autentizace, RLS politik ani databázové ochrany proti kolizím pouze proto, aby E2E test prošel.
 
+## Řízené ověření blokace sloučení pro E4
+
+Tento postup slouží výhradně k ověření, že aktivní Ruleset při selhání jobu `Auth lifecycle nad lokální Supabase` skutečně zablokuje sloučení pull requestu. Neověřuje stabilitu E1 ani diagnostiku E2 a záměrně neúspěšný běh se do jejich vzorku nezapočítává.
+
+1. Založit samostatnou testovací větev z aktuální výchozí větve a otevřít pull request do stejné chráněné větve.
+2. V testovací větvi dočasně přidat do jobu `lifecycle` v `.github/workflows/e2e-lifecycle.yml` krok, který skončí nenulovým návratovým kódem. Krok musí být pojmenovaný jako řízená diagnostika E4 a nesmí měnit aplikaci, testy, auth, RLS ani databázové migrace.
+3. Počkat na automatický běh události `pull_request` a ověřit, že konkrétní job `Auth lifecycle nad lokální Supabase` skončil jako neúspěšný.
+4. V detailu pull requestu ověřit, že GitHub označuje povinný check jako neúspěšný a neumožňuje standardní sloučení. Nepoužívat administrátorský bypass a diagnostickou změnu neslučovat.
+5. Uložit odkaz na testovací pull request a neúspěšný Actions run. Do evidence nezapisovat screenshot jako jediný důkaz, pokud lze použít dohledatelné GitHub odkazy.
+6. Ve stejné testovací větvi diagnostický krok odstranit a ověřit, že nový automatický lifecycle běh projde. Před sloučením musí diff obsahovat pouze zamýšlenou trvalou dokumentační změnu, nikoli řízené selhání.
+7. V některém následujícím pull requestu doplnit odkazy do `docs/dalsi-postup.md`, označit E4 jako `[x]` a uzavřít Fázi 2. Evidence se nedoplňuje do commitu, jehož neúspěšný check právě slouží jako důkaz, protože každý další push spustí nový běh.
+
+### Povinná evidence E4
+
+- URL testovacího pull requestu;
+- URL prvního neúspěšného Actions runu spuštěného událostí `pull_request`;
+- přesný název neúspěšného jobu `Auth lifecycle nad lokální Supabase`;
+- potvrzení, že standardní sloučení bylo zablokované a nebyl použit bypass;
+- URL následného úspěšného běhu po odstranění diagnostické změny;
+- kontrola, že diagnostický krok nezůstal ve výsledném diffu ani ve výchozí větvi.
+
+Pokud neúspěšný lifecycle job sloučení nezablokuje, E4 zůstává otevřené. Nejprve je nutné opravit název required checku nebo cílení Rulesetu a celý postup zopakovat; samotný screenshot konfigurace Rulesetu není náhradou praktického důkazu.
+
 ## Kritéria pro nastavení povinného checku
 
 Job lze doporučit jako povinný check, pokud:
