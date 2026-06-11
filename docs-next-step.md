@@ -144,25 +144,25 @@ Následující body jsou záměrně oddělené jako budoucí rozvoj mimo scope p
 - Kritická cesta member/admin podle `docs/runtime-verification.md`:
   auth → pending create → admin approve/cancel → occupancy refresh.
 
-### Stav E2E automatizace (10. 6. 2026)
+### Stav E2E automatizace (11. 6. 2026)
 - Anonymous smoke: implementováno v `e2e/smoke.anonymous.spec.ts`.
 - Auth bootstrap: implementován pro oddělený member/admin `storageState`.
 - Approve lifecycle: implementován v `e2e/smoke.reservation-lifecycle.spec.ts`.
 - Cancel/release lifecycle: implementován přes oprávněný member flow v `/moje-rezervace`; veřejný grid následně ověřuje uvolnění slotu.
 - Bezpečný cleanup: lifecycle používá unikátní poznámku `E2E-LIFECYCLE` a cleanup před testem i v `finally` bez globálního mazání dat.
-- Ruční CI runtime ověření: tři po sobě jdoucí běhy workflow `E2E Lifecycle Verification` skončily úspěšně.
-- Automatické PR ověřování: workflow se spouští pro každý pull request a nadále podporuje ruční `workflow_dispatch`.
-- Povinný branch protection check: zatím záměrně nezapojen; bude následovat až po ověření stability v běžném PR provozu.
+- Automatické PR ověřování: sedm evidovaných běhů bez retry potvrdilo minimální reprezentativní vzorek; medián jobu je `3m 9s` a nejhorší pozorovaná délka `4m 4s`.
+- Diagnostický běh [PR #175 / run 27327043964](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27327043964) publikoval artefakt `playwright-lifecycle-failure`; vlastník projektu dodanými screenshoty potvrdil trace a screenshot prvního neúspěšného pokusu i diagnostiku retry.
+- Povinný branch protection check: zatím nezapojen; po dokončení E1–E3 je aktuálním dalším krokem E4.
 
 ### Doporučený další krok
-**Cíl:** ověřit stabilitu autentizovaného lifecycle v běžném PR provozu a až poté jej nastavit jako povinný check.
+**Cíl:** nastavit lifecycle job jako povinný check a ověřit, že jeho selhání skutečně blokuje sloučení pull requestu.
 
-1. Ověřit alespoň 5–10 automatických PR běhů bez retry, ideálně nad různými typy změn.
-2. Sledovat medián a nejhorší délku jobu a rozlišovat chyby aplikace od výpadků instalace Supabase CLI nebo Playwrightu.
-3. Při selhání stáhnout artefakt `playwright-lifecycle-failure` a odstranit konkrétní zdroj nestability; nesnižovat kvůli tomu ochrany produkční auth logiky.
-4. Po potvrzení stability nastavit job `Auth lifecycle nad lokální Supabase` jako povinný check v GitHub Branch protection / Rulesets; změna workflow ani trigger `push` do `main` k tomu nejsou potřeba.
+1. V GitHub Rulesets nebo Branch protection pro cílovou větev přidat required status check `Auth lifecycle nad lokální Supabase`.
+2. Ověřit, že název vybraného checku přesně odpovídá názvu jobu z workflow.
+3. Na testovacím pull requestu potvrdit, že neúspěšný nebo nedokončený lifecycle check blokuje sloučení.
+4. Výsledek zapsat k E4 do `docs/dalsi-postup.md`; produkční autentizaci, RLS ani lifecycle test kvůli ověření neoslabovat.
 
-**Aktuální omezení tohoto pracovního prostředí:** Supabase CLI ani Docker zde nejsou dostupné, takže kompletní lifecycle nelze spustit lokálně. Runtime ověření zajišťuje GitHub Actions workflow nad čistým runnerem.
+**Aktuální omezení tohoto pracovního prostředí:** změna Rulesets nebo Branch protection vyžaduje oprávnění správce repozitáře a následné ověření přímo na GitHubu. Autoritativní aktuální stav a akceptační kritéria jsou vždy v `docs/dalsi-postup.md`.
 
 ---
 

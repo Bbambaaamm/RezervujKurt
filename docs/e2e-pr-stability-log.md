@@ -35,7 +35,7 @@ Ověřit stabilitu workflow `E2E Lifecycle Verification` v automatickém PR prov
 
 [PR #175](https://github.com/Bbambaaamm/RezervujKurt/pull/175) spustil dočasně řízené selhání po otevření stránky. [Actions run 27327043964](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27327043964) skončil podle očekávání neúspěchem za `3m 5s` a publikoval artefakt `playwright-lifecycle-failure` o velikosti `876 KB` s digestem `sha256:bd91ec2a95c2c010542c0fd6482c70407aa46ae16d4af3153c9c514370ff53f1`. Tím je potvrzeno, že upload krok při reálném browserovém selhání diagnostický artefakt vytvoří.
 
-Dočasná aktivace řízeného selhání i testovací větev byly po běhu odstraněny, aby následující pull requesty znovu spouštěly skutečný lifecycle scénář. E2 přesto zůstává otevřené: veřejná stránka běhu potvrzuje existenci, velikost a digest artefaktu, ale pro splnění akceptačního kritéria je ještě nutné artefakt přes přihlášené GitHub rozhraní stáhnout a ověřit, že obsahuje trace a screenshot prvního neúspěšného pokusu. Tento záměrný neúspěch se nezapočítává do vzorku stability E1 ani se neklasifikuje jako produktová regrese.
+Vlastník projektu stažený artefakt zkontroloval a dodanými screenshoty potvrdil trace a screenshot prvního neúspěšného browserového pokusu i zachování diagnostiky retry. Diagnostická změna z commitu `a13ebcd` byla sloučena do cílové větve merge commitem `258a332`; standardní lifecycle byl obnoven až následným commitem `cf1b016`. Cílová větev proto mezi těmito dvěma commity dočasně obsahovala úmyslně selhávající konfiguraci. Tím je diagnostické kritérium E2 splněné. Tento záměrný neúspěch se nezapočítává do vzorku stability E1 ani se neklasifikuje jako produktová regrese.
 
 ## Průběžné vyhodnocení
 
@@ -77,15 +77,15 @@ Timeout 20 minut zůstává přiměřený. Je téměř pětinásobkem nejhorší
 
 Playwright ukládá trace každého neúspěšného pokusu do `test-results/` a při selhání po vytvoření stránky také screenshot. Workflow se pokusí tento adresář nahrát jako artefakt `playwright-lifecycle-failure` vždy po lifecycle kroku, tedy i když retry obnoví úspěšný výsledek. Pokud čistý běh nevytvoří žádnou diagnostiku, `if-no-files-found: ignore` ponechá upload krok úspěšný bez artefaktu. Infrastrukturní chyby před spuštěním browseru se určují z trace a logu workflow; screenshot u nich nemusí existovat.
 
-### Chybějící důkaz pro E2
+### Ověřený důkaz pro E2
 
-Úspěšný běh bez retry neprokazuje publikaci diagnostiky, protože při něm může být adresář `test-results/` prázdný a `if-no-files-found: ignore` nevytvoří artefakt. Před uzavřením E2 je nutné provést samostatný dočasný testovací pull request s těmito podmínkami:
+Řízený neúspěšný běh v PR #175 prokázal diagnostické chování workflow za těchto podmínek:
 
-1. testovací změna vyvolá očekávané selhání až po otevření stránky, aby Playwright vytvořil trace i screenshot;
-2. změna neoslabí produkční autentizaci, RLS, databázové migrace ani ochranu proti kolizím;
-3. po dokončení běhu se stáhne `playwright-lifecycle-failure` a ověří se trace a screenshot prvního neúspěšného pokusu;
-4. pokud následný retry uspěje, v artefaktu musí zůstat diagnostika prvního pokusu;
-5. testovací změna se před sloučením odstraní a odkazy na PR, Actions run a ověřený obsah artefaktu se zapíší do této dokumentace.
+1. testovací změna vyvolala očekávané selhání až po otevření stránky, takže Playwright vytvořil trace i screenshot;
+2. změna neoslabila produkční autentizaci, RLS, databázové migrace ani ochranu proti kolizím;
+3. artefakt `playwright-lifecycle-failure` obsahoval trace a screenshot prvního neúspěšného pokusu;
+4. artefakt zachoval také diagnostiku retry;
+5. diagnostická změna byla sloučena commitem `258a332` a standardní lifecycle následně obnovil commit `cf1b016`; výsledek vlastník projektu potvrdil dodanými screenshoty.
 
 Ruční nebo záměrně neúspěšný běh se nezapočítává do vzorku stability E1; slouží pouze jako důkaz diagnostické připravenosti E2.
 
