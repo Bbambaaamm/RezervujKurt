@@ -234,7 +234,7 @@ Cíl fáze: prokázat, že autentizovaný lifecycle test je dostatečně stabiln
 - [x] název povinného checku odpovídá názvu skutečného jobu;
 - [ ] změna je ověřena na testovacím pull requestu s dohledatelným odkazem na PR a neúspěšný Actions run.
 
-**Potvrzení:** konfigurace dokončena `11. 6. 2026`; aktivní Ruleset [`Ochrana hlavní větve` (ID `17551296`)](https://github.com/Bbambaaamm/RezervujKurt/settings/rules/17551296) cílí na výchozí větev, bez bypass aktérů vyžaduje pull request, uzavření review vláken a úspěch checků `Auth lifecycle nad lokální Supabase` a `Build Gate` a blokuje smazání i force-push. Praktické ověření blokace sloučení zůstává otevřené, dokud evidence nebude obsahovat odkaz na konkrétní testovací PR a jeho neúspěšný Actions run.
+**Potvrzení:** konfigurace dokončena `11. 6. 2026`; aktivní Ruleset [`Ochrana hlavní větve` (ID `17551296`)](https://github.com/Bbambaaamm/RezervujKurt/settings/rules/17551296) cílí na výchozí větev, bez bypass aktérů vyžaduje pull request, uzavření review vláken a úspěch checků `Auth lifecycle nad lokální Supabase` a `Build Gate` a blokuje smazání i force-push. Praktické ověření blokace sloučení zůstává otevřené, dokud evidence nebude obsahovat odkaz na konkrétní testovací PR a jeho neúspěšný Actions run. Bezpečný postup testu a povinný rozsah evidence jsou popsané v části „Řízené ověření blokace sloučení pro E4“ v `docs/e2e-pr-stability-log.md`.
 
 ### Potvrzení dokončení Fáze 2
 
