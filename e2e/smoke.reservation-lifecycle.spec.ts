@@ -7,7 +7,6 @@ const COURT_ID = 1;
 const TIME_FROM = '10:00:00';
 const TIME_TO = '10:30:00';
 const E2E_RESERVATION_NOTE = 'E2E-LIFECYCLE';
-const VERIFY_FAILURE_ARTIFACT = process.env.PLAYWRIGHT_VERIFY_FAILURE_ARTIFACT === '1';
 
 function getTargetDate(daysAhead: number): string {
   const now = new Date();
@@ -53,10 +52,7 @@ async function closeContext(context: BrowserContext | null) {
   }
 }
 
-test('reservation lifecycle smoke: pending -> approved -> cancelled uvolní slot', async ({
-  browser,
-  page,
-}, testInfo) => {
+test('reservation lifecycle smoke: pending -> approved -> cancelled uvolní slot', async ({ browser, page }) => {
   const reservationDate = getTargetDate(2);
   const formattedReservationDate = formatCzechDate(reservationDate);
   let memberContext: BrowserContext | null = null;
@@ -70,17 +66,6 @@ test('reservation lifecycle smoke: pending -> approved -> cancelled uvolní slot
     const memberPage = await memberContext.newPage();
 
     await memberPage.goto('/rezervace');
-
-    if (VERIFY_FAILURE_ARTIFACT) {
-      await memberPage.screenshot({
-        path: testInfo.outputPath(`diagnostika-pokus-${testInfo.retry + 1}.png`),
-        fullPage: true,
-      });
-      throw new Error(
-        `Řízené E2E selhání po načtení stránky pro ověření diagnostiky, pokus ${testInfo.retry + 1}.`,
-      );
-    }
-
     await memberPage.locator('#reservation-day').fill(reservationDate);
 
     const slotButton = memberPage.getByRole('button', {

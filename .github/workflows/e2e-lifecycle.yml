@@ -54,9 +54,6 @@ jobs:
         run: npx playwright install chromium --with-deps
 
       - name: Run authenticated reservation lifecycle
-        env:
-          # Dočasná aktivace pouze pro diagnostický PR E2; před sloučením musí být odstraněna.
-          PLAYWRIGHT_VERIFY_FAILURE_ARTIFACT: '1'
         run: npm run test:e2e:lifecycle:with-auth-bootstrap
 
       - name: Upload Playwright diagnostics from failed attempts

@@ -31,6 +31,12 @@ Ověřit stabilitu workflow `E2E Lifecycle Verification` v automatickém PR prov
 | 9 | — | — | — | — | — | — | — |
 | 10 | — | — | — | — | — | — | — |
 
+## Řízené ověření diagnostiky E2
+
+[PR #175](https://github.com/Bbambaaamm/RezervujKurt/pull/175) spustil dočasně řízené selhání po otevření stránky. [Actions run 27327043964](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27327043964) skončil podle očekávání neúspěchem za `3m 5s` a publikoval artefakt `playwright-lifecycle-failure` o velikosti `876 KB` s digestem `sha256:bd91ec2a95c2c010542c0fd6482c70407aa46ae16d4af3153c9c514370ff53f1`. Tím je potvrzeno, že upload krok při reálném browserovém selhání diagnostický artefakt vytvoří.
+
+Dočasná aktivace řízeného selhání i testovací větev byly po běhu odstraněny, aby následující pull requesty znovu spouštěly skutečný lifecycle scénář. E2 přesto zůstává otevřené: veřejná stránka běhu potvrzuje existenci, velikost a digest artefaktu, ale pro splnění akceptačního kritéria je ještě nutné artefakt přes přihlášené GitHub rozhraní stáhnout a ověřit, že obsahuje trace a screenshot prvního neúspěšného pokusu. Tento záměrný neúspěch se nezapočítává do vzorku stability E1 ani se neklasifikuje jako produktová regrese.
+
 ## Průběžné vyhodnocení
 
 K 11. 6. 2026 je evidováno sedm dokončených automatických PR běhů bez retry. Vzorek obsahuje čtyři nedokumentační změny a tři dokumentační změny. Žádný z evidovaných prvních pokusů neselhal, takže nevzniklo selhání vyžadující klasifikaci ani otevřený nevysvětlený blokátor. Sedmý běh ověřil, že upload krok při čistém běhu toleruje chybějící diagnostické soubory; neověřil vznik ani obsah artefaktu při selhání. Medián délky lifecycle jobu je `3m 9s` a nejhorší pozorovaná délka je `4m 4s`.
