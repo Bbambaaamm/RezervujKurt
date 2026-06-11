@@ -102,6 +102,12 @@ Klasifikace nesmí vést k oslabení produkční autentizace, RLS politik ani da
 
 Tento postup slouží výhradně k ověření, že aktivní Ruleset při selhání jobu `Auth lifecycle nad lokální Supabase` skutečně zablokuje sloučení pull requestu. Neověřuje stabilitu E1 ani diagnostiku E2 a záměrně neúspěšný běh se do jejich vzorku nezapočítává.
 
+### Výsledek ověření
+
+Dokončeno `11. 6. 2026` na testovacím [PR #183](https://github.com/Bbambaaamm/RezervujKurt/pull/183). Automatický [`pull_request` run 27346566563](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27346566563) skončil řízeným selháním required jobu `Auth lifecycle nad lokální Supabase`; `Build Gate` současně prošel a GitHub zablokoval standardní sloučení. Administrátorský bypass nebyl použit.
+
+Po odstranění diagnostického kroku prošel [run 27347432224](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27347432224), výsledný diff PR byl prázdný a PR nebyl sloučen. Diagnostický krok proto nezůstal ve výchozí větvi. Tím je praktická blokace sloučení pro E4 potvrzená; řízený neúspěch se nezapočítává do vzorku stability E1.
+
 1. Založit samostatnou testovací větev z aktuální výchozí větve a otevřít pull request do stejné chráněné větve.
 2. V testovací větvi dočasně přidat do jobu `lifecycle` v `.github/workflows/e2e-lifecycle.yml` krok, který skončí nenulovým návratovým kódem. Krok musí být pojmenovaný jako řízená diagnostika E4 a nesmí měnit aplikaci, testy, auth, RLS ani databázové migrace.
 3. Počkat na automatický běh události `pull_request` a ověřit, že konkrétní job `Auth lifecycle nad lokální Supabase` skončil jako neúspěšný.

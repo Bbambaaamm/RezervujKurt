@@ -222,7 +222,7 @@ Cíl fáze: prokázat, že autentizovaný lifecycle test je dostatečně stabiln
 
 **Potvrzení:** dokončeno `10. 6. 2026`; nákladový rozbor a podmínky opětovného posouzení jsou v `docs/e2e-pr-stability-log.md`, důkaz commit `fa0b19a`.
 
-## [-] E4 — Nastavit lifecycle jako povinný check
+## [x] E4 — Nastavit lifecycle jako povinný check
 
 **Priorita:** P0  
 **Závisí na:** E1, E2, E3
@@ -232,15 +232,15 @@ Cíl fáze: prokázat, že autentizovaný lifecycle test je dostatečně stabiln
 - [x] job `Auth lifecycle nad lokální Supabase` je nastaven v Rulesets nebo Branch protection jako povinný;
 - [x] pull request nelze sloučit při jeho selhání;
 - [x] název povinného checku odpovídá názvu skutečného jobu;
-- [ ] změna je ověřena na testovacím pull requestu s dohledatelným odkazem na PR a neúspěšný Actions run.
+- [x] změna je ověřena na testovacím pull requestu s dohledatelným odkazem na PR a neúspěšný Actions run.
 
-**Potvrzení:** konfigurace dokončena `11. 6. 2026`; aktivní Ruleset [`Ochrana hlavní větve` (ID `17551296`)](https://github.com/Bbambaaamm/RezervujKurt/settings/rules/17551296) cílí na výchozí větev, bez bypass aktérů vyžaduje pull request, uzavření review vláken a úspěch checků `Auth lifecycle nad lokální Supabase` a `Build Gate` a blokuje smazání i force-push. Praktické ověření blokace sloučení zůstává otevřené, dokud evidence nebude obsahovat odkaz na konkrétní testovací PR a jeho neúspěšný Actions run. Bezpečný postup testu a povinný rozsah evidence jsou popsané v části „Řízené ověření blokace sloučení pro E4“ v `docs/e2e-pr-stability-log.md`.
+**Potvrzení:** dokončeno `11. 6. 2026`; aktivní Ruleset [`Ochrana hlavní větve` (ID `17551296`)](https://github.com/Bbambaaamm/RezervujKurt/settings/rules/17551296) cílí na výchozí větev, bez bypass aktérů vyžaduje pull request, uzavření review vláken a úspěch checků `Auth lifecycle nad lokální Supabase` a `Build Gate` a blokuje smazání i force-push. Na testovacím [PR #183](https://github.com/Bbambaaamm/RezervujKurt/pull/183) skončil automatický [`pull_request` run 27346566563](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27346566563) řízeným selháním required jobu `Auth lifecycle nad lokální Supabase`; GitHub zablokoval standardní sloučení a administrátorský bypass nebyl použit. Po odstranění diagnostického kroku prošel [následný run 27347432224](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27347432224) včetně stejného lifecycle jobu, výsledný diff PR byl prázdný a PR nebyl sloučen. Podrobná evidence je v `docs/e2e-pr-stability-log.md`.
 
 ### Potvrzení dokončení Fáze 2
 
-- [ ] E1–E4 jsou dokončené.
+- [x] E1–E4 jsou dokončené.
 - [x] E2E evidence neobsahuje nevysvětlené selhání prvního pokusu.
-- [ ] Lifecycle je nakonfigurovaný v ochraně cílové větve; chybí evidovaný test blokace sloučení.
+- [x] Lifecycle je nakonfigurovaný v ochraně cílové větve a praktický test potvrdil blokaci sloučení při jeho selhání.
 
 ---
 
@@ -532,16 +532,16 @@ Každý bod před zahájením musí dostat samostatná akceptační kritéria a 
 |---|---|---|
 | Core MVP | Hotovo | Regresní testy zůstávají zelené |
 | Technický quality gate | Hotovo | T1–T5 potvrzené |
-| E2E stabilita v PR | Rozpracováno | E1–E4 potvrzené |
+| E2E stabilita v PR | Hotovo | E1–E4 potvrzené |
 | Staging a produkční připravenost | Neověřeno | P1–P7 potvrzené |
 | Produktové dokončení | Částečné | Potřebné F položky potvrzené nebo vědomě odložené |
 | Následný rozvoj | Backlog | Prioritizace podle provozních dat |
 
 ## Doporučená nejbližší položka
 
-**E4 — Doložit praktickou blokaci sloučení povinným lifecycle checkem.**
+**P1 — Definovat cílová prostředí a vlastnictví konfigurace.**
 
-Důvod: Ruleset je aktivní a správně nakonfigurovaný, ale evidence neobsahuje odkaz na testovací pull request a neúspěšný Actions run, na kterých GitHub skutečně zablokoval sloučení. Po doplnění tohoto jediného důkazu lze E4 a Fázi 2 uzavřít a pokračovat položkou P1.
+Důvod: E1–E4 a Fáze 2 jsou dokončené. Dalším krokem je rozhodnout podobu `development`, `staging` a `production` prostředí, přiřadit jejich Supabase projekty a aplikační URL a určit vlastníky secrets a přístupů.
 
 # 5. Evidence dokončení
 
@@ -557,6 +557,7 @@ Do této tabulky se zapisují pouze položky označené `[x]` po založení doku
 | E1 | 2026-06-11 | [PR #159–#164 a související Actions běhy](e2e-pr-stability-log.md) | vlastník projektu, technická kontrola Codex | Potvrzen minimální reprezentativní vzorek šesti automatických PR běhů bez retry; čtyři z nich zahrnují nedokumentační změny. |
 | E2 | 2026-06-11 | [PR #175 / run 27327043964](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27327043964) | vlastník projektu, technická kontrola Codex | Řízené selhání vytvořilo artefakt; vlastník projektu dodanými screenshoty potvrdil trace a screenshot prvního pokusu i diagnostiku retry. |
 | E3 | 2026-06-10 | commit `fa0b19a` | vlastník projektu, technická kontrola Codex | Medián `3m 9s`, maximum `4m 4s`; 20minutový timeout ponechán a provoz standardního runneru ve veřejném repozitáři vyhodnocen jako přijatelný. |
+| E4 | 2026-06-11 | [PR #183](https://github.com/Bbambaaamm/RezervujKurt/pull/183), [neúspěšný run 27346566563](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27346566563), [úspěšný run 27347432224](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27347432224) | vlastník projektu, technická kontrola Codex | Řízené selhání required lifecycle checku zablokovalo standardní sloučení bez bypassu; po odstranění diagnostiky následný automatický běh prošel, výsledný diff byl prázdný a testovací PR nebyl sloučen. |
 
 # 6. Rozhodnutí a změny rozsahu
 
