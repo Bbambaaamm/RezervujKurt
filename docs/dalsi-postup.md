@@ -195,7 +195,7 @@ Cíl fáze: prokázat, že autentizovaný lifecycle test je dostatečně stabiln
 
 **Potvrzení:** minimální reprezentativní vzorek šesti automatických PR běhů potvrzen vlastníkem projektu `11. 6. 2026`; rozšíření na doporučených deset běhů zůstává nepovinným průběžným zpřesněním evidence.
 
-## [!] E2 — Vyhodnotit každé E2E selhání
+## [x] E2 — Vyhodnotit každé E2E selhání
 
 **Priorita:** P0  
 **Závisí na:** průběžných výsledcích E1
@@ -205,9 +205,9 @@ Cíl fáze: prokázat, že autentizovaný lifecycle test je dostatečně stabiln
 - [x] každé dosud evidované selhání je klasifikované jako produktová regrese, nestabilita testu, problém dat nebo CI infrastruktury; ve vzorku E1 dosud žádné selhání nenastalo;
 - [x] žádné nevysvětlené selhání nezůstává uzavřené bez dalšího kroku;
 - [x] opravy nesnižují produkční auth nebo RLS ochrany jen kvůli testu;
-- [ ] řízený neúspěšný browserový pokus prokáže, že diagnostický artefakt obsahuje trace prvního neúspěšného pokusu a screenshot; pokud retry uspěje, artefakt musí zachovat diagnostiku předchozího pokusu.
+- [x] řízený neúspěšný browserový pokus prokázal, že diagnostický artefakt obsahuje trace prvního neúspěšného pokusu a screenshot; podmínka zachování diagnostiky při úspěšném retry nebyla pro tento neúspěšný run relevantní.
 
-**Potvrzení:** blokováno externím přístupem `11. 6. 2026`; [PR #175 / run 27327043964](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27327043964) řízeným browserovým selháním veřejně potvrzuje publikaci artefaktu `playwright-lifecycle-failure` o velikosti `876 KB` a jeho SHA-256 digest. Dočasná aktivace selhání byla následně odstraněna. Anonymní GitHub rozhraní ani lokální prostředí bez GitHub tokenu neumožňuje artefakt stáhnout, proto nelze pravdivě potvrdit jeho obsah. Vlastník projektu musí přes přihlášené GitHub rozhraní ověřit trace a screenshot prvního pokusu podle `docs/e2e-pr-stability-log.md`; do té doby E2 zůstává `[!]` a E4 nesmí být zahájeno.
+**Potvrzení:** dokončeno `11. 6. 2026`; vlastník projektu stáhl artefakt `playwright-lifecycle-failure` z [PR #175 / runu 27327043964](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27327043964). Ověřený `trace.zip` zachycuje navigaci na `/rezervace` a řízené selhání prvního pokusu; odpovídající `diagnostika-pokus-1.png` dokládá načtenou stránku. Datovaný záznam je v `docs/e2e-pr-stability-log.md`.
 
 ## [x] E3 — Potvrdit provozní náklady lifecycle jobu
 
@@ -539,9 +539,9 @@ Každý bod před zahájením musí dostat samostatná akceptační kritéria a 
 
 ## Doporučená nejbližší položka
 
-**E2 — Vlastník projektu musí dokončit kontrolu obsahu diagnostického artefaktu.**
+**E4 — Nastavit lifecycle jako povinný check.**
 
-Důvod: PR #175 už řízeným selháním prokázal vznik artefaktu `playwright-lifecycle-failure` a dočasná testovací změna byla odstraněna. Veřejně lze ověřit jeho název, velikost `876 KB` a SHA-256 digest, nikoli obsah. Vlastník projektu proto musí artefakt z runu 27327043964 stáhnout přes přihlášené GitHub rozhraní, potvrdit trace a screenshot prvního neúspěšného pokusu a výsledek zapsat do evidence. Bez této externí kontroly zůstává E2 blokované a nelze poctivě zahájit E4.
+Důvod: E1, E2 a E3 jsou dokončené a doložené. Dalším krokem je nastavit job `Auth lifecycle nad lokální Supabase` v Rulesets nebo Branch protection jako povinný a ověřit blokaci sloučení na testovacím pull requestu.
 
 # 5. Evidence dokončení
 
@@ -555,6 +555,7 @@ Do této tabulky se zapisují pouze položky označené `[x]` po založení doku
 | T4 | 2026-06-10 | [PR #162 / commit `e835b66`](https://github.com/Bbambaaamm/RezervujKurt/pull/162) | vlastník projektu, technická kontrola Codex | Po 125 úspěšných testech nezůstal `.tmp-tests/` ani změna pracovního stromu. |
 | T5 | 2026-06-10 | [PR #163 / commit `37867f7`](https://github.com/Bbambaaamm/RezervujKurt/pull/163/checks) | vlastník projektu, technická kontrola Codex | Node.js 22 je sjednocený v projektu i CI; Build Gate na Node.js 22 úspěšný. |
 | E1 | 2026-06-11 | [PR #159–#164 a související Actions běhy](e2e-pr-stability-log.md) | vlastník projektu, technická kontrola Codex | Potvrzen minimální reprezentativní vzorek šesti automatických PR běhů bez retry; čtyři z nich zahrnují nedokumentační změny. |
+| E2 | 2026-06-11 | [PR #175 / run 27327043964](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27327043964) | vlastník projektu, technická kontrola Codex | Artefakt obsahoval otevíratelný trace prvního řízeně neúspěšného pokusu a odpovídající screenshot `diagnostika-pokus-1.png`; dočasné selhání bylo odstraněno. |
 | E3 | 2026-06-10 | commit `fa0b19a` | vlastník projektu, technická kontrola Codex | Medián `3m 9s`, maximum `4m 4s`; 20minutový timeout ponechán a provoz standardního runneru ve veřejném repozitáři vyhodnocen jako přijatelný. |
 
 # 6. Rozhodnutí a změny rozsahu

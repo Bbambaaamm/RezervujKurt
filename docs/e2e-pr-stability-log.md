@@ -35,7 +35,7 @@ Ověřit stabilitu workflow `E2E Lifecycle Verification` v automatickém PR prov
 
 [PR #175](https://github.com/Bbambaaamm/RezervujKurt/pull/175) spustil dočasně řízené selhání po otevření stránky. [Actions run 27327043964](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27327043964) skončil podle očekávání neúspěchem za `3m 5s` a publikoval artefakt `playwright-lifecycle-failure` o velikosti `876 KB` s digestem `sha256:bd91ec2a95c2c010542c0fd6482c70407aa46ae16d4af3153c9c514370ff53f1`. Tím je potvrzeno, že upload krok při reálném browserovém selhání diagnostický artefakt vytvoří.
 
-Dočasná aktivace řízeného selhání i testovací větev byly po běhu odstraněny, aby následující pull requesty znovu spouštěly skutečný lifecycle scénář. E2 přesto zůstává otevřené: veřejná stránka běhu potvrzuje existenci, velikost a digest artefaktu, ale pro splnění akceptačního kritéria je ještě nutné artefakt přes přihlášené GitHub rozhraní stáhnout a ověřit, že obsahuje trace a screenshot prvního neúspěšného pokusu. Tento záměrný neúspěch se nezapočítává do vzorku stability E1 ani se neklasifikuje jako produktová regrese.
+Dne `11. 6. 2026` vlastník projektu stáhl artefakt přes přihlášené GitHub rozhraní a ověřil jeho obsah. Archiv obsahoval otevíratelný Playwright `trace.zip`, automatické PNG screenshoty a cílený screenshot `diagnostika-pokus-1.png`. Trace patřil lifecycle scénáři v projektu `chromium`, zachycoval navigaci na `/rezervace` a skončil očekávanou chybou `Řízené E2E selhání po načtení stránky pro ověření diagnostiky, pokus 1.` Tím je doložen trace i screenshot prvního neúspěšného browserového pokusu a E2 je splněné. Dočasná aktivace selhání byla následně odstraněna. Tento záměrný neúspěch se nezapočítává do vzorku stability E1 ani se neklasifikuje jako produktová regrese.
 
 ## Průběžné vyhodnocení
 
@@ -76,6 +76,136 @@ Timeout 20 minut zůstává přiměřený. Je téměř pětinásobkem nejhorší
 ## Diagnostika selhání
 
 Playwright ukládá trace každého neúspěšného pokusu do `test-results/` a při selhání po vytvoření stránky také screenshot. Workflow se pokusí tento adresář nahrát jako artefakt `playwright-lifecycle-failure` vždy po lifecycle kroku, tedy i když retry obnoví úspěšný výsledek. Pokud čistý běh nevytvoří žádnou diagnostiku, `if-no-files-found: ignore` ponechá upload krok úspěšný bez artefaktu. Infrastrukturní chyby před spuštěním browseru se určují z trace a logu workflow; screenshot u nich nemusí existovat.
+
+### Postup externího ověření a uzavření E2
+
+Tento postup dokončuje pouze chybějící kontrolu obsahu již publikovaného artefaktu. Není potřeba měnit aplikaci, workflow, autentizaci ani RLS. Doporučená varianta je stažení přes přihlášený web GitHubu, protože nevyžaduje GitHub CLI ani vytváření osobního tokenu.
+
+#### 1. Stáhnout artefakt přes přihlášený GitHub
+
+1. Přihlásit se ke GitHubu účtem, který má alespoň právo číst repozitář `Bbambaaamm/RezervujKurt`.
+2. Otevřít [Actions run 27327043964](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27327043964).
+3. Na souhrnné stránce běhu najít sekci **Artifacts** a kliknout na `playwright-lifecycle-failure`.
+4. Uložit stažený ZIP mimo pracovní strom repozitáře, například jako `~/Downloads/playwright-lifecycle-failure.zip`. Artefakt se nesmí commitnout: může obsahovat snapshoty stránky, testovací data a další diagnostický obsah.
+5. Pokud GitHub místo stažení vyžádá přihlášení, dokončit přihlášení ve stejném prohlížeči a vrátit se na stránku běhu. Anonymní přístup nestačí ani u veřejného repozitáře.
+6. Pokud sekce **Artifacts** uvádí, že artefakt expiroval, pokračovat rovnou částí **Když artefakt již expiroval**. Workflow má retenční dobu pouze sedm dní, takže odklad kontroly může původní důkaz nenávratně znepřístupnit.
+
+#### 2. Bezpečně zkontrolovat strukturu ZIPu
+
+Následující příkazy pouze čtou archiv a rozbalí jej do dočasného adresáře:
+
+```bash
+ARTIFACT="$HOME/Downloads/playwright-lifecycle-failure.zip"
+WORKDIR="$(mktemp -d)"
+
+unzip -t "$ARTIFACT"
+unzip -l "$ARTIFACT"
+unzip -q "$ARTIFACT" -d "$WORKDIR"
+find "$WORKDIR" -type f -print | sort
+```
+
+Je nutné doložit obě následující skupiny souborů:
+
+- alespoň jeden Playwright trace archiv, typicky soubor pojmenovaný `trace.zip`;
+- alespoň jeden screenshot selhání, typicky soubor s příponou `.png`, například `test-failed-1.png`.
+
+Přesný název nadřazeného adresáře není akceptační kritérium a může obsahovat jméno testu, projektu nebo retry. Samotná přítomnost libovolného ZIPu a PNG ale také nestačí: oba soubory musí patřit řízeně selhanému lifecycle testu z tohoto běhu.
+
+Pro rychlou kontrolu lze použít:
+
+```bash
+find "$WORKDIR" -type f -name 'trace.zip' -print
+find "$WORKDIR" -type f -iname '*.png' -print
+```
+
+Pokud některý příkaz nic nevypíše, E2 se nesmí uzavřít. Výsledek se zapíše jako neúspěšné ověření a je nutné opravit diagnostickou konfiguraci nebo zopakovat řízený běh.
+
+#### 3. Otevřít trace a potvrdit, že jde o první neúspěšný pokus
+
+Každý nalezený `trace.zip` otevřít lokálním Playwright Trace Viewerem. Příkaz lze spustit z checkoutu projektu, kde je Playwright již vedený jako vývojová závislost:
+
+```bash
+npx playwright show-trace "/absolutni/cesta/k/trace.zip"
+```
+
+V Trace Vieweru ověřit a zaznamenat:
+
+1. trace patří lifecycle scénáři z PR #175 a projektu `chromium`;
+2. timeline obsahuje otevření stránky a následné záměrné browserové selhání, nikoli pouze chybu instalace nebo startu infrastruktury;
+3. je dostupný DOM/snímek stránky a chybová informace odpovídající řízenému selhání;
+4. diagnostika obsahuje první neúspěšný pokus. Pokud jsou v artefaktu adresáře nebo traces pro více pokusů, první pokus určit podle retry označení a obsahu trace, ne pouze podle pořadí výpisu souborů;
+5. nalezený PNG screenshot patří stejnému neúspěšnému pokusu a lze jej otevřít jako validní obrázek.
+
+Pro kontrolu PNG bez závislosti na konkrétním grafickém programu lze alespoň ověřit typ souboru:
+
+```bash
+file "/absolutni/cesta/k/test-failed-1.png"
+```
+
+Korektní výsledek musí uvádět PNG image data. Vizuální otevření screenshotu je přesto doporučené, protože samotná hlavička souboru nepotvrzuje, že zachycuje správný stav testu.
+
+#### 4. Zapsat auditovatelný výsledek
+
+Po úspěšné kontrole doplnit do části **Řízené ověření diagnostiky E2** krátký záznam v tomto tvaru:
+
+```md
+Dne YYYY-MM-DD ověřil/a @github-login přes přihlášené GitHub rozhraní artefakt
+`playwright-lifecycle-failure` z runu 27327043964. Stažený archiv prošel kontrolou
+`unzip -t` a obsahoval Playwright `trace.zip` prvního neúspěšného browserového pokusu
+i odpovídající PNG screenshot. Trace byl otevřen příkazem `npx playwright show-trace ...`
+a zachycoval řízené selhání lifecycle scénáře po otevření stránky. E2 je tímto doložené.
+```
+
+Do repozitáře se zapisuje pouze tento závěr, datum a GitHub identita ověřující osoby. Nestandardní lokální cesty, obsah trace, testovací přihlašovací údaje, celý ZIP ani screenshot se necommitují. Odkaz na run, název artefaktu, velikost a veřejně evidovaný digest už v dokumentaci jsou.
+
+Následně provést dvě malé změny v `docs/dalsi-postup.md`:
+
+1. u posledního akceptačního kritéria E2 změnit `[ ]` na `[x]`;
+2. změnit nadpis `## [!] E2` na `## [x] E2` a nahradit blokující potvrzení odkazem na datovaný záznam ověření v tomto souboru.
+
+Teprve po tomto zápisu je korektní považovat E2 za uzavřené a zahájit E4.
+
+#### 5. Když ověření neprojde
+
+E2 ponechat jako `[!]` v kterékoli z těchto situací:
+
+- artefakt nejde stáhnout přihlášeným účtem;
+- ZIP je poškozený;
+- chybí `trace.zip` nebo PNG screenshot;
+- trace nelze otevřít;
+- trace či screenshot nepatří prvnímu řízeně neúspěšnému browserovému pokusu;
+- nelze spolehlivě odlišit první pokus od retry.
+
+Do této evidence zapsat konkrétní zjištění bez domněnek. Pouhá existence artefaktu, jeho velikost nebo digest nedokládají požadovaný obsah.
+
+#### 6. Když artefakt již expiroval
+
+Expirovaný artefakt nelze použít k uzavření E2. V takovém případě je nutné zopakovat řízený důkaz podle části **Chybějící důkaz pro E2** v novém dočasném pull requestu:
+
+1. vyvolat očekávané selhání až po otevření stránky;
+2. nezasahovat do produkčních auth/RLS ochran;
+3. po skončení běhu stáhnout nový artefakt ještě před uplynutím sedmidenní retence;
+4. provést kontroly z kroků 2 až 4 výše;
+5. před sloučením odstranit dočasné selhání;
+6. nový řízený běh nezapočítat do stability E1.
+
+Není správné pouze znovu spustit starý job a předpokládat stejný obsah. Nový důkaz musí mít vlastní odkaz na run a vlastní datovaný záznam kontroly.
+
+#### Volitelná varianta pro správce s GitHub CLI
+
+Pokud správce později použije GitHub CLI, ekvivalentní stažení konkrétního artefaktu je:
+
+```bash
+gh auth login
+gh run download 27327043964 \
+  --repo Bbambaaamm/RezervujKurt \
+  --name playwright-lifecycle-failure \
+  --dir "$HOME/Downloads/playwright-lifecycle-failure"
+```
+
+Tato varianta není doporučeným předpokladem pro uzavření E2. Webové stažení přihlášeným vlastníkem poskytuje pro požadovanou obsahovou kontrolu stejný podklad bez zavádění tokenu do lokálního prostředí.
+
+Související oficiální dokumentace: [stažení GitHub Actions artefaktů](https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/downloading-workflow-artifacts) a [Playwright Trace Viewer](https://playwright.dev/docs/trace-viewer-intro).
 
 ### Chybějící důkaz pro E2
 
