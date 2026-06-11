@@ -195,7 +195,7 @@ Cíl fáze: prokázat, že autentizovaný lifecycle test je dostatečně stabiln
 
 **Potvrzení:** minimální reprezentativní vzorek šesti automatických PR běhů potvrzen vlastníkem projektu `11. 6. 2026`; rozšíření na doporučených deset běhů zůstává nepovinným průběžným zpřesněním evidence.
 
-## [-] E2 — Vyhodnotit každé E2E selhání
+## [!] E2 — Vyhodnotit každé E2E selhání
 
 **Priorita:** P0  
 **Závisí na:** průběžných výsledcích E1
@@ -207,7 +207,7 @@ Cíl fáze: prokázat, že autentizovaný lifecycle test je dostatečně stabiln
 - [x] opravy nesnižují produkční auth nebo RLS ochrany jen kvůli testu;
 - [ ] řízený neúspěšný browserový pokus prokáže, že diagnostický artefakt obsahuje trace prvního neúspěšného pokusu a screenshot; pokud retry uspěje, artefakt musí zachovat diagnostiku předchozího pokusu.
 
-**Potvrzení:** rozpracováno `11. 6. 2026`; [PR #175 / run 27327043964](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27327043964) řízeným browserovým selháním potvrdil publikaci artefaktu `playwright-lifecycle-failure` o velikosti `876 KB`. Dočasná aktivace selhání byla následně odstraněna. Dokončení čeká už jen na stažení artefaktu přes přihlášené GitHub rozhraní a kontrolu trace a screenshotu prvního pokusu podle `docs/e2e-pr-stability-log.md`.
+**Potvrzení:** blokováno externím přístupem `11. 6. 2026`; [PR #175 / run 27327043964](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27327043964) řízeným browserovým selháním veřejně potvrzuje publikaci artefaktu `playwright-lifecycle-failure` o velikosti `876 KB` a jeho SHA-256 digest. Dočasná aktivace selhání byla následně odstraněna. Anonymní GitHub rozhraní ani lokální prostředí bez GitHub tokenu neumožňuje artefakt stáhnout, proto nelze pravdivě potvrdit jeho obsah. Vlastník projektu musí přes přihlášené GitHub rozhraní ověřit trace a screenshot prvního pokusu podle `docs/e2e-pr-stability-log.md`; do té doby E2 zůstává `[!]` a E4 nesmí být zahájeno.
 
 ## [x] E3 — Potvrdit provozní náklady lifecycle jobu
 
@@ -539,9 +539,9 @@ Každý bod před zahájením musí dostat samostatná akceptační kritéria a 
 
 ## Doporučená nejbližší položka
 
-**E2 — Dokončit kontrolu obsahu diagnostického artefaktu.**
+**E2 — Vlastník projektu musí dokončit kontrolu obsahu diagnostického artefaktu.**
 
-Důvod: PR #175 už řízeným selháním prokázal vznik artefaktu `playwright-lifecycle-failure` a dočasná testovací změna byla odstraněna. Před E4 zbývá artefakt z runu 27327043964 stáhnout přes přihlášené GitHub rozhraní a potvrdit, že obsahuje trace a screenshot prvního neúspěšného pokusu. Bez této kontroly nelze E2 poctivě označit jako dokončené.
+Důvod: PR #175 už řízeným selháním prokázal vznik artefaktu `playwright-lifecycle-failure` a dočasná testovací změna byla odstraněna. Veřejně lze ověřit jeho název, velikost `876 KB` a SHA-256 digest, nikoli obsah. Vlastník projektu proto musí artefakt z runu 27327043964 stáhnout přes přihlášené GitHub rozhraní, potvrdit trace a screenshot prvního neúspěšného pokusu a výsledek zapsat do evidence. Bez této externí kontroly zůstává E2 blokované a nelze poctivě zahájit E4.
 
 # 5. Evidence dokončení
 
