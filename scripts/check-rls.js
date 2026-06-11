@@ -19,11 +19,6 @@ const requiredPolicies = [
     name: 'reservations_select_owner_or_admin',
     reason: 'Admin musí mít SELECT na reservations přes policy owner_or_admin i po db resetu.'
   },
-  {
-    table: 'public.reservations',
-    name: 'reservations_select_public_occupancy_anon',
-    reason: 'Anonymní occupancy read musí povolit pending/approved pro veřejný grid.'
-  }
 ];
 
 
@@ -45,6 +40,24 @@ const requiredPublicOccupancyArtifacts = [
     name: 'grant_select_reservation_public_occupancy_authenticated',
     matcher: /grant\s+select\s+on\s+public\.reservation_public_occupancy\s+to\s+authenticated/i,
     reason: 'Přihlášený uživatel musí číst stejnou veřejnou obsazenost.'
+  },
+  {
+    type: 'view_security',
+    name: 'reservation_public_occupancy_security_definer',
+    matcher: /with\s*\(security_invoker\s*=\s*false,\s*security_barrier\s*=\s*true\)/i,
+    reason: 'Veřejný pohled musí vracet stejnou bezpečnou projekci bez přímého grantu na reservations.'
+  },
+  {
+    type: 'revoke',
+    name: 'revoke_reservations_anon',
+    matcher: /revoke\s+all\s+privileges\s+on\s+public\.reservations\s+from\s+anon/i,
+    reason: 'Anon role nesmí získat přímý přístup k osobním údajům v reservations.'
+  },
+  {
+    type: 'policy_cleanup',
+    name: 'drop_reservations_select_public_occupancy_anon',
+    matcher: /drop\s+policy\s+if\s+exists\s+"reservations_select_public_occupancy_anon"\s+on\s+public\.reservations/i,
+    reason: 'Veřejný přístup musí vést pouze přes omezený occupancy pohled.'
   }
 ];
 
