@@ -260,9 +260,10 @@ Cíl fáze: ověřit aplikaci nad prostředím, které odpovídá budoucímu pro
 - [ ] každé prostředí má určený Supabase projekt a aplikační URL — poskytovatelé a oddělení jsou rozhodnuté, konkrétní Vercel URL a Supabase project refs zatím chybí;
 - [x] je zdokumentováno, kde se spravují secrets a kdo k nim má přístup;
 - [x] produkční secrets nejsou uložené v repozitáři ani veřejné dokumentaci;
+- [ ] staging a production mají nakonfigurovaný custom SMTP pro veřejné magic linky — jako bezplatný poskytovatel je doporučen Brevo Free, ale volba vlastníkem, účet, odesílatel a credentials zatím nejsou potvrzené ani ověřené;
 - [ ] redirect URL pro auth jsou explicitně povolené pro každé prostředí — pravidla jsou popsaná, konkrétní staging a production URL se doplní po vytvoření projektů.
 
-**Potvrzení:** částečně rozhodnuto `11. 6. 2026`; důkaz `docs/prostredi.md`. P1 zůstává rozpracované do doplnění konkrétních Vercel URL, Supabase project refs a ověření auth redirectů.
+**Potvrzení:** částečně rozhodnuto `11. 6. 2026`; důkaz `docs/prostredi.md`. P1 zůstává rozpracované do doplnění konkrétních Vercel URL, Supabase project refs, custom SMTP a ověření auth redirectů i externího doručování magic linků.
 
 ## [ ] P2 — Ověřit migrace na čisté staging databázi
 
@@ -308,7 +309,7 @@ Cíl fáze: ověřit aplikaci nad prostředím, které odpovídá budoucímu pro
 
 **Akceptační kritéria:**
 
-- [ ] magic link je doručen na reálnou testovací adresu;
+- [ ] magic link je přes nakonfigurovaný custom SMTP doručen alespoň na dvě reálné externí adresy mimo tým Supabase projektu, doporučeně u dvou různých poskytovatelů schránek;
 - [ ] odkaz směřuje na správný Supabase host;
 - [ ] následný redirect vede na správnou aplikační URL a `/rezervace`;
 - [ ] odkaz neobsahuje localhost ani historický Codespaces host;
