@@ -26,14 +26,14 @@ Ověřit stabilitu workflow `E2E Lifecycle Verification` v automatickém PR prov
 | 4 | [#162](https://github.com/Bbambaaamm/RezervujKurt/pull/162) | [run 27292237088](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27292237088) | `e835b66` | Testovací infrastruktura | Úspěch | 3m 9s | První evidovaný pokus, bez retry |
 | 5 | [#163](https://github.com/Bbambaaamm/RezervujKurt/pull/163) | [run 27292820773](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27292820773) | `37867f7` | Runtime a CI konfigurace | Úspěch | 4m 4s | První evidovaný pokus, bez retry |
 | 6 | [#164](https://github.com/Bbambaaamm/RezervujKurt/pull/164) | [run 27294076829](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27294076829) | `dd460e9` | E2E evidence a řídicí checklist | Úspěch | 3m 21s | První evidovaný pokus, bez retry |
-| 7 | — | — | — | — | — | — | — |
+| 7 | [#173](https://github.com/Bbambaaamm/RezervujKurt/pull/173) | [run 27324983652](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27324983652) | `604b37f` | Dokumentace a potvrzení E1 | Úspěch | 2m 56s | První pokus bez retry; upload krok toleroval chybějící diagnostické soubory, jejich publikaci neověřil |
 | 8 | — | — | — | — | — | — | — |
 | 9 | — | — | — | — | — | — | — |
 | 10 | — | — | — | — | — | — | — |
 
 ## Průběžné vyhodnocení
 
-K 10. 6. 2026 je evidováno šest dokončených automatických PR běhů bez retry. Vzorek obsahuje čtyři nedokumentační změny a dvě dokumentační změny. Žádný z evidovaných prvních pokusů neselhal, takže nevzniklo selhání vyžadující klasifikaci ani otevřený nevysvětlený blokátor. Medián délky lifecycle jobu je `3m 9s` a nejhorší pozorovaná délka je `4m 4s`.
+K 11. 6. 2026 je evidováno sedm dokončených automatických PR běhů bez retry. Vzorek obsahuje čtyři nedokumentační změny a tři dokumentační změny. Žádný z evidovaných prvních pokusů neselhal, takže nevzniklo selhání vyžadující klasifikaci ani otevřený nevysvětlený blokátor. Sedmý běh ověřil, že upload krok při čistém běhu toleruje chybějící diagnostické soubory; neověřil vznik ani obsah artefaktu při selhání. Medián délky lifecycle jobu je `3m 9s` a nejhorší pozorovaná délka je `4m 4s`.
 
 ## Vyhodnocení provozních nákladů
 
@@ -70,6 +70,18 @@ Timeout 20 minut zůstává přiměřený. Je téměř pětinásobkem nejhorší
 ## Diagnostika selhání
 
 Playwright ukládá trace každého neúspěšného pokusu do `test-results/` a při selhání po vytvoření stránky také screenshot. Workflow se pokusí tento adresář nahrát jako artefakt `playwright-lifecycle-failure` vždy po lifecycle kroku, tedy i když retry obnoví úspěšný výsledek. Pokud čistý běh nevytvoří žádnou diagnostiku, `if-no-files-found: ignore` ponechá upload krok úspěšný bez artefaktu. Infrastrukturní chyby před spuštěním browseru se určují z trace a logu workflow; screenshot u nich nemusí existovat.
+
+### Chybějící důkaz pro E2
+
+Úspěšný běh bez retry neprokazuje publikaci diagnostiky, protože při něm může být adresář `test-results/` prázdný a `if-no-files-found: ignore` nevytvoří artefakt. Před uzavřením E2 je nutné provést samostatný dočasný testovací pull request s těmito podmínkami:
+
+1. testovací změna vyvolá očekávané selhání až po otevření stránky, aby Playwright vytvořil trace i screenshot;
+2. změna neoslabí produkční autentizaci, RLS, databázové migrace ani ochranu proti kolizím;
+3. po dokončení běhu se stáhne `playwright-lifecycle-failure` a ověří se trace a screenshot prvního neúspěšného pokusu;
+4. pokud následný retry uspěje, v artefaktu musí zůstat diagnostika prvního pokusu;
+5. testovací změna se před sloučením odstraní a odkazy na PR, Actions run a ověřený obsah artefaktu se zapíší do této dokumentace.
+
+Ruční nebo záměrně neúspěšný běh se nezapočítává do vzorku stability E1; slouží pouze jako důkaz diagnostické připravenosti E2.
 
 Při klasifikaci použijte následující rozlišení:
 

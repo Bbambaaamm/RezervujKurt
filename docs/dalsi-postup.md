@@ -205,9 +205,9 @@ Cíl fáze: prokázat, že autentizovaný lifecycle test je dostatečně stabiln
 - [x] každé dosud evidované selhání je klasifikované jako produktová regrese, nestabilita testu, problém dat nebo CI infrastruktury; ve vzorku E1 dosud žádné selhání nenastalo;
 - [x] žádné nevysvětlené selhání nezůstává uzavřené bez dalšího kroku;
 - [x] opravy nesnižují produkční auth nebo RLS ochrany jen kvůli testu;
-- [x] diagnostické artefakty zachovávají a publikují trace každého neúspěšného pokusu včetně prvního pokusu před úspěšným retry a screenshot, pokud selhání nastane po vytvoření stránky.
+- [ ] řízený neúspěšný browserový pokus prokáže, že diagnostický artefakt obsahuje trace prvního neúspěšného pokusu a screenshot; pokud retry uspěje, artefakt musí zachovat diagnostiku předchozího pokusu.
 
-**Potvrzení:** dosavadní běhy a diagnostický postup vyhodnoceny `10. 6. 2026`; čeká na úspěšný běh upraveného workflow, průběžné vyhodnocování budoucích selhání a potvrzení vlastníka projektu.
+**Potvrzení:** rozpracováno `11. 6. 2026`; [PR #173 / run 27324983652](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27324983652) ověřil pouze úspěšný čistý běh a toleranci prázdného adresáře diagnostiky. Dokončení čeká na řízený neúspěšný browserový pokus a kontrolu skutečného obsahu artefaktu podle `docs/e2e-pr-stability-log.md`.
 
 ## [x] E3 — Potvrdit provozní náklady lifecycle jobu
 
@@ -539,9 +539,9 @@ Každý bod před zahájením musí dostat samostatná akceptační kritéria a 
 
 ## Doporučená nejbližší položka
 
-**E2 — Potvrdit diagnostickou připravenost E2E evidence.**
+**E2 — Ověřit publikaci diagnostiky při řízeném selhání.**
 
-Důvod: E1 je potvrzené na minimálním reprezentativním vzorku šesti automatických PR běhů a E3 potvrdilo přijatelné provozní náklady. Před E4 ještě musí proběhnout úspěšný běh workflow s diagnostickými artefakty podle E2 a vlastník projektu musí potvrdit jeho diagnostickou připravenost; teprve potom lze lifecycle bezpečně nastavit jako povinný check.
+Důvod: PR #173 potvrdil pouze úspěšný čistý běh; při něm nevznikl žádný diagnostický artefakt. Před E4 musí samostatný dočasný testovací pull request bezpečně vyvolat selhání až po otevření stránky, ověřit obsah artefaktu `playwright-lifecycle-failure` a následně odstranit testovací změnu. Produkční autentizace, RLS ani kolizní ochrany se kvůli tomuto ověření nesmí oslabit.
 
 # 5. Evidence dokončení
 
