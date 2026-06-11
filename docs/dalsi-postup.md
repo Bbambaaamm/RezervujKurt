@@ -207,7 +207,7 @@ Cíl fáze: prokázat, že autentizovaný lifecycle test je dostatečně stabiln
 - [x] opravy nesnižují produkční auth nebo RLS ochrany jen kvůli testu;
 - [ ] řízený neúspěšný browserový pokus prokáže, že diagnostický artefakt obsahuje trace prvního neúspěšného pokusu a screenshot; pokud retry uspěje, artefakt musí zachovat diagnostiku předchozího pokusu.
 
-**Potvrzení:** rozpracováno `11. 6. 2026`; [PR #173 / run 27324983652](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27324983652) ověřil pouze úspěšný čistý běh a toleranci prázdného adresáře diagnostiky. Dokončení čeká na řízený neúspěšný browserový pokus a kontrolu skutečného obsahu artefaktu podle `docs/e2e-pr-stability-log.md`.
+**Potvrzení:** rozpracováno `11. 6. 2026`; [PR #175 / run 27327043964](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27327043964) řízeným browserovým selháním potvrdil publikaci artefaktu `playwright-lifecycle-failure` o velikosti `876 KB`. Dočasná aktivace selhání byla následně odstraněna. Dokončení čeká už jen na stažení artefaktu přes přihlášené GitHub rozhraní a kontrolu trace a screenshotu prvního pokusu podle `docs/e2e-pr-stability-log.md`.
 
 ## [x] E3 — Potvrdit provozní náklady lifecycle jobu
 
@@ -539,9 +539,9 @@ Každý bod před zahájením musí dostat samostatná akceptační kritéria a 
 
 ## Doporučená nejbližší položka
 
-**E2 — Ověřit publikaci diagnostiky při řízeném selhání.**
+**E2 — Dokončit kontrolu obsahu diagnostického artefaktu.**
 
-Důvod: PR #173 potvrdil pouze úspěšný čistý běh; při něm nevznikl žádný diagnostický artefakt. Před E4 musí samostatný dočasný testovací pull request bezpečně vyvolat selhání až po otevření stránky, ověřit obsah artefaktu `playwright-lifecycle-failure` a následně odstranit testovací změnu. Produkční autentizace, RLS ani kolizní ochrany se kvůli tomuto ověření nesmí oslabit.
+Důvod: PR #175 už řízeným selháním prokázal vznik artefaktu `playwright-lifecycle-failure` a dočasná testovací změna byla odstraněna. Před E4 zbývá artefakt z runu 27327043964 stáhnout přes přihlášené GitHub rozhraní a potvrdit, že obsahuje trace a screenshot prvního neúspěšného pokusu. Bez této kontroly nelze E2 poctivě označit jako dokončené.
 
 # 5. Evidence dokončení
 
