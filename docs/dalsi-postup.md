@@ -282,9 +282,14 @@ Cíl fáze: ověřit aplikaci nad prostředím, které odpovídá budoucímu pro
 
 - [x] `npx supabase migration list` ověřil stav hostovaných migrací;
 - [x] `npx supabase db push` aplikoval chybějící produkční migraci;
-- [x] `npm run check:rls` prošel;
 - [x] produkční aplikace po migraci úspěšně vytvořila rezervaci;
 - [x] produkční databáze je prokazatelně používaná production deploymentem.
+
+**Repozitářová kontrola migračních souborů:**
+
+- [x] `npm run check:rls` prošel nad lokálními SQL soubory v `supabase/migrations`;
+- [x] `npm run check:rls:prod` prošel v release režimu nad stejnými lokálními migračními soubory a upozornil na legacy DEV migraci v historii;
+- [ ] tyto statické kontroly nepotvrzují skutečně nasazené RLS politiky v hostované databázi; ty musí ověřit čistý staging migration run a databázová kontrola výsledného stavu.
 
 **Zbývající akceptační kritéria pro úplné uzavření P2:**
 
@@ -294,9 +299,9 @@ Cíl fáze: ověřit aplikaci nad prostředím, které odpovídá budoucímu pro
 - [x] je popsaný bezpečný postup migrace a návratu při selhání;
 - [ ] legacy RLS migrace nezpůsobí při kompletním aplikačním pořadí regresi.
 
-**Povinné ověření pro uzavření:** `npm run check:rls:prod` a čistý staging databázový reset/migration run.
+**Povinné ověření pro uzavření:** čistý staging databázový reset/migration run a databázová kontrola výsledných RLS politik po aplikaci celého migračního pořadí.
 
-**Potvrzení:** významná část ověřena `12. 6. 2026` na production. Před opravou vytvoření rezervace selhalo na `reservations_court_id_fkey` s chybou chybějícího kurtu; po aplikaci seed migrace byla rezervace úspěšně vytvořena. P2 zůstává rozpracované pouze kvůli chybějícímu kompletnímu běhu migrací na čistém stagingu.
+**Potvrzení:** významná část ověřena `12. 6. 2026` na production. Před opravou vytvoření rezervace selhalo na `reservations_court_id_fkey` s chybou chybějícího kurtu; po aplikaci seed migrace byla rezervace úspěšně vytvořena. Pro uzavření P2 stále chybí kompletní aplikace migrací na čisté staging databázi, databázové ověření výsledných RLS politik a potvrzení, že legacy RLS migrace nezpůsobí regresi v kompletním migračním pořadí.
 
 ## [x] P2a — Seed základních kurtů v hostované production databázi
 
