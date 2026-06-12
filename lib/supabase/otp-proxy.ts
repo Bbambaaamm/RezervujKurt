@@ -42,6 +42,15 @@ export function buildSupabaseOtpEndpoint(endpoint: string, emailRedirectTo?: str
 
 export function getOtpFailureMessage(status: number, responseBody: string): string {
   const fallbackMessage = `Supabase Auth OTP selhalo (${status}).`;
+  const normalizedResponseBody = responseBody.toLocaleLowerCase('en-US');
+
+  if (
+    status === 429
+    || normalizedResponseBody.includes('email rate limit exceeded')
+    || normalizedResponseBody.includes('over_email_send_rate_limit')
+  ) {
+    return 'Příliš mnoho pokusů o přihlášení. Počkejte chvíli a zkuste to znovu.';
+  }
 
   try {
     const parsed = JSON.parse(responseBody) as { error_code?: unknown; msg?: unknown; message?: unknown };

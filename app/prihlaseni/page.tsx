@@ -4,9 +4,12 @@ import { FormEvent, useEffect, useState } from 'react';
 import { supabaseAuthClient, type AuthSession } from '@/lib/supabase/auth-client';
 import { buildEmailRedirectTo } from '@/lib/supabase/auth-redirect';
 
+const MAGIC_LINK_COOLDOWN_SECONDS = 60;
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [session, setSession] = useState<AuthSession | null>(null);
@@ -44,6 +47,16 @@ export default function LoginPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setCooldownSeconds((currentSeconds) => Math.max(0, currentSeconds - 1));
+    }, 1000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [cooldownSeconds]);
+
   function getMagicLinkRedirectUrl(): string {
     const emailRedirectTo = buildEmailRedirectTo({
       envRedirectUrl: process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL,
@@ -64,6 +77,9 @@ export default function LoginPage() {
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (isSubmitting || cooldownSeconds > 0) return;
+
     setError(null);
     setMessage(null);
     setIsSubmitting(true);
@@ -88,6 +104,7 @@ export default function LoginPage() {
       return;
     }
 
+    setCooldownSeconds(MAGIC_LINK_COOLDOWN_SECONDS);
     setMessage('Na e-mail byl odeslán odkaz pro přihlášení.');
   }
 
@@ -107,6 +124,12 @@ export default function LoginPage() {
   }
 
   const isLoggedIn = Boolean(session);
+  const isLoginDisabled = isSubmitting || cooldownSeconds > 0;
+  const loginButtonLabel = isSubmitting
+    ? 'Odesílám odkaz…'
+    : cooldownSeconds > 0
+      ? `Další odkaz lze poslat za ${cooldownSeconds} s`
+      : 'Poslat odkaz pro přihlášení';
 
   return (
     <div className="mx-auto max-w-xl space-y-5 rounded-xl border border-slate-200 bg-white p-6">
@@ -133,8 +156,8 @@ export default function LoginPage() {
               placeholder="jmeno@domena.cz"
             />
           </label>
-          <button disabled={isSubmitting} className="w-full rounded-md border border-slate-300 px-4 py-2 text-left disabled:opacity-60">
-            {isSubmitting ? 'Odesílám odkaz…' : 'Poslat odkaz pro přihlášení'}
+          <button disabled={isLoginDisabled} className="w-full rounded-md border border-slate-300 px-4 py-2 text-left disabled:opacity-60">
+            {loginButtonLabel}
           </button>
         </form>
       )}
