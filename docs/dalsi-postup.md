@@ -254,35 +254,68 @@ Cíl fáze: ověřit aplikaci nad prostředím, které odpovídá budoucímu pro
 
 **Návrh prostředí:** [`docs/prostredi.md`](prostredi.md)
 
+**Aktuálně potvrzená konfigurace:**
+
+- production aplikace: `https://rezervuj-kurt.vercel.app`;
+- production Supabase project ref: `jrmenwgaponihgzroduw`;
+- staging Supabase project ref: `rrlvlgoiwesteevzupyi`;
+- hostovaný produkční lifecycle dne `12. 6. 2026` potvrdil, že production deployment používá uvedený production Supabase projekt.
+
 **Akceptační kritéria:**
 
 - [x] je rozhodnuto, zda budou existovat `development`, `staging` a `production` prostředí;
-- [ ] každé prostředí má určený Supabase projekt a aplikační URL — poskytovatelé a oddělení jsou rozhodnuté, konkrétní Vercel URL a Supabase project refs zatím chybí;
+- [ ] každé prostředí má určený Supabase projekt a aplikační URL — oba hostované Supabase project refs a production Vercel URL jsou známé, chybí konkrétní staging/Preview URL;
 - [x] je zdokumentováno, kde se spravují secrets a kdo k nim má přístup;
 - [x] produkční secrets nejsou uložené v repozitáři ani veřejné dokumentaci;
-- [ ] staging a production mají nakonfigurovaný custom SMTP pro veřejné magic linky — jako bezplatný poskytovatel je doporučen Brevo Free, ale volba vlastníkem, účet, odesílatel a credentials zatím nejsou potvrzené ani ověřené;
-- [ ] redirect URL pro auth jsou explicitně povolené pro každé prostředí — pravidla jsou popsaná, konkrétní staging a production URL se doplní po vytvoření projektů.
+- [x] je runtime ověřeno propojení production Vercel deploymentu s production Supabase projektem;
+- [ ] staging a production mají nakonfigurovaný custom SMTP pro veřejné magic linky — technický test přes výchozího Supabase poskytovatele prošel na Gmail, custom SMTP pro širší provoz zatím chybí;
+- [ ] redirect URL pro auth jsou explicitně povolené pro každé prostředí — production návrat na `/rezervace` je prakticky ověřený, staging URL a její redirect allowlist zatím chybí.
 
-**Potvrzení:** částečně rozhodnuto `11. 6. 2026`; důkaz `docs/prostredi.md`. P1 zůstává rozpracované do doplnění konkrétních Vercel URL, Supabase project refs, custom SMTP a ověření auth redirectů i externího doručování magic linků.
+**Potvrzení:** rozpracováno; původní návrh prostředí potvrzen `11. 6. 2026`, konkrétní production URL, oba Supabase project refs a produkční propojení ověřeny `12. 6. 2026`. P1 čeká na staging/Preview URL, konkrétní vlastníky provozních přístupů a custom SMTP pro širší veřejný provoz.
 
-## [ ] P2 — Ověřit migrace na čisté staging databázi
+## [-] P2 — Ověřit migrace na hostované databázi
 
 **Priorita:** P0  
 **Závisí na:** P1
 
-**Akceptační kritéria:**
+**Dílčí produkční ověření z 12. 6. 2026:**
 
-- [ ] všechny migrace lze aplikovat ve správném pořadí na čistou databázi;
-- [ ] výsledné RLS politiky odpovídají očekávanému release stavu;
-- [ ] veřejný occupancy kontrakt funguje bez vývojového RLS režimu;
-- [ ] je popsaný bezpečný postup migrace a návratu při selhání;
+- [x] `npx supabase migration list` ověřil stav hostovaných migrací;
+- [x] `npx supabase db push` aplikoval chybějící produkční migraci;
+- [x] `npm run check:rls` prošel;
+- [x] produkční aplikace po migraci úspěšně vytvořila rezervaci;
+- [x] produkční databáze je prokazatelně používaná production deploymentem.
+
+**Zbývající akceptační kritéria pro úplné uzavření P2:**
+
+- [ ] všechny migrace lze aplikovat ve správném pořadí na čistou staging databázi;
+- [ ] výsledné RLS politiky na čistém stagingu odpovídají očekávanému release stavu;
+- [x] veřejný occupancy kontrakt funguje na hostovaném production prostředí bez vývojového RLS režimu;
+- [x] je popsaný bezpečný postup migrace a návratu při selhání;
 - [ ] legacy RLS migrace nezpůsobí při kompletním aplikačním pořadí regresi.
 
-**Povinné ověření:** `npm run check:rls:prod` a staging databázový reset/migration run.
+**Povinné ověření pro uzavření:** `npm run check:rls:prod` a čistý staging databázový reset/migration run.
 
-**Potvrzení:** datum `—`, důkaz `—`.
+**Potvrzení:** významná část ověřena `12. 6. 2026` na production. Před opravou vytvoření rezervace selhalo na `reservations_court_id_fkey` s chybou chybějícího kurtu; po aplikaci seed migrace byla rezervace úspěšně vytvořena. P2 zůstává rozpracované pouze kvůli chybějícímu kompletnímu běhu migrací na čistém stagingu.
 
-## [ ] P3 — Projít staging runtime lifecycle
+## [x] P2a — Seed základních kurtů v hostované production databázi
+
+- **Priorita:** P0
+- **Datum:** 12. 6. 2026
+- **PR:** [#189](https://github.com/Bbambaaamm/RezervujKurt/pull/189), větev `fix/seed-courts`
+- **Merge commit:** `b7c24cf`
+- **Migrace:** `20260612075345_seed_courts.sql`
+
+**Výsledek:**
+
+- [x] production databáze obsahuje `Kurt 1`, `Kurt 2` a `Kurt 3`;
+- [x] byla odstraněna chyba `reservations_court_id_fkey` způsobená chybějícím referenčním záznamem v tabulce `courts`;
+- [x] migrace byla aplikována pomocí `npx supabase db push`;
+- [x] po opravě byla v produkční aplikaci úspěšně vytvořena rezervace.
+
+**Potvrzení:** dokončeno a runtime ověřeno `12. 6. 2026`.
+
+## [-] P3 — Projít hostovaný runtime lifecycle
 
 **Priorita:** P0  
 **Závisí na:** P1, P2  
@@ -292,31 +325,36 @@ Cíl fáze: ověřit aplikaci nad prostředím, které odpovídá budoucímu pro
 
 - [ ] anonymní uživatel vidí kurty a skutečnou veřejnou obsazenost;
 - [ ] anonymní uživatel nemůže vytvořit rezervaci;
-- [ ] member vytvoří `pending` rezervaci;
-- [ ] rezervace okamžitě blokuje slot;
+- [x] member vytvoří `pending` rezervaci;
+- [x] rezervace se okamžitě zobrazí v obsazenosti a blokuje slot jako „Čeká na schválení“;
 - [ ] admin rezervaci vidí a schválí nebo zruší;
 - [ ] schválená rezervace zůstává blokující;
 - [ ] zrušená rezervace slot uvolní;
-- [ ] UI odpovídá datům v databázi;
-- [ ] aplikace nepoužívá mock fallback data.
+- [x] UI odpovídá datům v hostované production databázi;
+- [x] ověřený produkční průchod nepoužívá mock fallback data.
 
-**Potvrzení:** datum `—`, důkaz `—`.
+**Potvrzení:** rozpracováno `12. 6. 2026`. Na hostovaném production prostředí mimo lokální Supabase proběhla registrace nového uživatele, vytvoření profilu, přihlášení, vytvoření rezervace a okamžité zobrazení blokovaného termínu. Zbývá zejména admin schválení, admin zrušení a potvrzení uvolnění termínu; anonymní oprávnění se mají znovu explicitně projít podle runbooku.
 
-## [ ] P4 — Ověřit auth a doručování magic linku
+## [-] P4 — Ověřit auth a doručování magic linku
 
 **Priorita:** P0  
 **Závisí na:** P1
 
 **Akceptační kritéria:**
 
-- [ ] magic link je přes nakonfigurovaný custom SMTP doručen alespoň na dvě reálné externí adresy mimo tým Supabase projektu, doporučeně u dvou různých poskytovatelů schránek;
-- [ ] odkaz směřuje na správný Supabase host;
-- [ ] následný redirect vede na správnou aplikační URL a `/rezervace`;
-- [ ] odkaz neobsahuje localhost ani historický Codespaces host;
+- [x] magic link byl doručen na reálnou Gmail adresu přes výchozího Supabase poskytovatele;
+- [x] odkaz směřuje na správný production Supabase host;
+- [x] následný redirect vede na production aplikaci a `/rezervace`;
+- [x] odkaz neobsahuje localhost ani historický Codespaces host;
+- [x] po otevření odkazu vznikne účet a odpovídající profil;
+- [x] přihlášená session umožní vytvořit produkční rezervaci;
+- [ ] magic link je přes nakonfigurovaný custom SMTP doručen alespoň na dvě reálné externí adresy, doporučeně u dvou různých poskytovatelů schránek;
 - [ ] expirovaný, opakovaně použitý a neplatný odkaz skončí srozumitelnou chybou;
-- [ ] odhlášení a obnovení session fungují po reloadu stránky.
+- [ ] odhlášení a obnovení session po reloadu stránky jsou samostatně ověřené.
 
-**Potvrzení:** datum `—`, důkaz `—`.
+**Známé omezení:** při intenzivním testování výchozího Supabase e-mailového poskytovatele lze narazit na HTTP `429` / `email rate limit exceeded`. Uživatelské zobrazení této chyby bylo doplněno v [PR #190](https://github.com/Bbambaaamm/RezervujKurt/pull/190), ale custom SMTP zůstává podmínkou spolehlivějšího širšího provozu, nikoli blockerem technického MVP.
+
+**Potvrzení:** částečně ověřeno `12. 6. 2026` na production přes Gmail. P4 čeká na custom SMTP, druhého poskytovatele schránky a negativní/session scénáře.
 
 ## [ ] P5 — Zavést minimální produkční observabilitu
 
@@ -536,15 +574,26 @@ Každý bod před zahájením musí dostat samostatná akceptační kritéria a 
 | Core MVP | Hotovo | Regresní testy zůstávají zelené |
 | Technický quality gate | Hotovo | T1–T5 potvrzené |
 | E2E stabilita v PR | Hotovo | E1–E4 potvrzené |
-| Staging a produkční připravenost | Neověřeno | P1–P7 potvrzené |
+| Staging a produkční připravenost | Rozpracováno; production základ prakticky ověřen | P1–P7 potvrzené |
 | Produktové dokončení | Částečné | Potřebné F položky potvrzené nebo vědomě odložené |
 | Následný rozvoj | Backlog | Prioritizace podle provozních dat |
 
-## Doporučená nejbližší položka
+## Aktuální orientační stav po ověření 12. 6. 2026
 
-**P1 — Definovat cílová prostředí a vlastnictví konfigurace.**
+> Procenta jsou plánovací odhad vlastníka projektu, nikoli náhrada akceptačních kritérií jednotlivých položek.
 
-Důvod: E1–E4 a Fáze 2 jsou dokončené. Dalším krokem je rozhodnout podobu `development`, `staging` a `production` prostředí, přiřadit jejich Supabase projekty a aplikační URL a určit vlastníky secrets a přístupů.
+- **MVP:** přibližně 95 %;
+- **production readiness:** přibližně 75–80 %;
+- **hostovaný member lifecycle:** prakticky potvrzený až po vytvoření čekající rezervace a blokaci termínu;
+- **veřejné spuštění:** doporučeně až po dokončení F1, F3 a minimálního rozsahu P5.
+
+## Doporučené nejbližší položky
+
+1. **Dokončit P3** — ověřit admin schválení, admin zrušení a uvolnění termínu na hostovaném prostředí.
+2. **F1 — Administrátorské blokace kurtů** — základní provozní potřeba pro údržbu a odstávky.
+3. **F3 — Provozní obsah veřejného webu** — pravidla rezervací, kontakty, ochrana osobních údajů, ceník a odstranění placeholderů.
+4. **P5 — Minimální produkční observabilita** — dohledatelné chyby auth a rezervačních operací bez ukládání citlivých údajů.
+5. **Custom SMTP** — není blocker technického MVP, ale zůstává podmínkou spolehlivějšího širšího provozu kvůli nízkému rate limitu výchozího Supabase poskytovatele.
 
 # 5. Evidence dokončení
 
@@ -561,6 +610,7 @@ Do této tabulky se zapisují pouze položky označené `[x]` po založení doku
 | E2 | 2026-06-11 | [PR #175 / run 27327043964](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27327043964) | vlastník projektu, technická kontrola Codex | Řízené selhání vytvořilo artefakt; vlastník projektu dodanými screenshoty potvrdil trace a screenshot prvního pokusu i diagnostiku retry. |
 | E3 | 2026-06-10 | commit `fa0b19a` | vlastník projektu, technická kontrola Codex | Medián `3m 9s`, maximum `4m 4s`; 20minutový timeout ponechán a provoz standardního runneru ve veřejném repozitáři vyhodnocen jako přijatelný. |
 | E4 | 2026-06-11 | [PR #183](https://github.com/Bbambaaamm/RezervujKurt/pull/183), [neúspěšný run 27346566563](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27346566563), [úspěšný run 27347432224](https://github.com/Bbambaaamm/RezervujKurt/actions/runs/27347432224) | vlastník projektu, technická kontrola Codex | Řízené selhání required lifecycle checku zablokovalo standardní sloučení bez bypassu; po odstranění diagnostiky následný automatický běh prošel, výsledný diff byl prázdný a testovací PR nebyl sloučen. |
+| P2a | 2026-06-12 | [PR #189](https://github.com/Bbambaaamm/RezervujKurt/pull/189) / merge `b7c24cf` | vlastník projektu, runtime ověření | Seed migrace doplnila Kurt 1–3 do production; chyba `reservations_court_id_fkey` zmizela a produkční rezervace byla úspěšně vytvořena. |
 
 # 6. Rozhodnutí a změny rozsahu
 
@@ -569,6 +619,7 @@ Sem se zapisují rozhodnutí, která mění prioritu, akceptační kritéria neb
 | Datum | Oblast | Rozhodnutí | Důvod | Schválil |
 |---|---|---|---|---|
 | 2026-06-10 | Celý projekt | Core MVP je výchozí baseline; další postup začíná technickým quality gate | Rezervační jádro je implementované, hlavní mezery jsou v provozní připravenosti | vlastník projektu |
+| 2026-06-12 | Veřejné spuštění | Před širším spuštěním prioritizovat F1, F3 a P5; custom SMTP nepovažovat za blocker technického MVP, ale dokončit jej před větším provozem | Hostovaný member lifecycle funguje, zbývají provozní blokace, veřejný obsah, monitoring a dokončení admin lifecycle | vlastník projektu |
 
 # 7. Související dokumentace
 
