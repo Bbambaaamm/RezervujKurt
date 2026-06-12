@@ -79,6 +79,18 @@ test('getOtpFailureMessage vysvětlí vypnutý email OTP signup v Supabase', () 
   assert.match(message, /npx supabase status/);
 });
 
+test('getOtpFailureMessage lokalizuje HTTP 429 rate limit', () => {
+  const message = getOtpFailureMessage(429, '{"msg":"Too many requests"}');
+
+  assert.equal(message, 'Příliš mnoho pokusů o přihlášení. Počkejte chvíli a zkuste to znovu.');
+});
+
+test('getOtpFailureMessage lokalizuje Supabase email rate limit i bez statusu 429', () => {
+  const message = getOtpFailureMessage(400, '{"error_code":"over_email_send_rate_limit","msg":"Email rate limit exceeded"}');
+
+  assert.equal(message, 'Příliš mnoho pokusů o přihlášení. Počkejte chvíli a zkuste to znovu.');
+});
+
 test('getOtpFailureMessage zachová obecnou Supabase zprávu pro neznámou chybu', () => {
   const message = getOtpFailureMessage(400, '{"msg":"Invalid login credentials"}');
 
