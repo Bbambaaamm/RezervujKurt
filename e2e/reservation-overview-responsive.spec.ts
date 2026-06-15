@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 const AUTH_SESSION_STORAGE_KEY = 'rezervujkurt.auth.session';
+const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://responsive-test.supabase.co').replace(/\/$/, '');
 
 const reservations = [
   {
@@ -48,7 +49,7 @@ async function openMyReservations(page: Page, width: number) {
     },
     { storageKey: AUTH_SESSION_STORAGE_KEY, accessToken: createAccessToken() },
   );
-  await page.route('https://responsive-test.supabase.co/rest/v1/**', async (route) => {
+  await page.route(`${SUPABASE_URL}/rest/v1/**`, async (route) => {
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(reservations) });
   });
 

@@ -302,7 +302,7 @@ export default function AdminPage() {
               <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
                 <div>
                   <dt className="text-slate-500">Kurt</dt>
-                  <dd className="mt-0.5 font-medium text-slate-900">{reservation.courtName}</dd>
+                  <dd className="mt-0.5 min-w-0 break-words font-medium text-slate-900">{reservation.courtName}</dd>
                 </div>
                 <div>
                   <dt className="text-slate-500">Vytvořeno</dt>
@@ -425,7 +425,7 @@ export default function AdminPage() {
                   <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
                     <div>
                       <dt className="text-slate-500">Kurt</dt>
-                      <dd className="mt-0.5 font-medium text-slate-900">{reservation.courtName}</dd>
+                      <dd className="mt-0.5 min-w-0 break-words font-medium text-slate-900">{reservation.courtName}</dd>
                     </div>
                     <div>
                       <dt className="text-slate-500">Vytvořeno</dt>
