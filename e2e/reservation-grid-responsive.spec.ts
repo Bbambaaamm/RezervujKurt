@@ -15,7 +15,7 @@ test.describe('rezervační tabulka na desktopu', () => {
 test.describe('rezervační tabulka na mobilu', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
-  test('přepíná kurty a tažením vybere souvislý rozsah bez posunu stránky', async ({ page }) => {
+  test('přepne kurt před výběrem i po tapnutí jednoho slotu', async ({ page }) => {
     await page.goto('/rezervace');
 
     const courtTabs = page.getByRole('tablist', { name: 'Výběr kurtu' });
@@ -25,7 +25,29 @@ test.describe('rezervační tabulka na mobilu', () => {
     await expect(page.getByRole('tab', { name: 'Kurt 2' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('tabpanel', { name: 'Kurt 2' })).toBeVisible();
 
-    const mobilePanel = page.getByRole('tabpanel', { name: 'Kurt 2' });
+    await page.getByRole('tab', { name: 'Kurt 1' }).click();
+    const firstSlot = page.getByRole('tabpanel', { name: 'Kurt 1' }).locator('[data-slot-time="19"]');
+    await firstSlot.click();
+    await expect(firstSlot).toHaveAttribute('aria-pressed', 'true');
+
+    await page.getByRole('tab', { name: 'Kurt 2' }).click();
+    await expect(page.getByRole('tab', { name: 'Kurt 2' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tabpanel', { name: 'Kurt 2' })).toBeVisible();
+
+    const dateInput = page.getByLabel('Vyberte den');
+    const selectedDate = await dateInput.inputValue();
+    const nextDate = new Date(`${selectedDate}T12:00:00Z`);
+    nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+    await dateInput.fill(nextDate.toISOString().slice(0, 10));
+
+    await expect(page.getByRole('tab', { name: 'Kurt 2' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tabpanel', { name: 'Kurt 2' })).toBeVisible();
+  });
+
+  test('po tažení přepne kurt a neposune stránku', async ({ page }) => {
+    await page.goto('/rezervace');
+
+    const mobilePanel = page.getByRole('tabpanel', { name: 'Kurt 1' });
     const firstSlot = mobilePanel.locator('[data-slot-time="19"]');
     const middleSlot = mobilePanel.locator('[data-slot-time="19.5"]');
     const lastSlot = mobilePanel.locator('[data-slot-time="20"]');
@@ -45,5 +67,9 @@ test.describe('rezervační tabulka na mobilu', () => {
     await expect(middleSlot).toHaveAttribute('aria-pressed', 'true');
     await expect(lastSlot).toHaveAttribute('aria-pressed', 'true');
     expect(await page.evaluate(() => window.scrollY)).toBe(scrollBefore);
+
+    await page.getByRole('tab', { name: 'Kurt 2' }).click();
+    await expect(page.getByRole('tab', { name: 'Kurt 2' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tabpanel', { name: 'Kurt 2' })).toBeVisible();
   });
 });
