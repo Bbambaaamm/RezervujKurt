@@ -16,6 +16,7 @@ type ReservationRow = {
   note: string | null;
   court_id: number;
   user_id: string;
+  status: 'pending' | 'approved' | 'cancelled';
 };
 
 type CourtRow = { name: string };
@@ -95,12 +96,14 @@ async function loadSingle<T>(
 async function loadReservationDetail(
   configuration: Configuration,
   reservationId: string,
-): Promise<ReservationNotificationDetail> {
+): Promise<ReservationNotificationDetail | null> {
   const reservation = await loadSingle<ReservationRow>(
     configuration,
-    `reservations?select=id,reservation_date,time_from,time_to,note,court_id,user_id&id=eq.${encodeURIComponent(reservationId)}`,
+    `reservations?select=id,reservation_date,time_from,time_to,note,court_id,user_id,status&id=eq.${encodeURIComponent(reservationId)}`,
     'Rezervace pro notifikaci nebyla nalezena.',
   );
+  if (reservation.status !== 'pending') return null;
+
   const [court, profile] = await Promise.all([
     loadSingle<CourtRow>(
       configuration,
@@ -169,10 +172,17 @@ async function processEvent(
       throw new Error(`Nepodporovaný typ události: ${event.event_type}`);
     }
 
-    const [detail, admins] = await Promise.all([
-      loadReservationDetail(configuration, event.reservation_id),
-      loadAdminRecipients(configuration),
-    ]);
+    const detail = await loadReservationDetail(configuration, event.reservation_id);
+    if (!detail) {
+      const completed = await callRpc<boolean>(configuration, 'complete_notification_outbox', {
+        p_event_id: event.id,
+        p_worker_token: workerToken,
+      });
+      if (!completed) throw new Error('Událost už nevlastní aktuální worker.');
+      return;
+    }
+
+    const admins = await loadAdminRecipients(configuration);
     await sendReservationNotificationEmails({
       detail,
       admins,

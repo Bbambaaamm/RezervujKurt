@@ -74,6 +74,48 @@ test('každý admin dostane samostatný e-mail s deterministickým idempotency k
   assert.equal(new Set(delivered.map((message) => message.idempotencyKey)).size, 2);
 });
 
+test('změna payloadu vytvoří nový idempotency klíč', () => {
+  const original = buildReservationNotificationEmail(
+    detail,
+    'admin@example.com',
+    'https://rezervuj-kurt.vercel.app',
+  );
+  const changed = buildReservationNotificationEmail(
+    { ...detail, userName: 'Jan Novotný' },
+    'admin@example.com',
+    'https://rezervuj-kurt.vercel.app',
+  );
+
+  assert.notEqual(original.idempotencyKey, changed.idempotencyKey);
+});
+
+test('chyba jednoho admina nezablokuje odeslání dalším příjemcům', async () => {
+  const attemptedRecipients: string[] = [];
+
+  await assert.rejects(
+    () => sendReservationNotificationEmails({
+      detail,
+      admins: [
+        { email: 'chybny@example.com', admin_notifications_enabled: true },
+        { email: 'funkcni@example.com', admin_notifications_enabled: true },
+      ],
+      siteUrl: 'https://rezervuj-kurt.vercel.app',
+      sendEmail: async (message) => {
+        attemptedRecipients.push(message.to);
+        if (message.to === 'chybny@example.com') {
+          throw new Error('E-mail provider vrátil stav 422.');
+        }
+      },
+    }),
+    /Odeslání selhalo pro 1 z 2 příjemců/,
+  );
+
+  assert.deepEqual(attemptedRecipients, [
+    'chybny@example.com',
+    'funkcni@example.com',
+  ]);
+});
+
 test('chyba providera má omezený exponenciální retry a po pátém pokusu končí', () => {
   const firstRetry = getRetryDecision(1, new Date('2026-06-15T12:00:00.000Z'));
   const terminalRetry = getRetryDecision(5, new Date('2026-06-15T12:00:00.000Z'));

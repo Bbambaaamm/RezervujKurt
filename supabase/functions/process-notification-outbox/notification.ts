@@ -129,7 +129,12 @@ export function buildReservationNotificationEmail(
     subject,
     html,
     text,
-    idempotencyKey: `reservation-created-${detail.reservationId}-${hashIdempotencyValue(recipient.toLocaleLowerCase('en-US'))}`,
+    idempotencyKey: [
+      'reservation-created',
+      detail.reservationId,
+      hashIdempotencyValue(recipient.toLocaleLowerCase('en-US')),
+      hashIdempotencyValue(JSON.stringify({ subject, html, text })),
+    ].join('-'),
   };
 }
 
@@ -165,13 +170,25 @@ export async function sendReservationNotificationEmails(input: {
   sendEmail: EmailSender;
 }): Promise<number> {
   const recipients = selectAdminEmails(input.admins);
+  const failures: unknown[] = [];
 
   for (const recipient of recipients) {
-    await input.sendEmail(buildReservationNotificationEmail(
-      input.detail,
-      recipient,
-      input.siteUrl,
-    ));
+    try {
+      await input.sendEmail(buildReservationNotificationEmail(
+        input.detail,
+        recipient,
+        input.siteUrl,
+      ));
+    } catch (error) {
+      failures.push(error);
+    }
+  }
+
+  if (failures.length > 0) {
+    const firstError = sanitizeProviderError(failures[0]);
+    throw new Error(
+      `Odeslání selhalo pro ${failures.length} z ${recipients.length} příjemců. První chyba: ${firstError}`,
+    );
   }
 
   return recipients.length;
