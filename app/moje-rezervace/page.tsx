@@ -136,7 +136,52 @@ export default function MyReservationsPage() {
       <h1 className="text-3xl font-bold">Moje rezervace</h1>
       {successMessage && <p role="status" className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{successMessage}</p>}
       {errorMessage && <p role="status" className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">{errorMessage}</p>}
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <div className="space-y-3 lg:hidden">
+        {reservations.map((reservation) => (
+          <article key={`mobile-${reservation.id}`} className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Termín</p>
+                <p className="mt-1 font-semibold text-slate-900">{formatDate(reservation.reservationDate)}</p>
+                <p className="text-sm text-slate-600">{reservation.timeFrom}–{reservation.timeTo}</p>
+              </div>
+              <span className={`inline-flex shrink-0 rounded-full border px-2 py-1 text-xs font-medium ${getStatusBadgeClass(reservation.status)}`}>
+                {getReservationStatusLabel(reservation.status)}
+              </span>
+            </div>
+
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+              <div>
+                <dt className="text-slate-500">Kurt</dt>
+                <dd className="mt-0.5 font-medium text-slate-900">{reservation.courtName}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500">Vytvořeno</dt>
+                <dd className="mt-0.5 text-slate-900">{formatCreatedAt(reservation.createdAt)}</dd>
+              </div>
+            </dl>
+
+            {isMyReservationCancelable(reservation) ? (
+              <button
+                type="button"
+                onClick={() => void handleCancelReservation(reservation)}
+                disabled={cancelingReservationId === reservation.id}
+                aria-disabled={getAriaDisabled(cancelingReservationId === reservation.id)}
+                className="min-h-11 w-full rounded-md border border-rose-300 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {cancelingReservationId === reservation.id ? 'Ruším...' : 'Zrušit rezervaci'}
+              </button>
+            ) : null}
+          </article>
+        ))}
+        {reservations.length === 0 && (
+          <p className="rounded-xl border border-slate-200 bg-white px-4 py-5 text-center text-sm text-slate-500">
+            Zatím nemáte žádné rezervace.
+          </p>
+        )}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white lg:block">
         <table className="min-w-full text-sm">
           <thead className="bg-slate-100 text-left text-slate-700">
             <tr>
