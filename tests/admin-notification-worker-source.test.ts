@@ -13,10 +13,21 @@ const workerSource = readFileSync(
 
 test('worker před odesláním ověří, že rezervace stále čeká na schválení', () => {
   assert.match(workerSource, /select=id,reservation_date,time_from,time_to,note,court_id,user_id,status/);
-  assert.match(workerSource, /if\s*\(reservation\.status\s*!==\s*'pending'\)\s*return\s+null/);
+  assert.match(workerSource, /if\s*\(reservation\.status\s*!==\s*expectedStatus\)\s*return\s+null/);
   assert.match(
     workerSource,
     /if\s*\(!detail\)\s*\{[\s\S]*?complete_notification_outbox[\s\S]*?return;/,
+  );
+});
+
+test('worker rozlišuje created a approved příjemce a chybějící e-mail bezpečně dokončí', () => {
+  assert.match(workerSource, /event\.event_type\s*!==\s*'reservation\.created'/);
+  assert.match(workerSource, /event\.event_type\s*!==\s*'reservation\.approved'/);
+  assert.match(workerSource, /event\.event_type\s*===\s*'reservation\.created'[\s\S]*?loadAdminRecipients/);
+  assert.match(workerSource, /buildReservationApprovedEmail/);
+  assert.match(
+    workerSource,
+    /if\s*\(!message\)\s*\{[\s\S]*?complete_notification_outbox[\s\S]*?return;/,
   );
 });
 

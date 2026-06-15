@@ -1,4 +1,5 @@
 import {
+  buildReservationApprovedEmail,
   buildReservationNotificationEmails,
   getNotificationPayload,
   getRetryDecision,
@@ -98,13 +99,14 @@ async function loadSingle<T>(
 async function loadReservationDetail(
   configuration: Configuration,
   reservationId: string,
+  expectedStatus: ReservationRow['status'],
 ): Promise<ReservationNotificationDetail | null> {
   const reservation = await loadSingle<ReservationRow>(
     configuration,
     `reservations?select=id,reservation_date,time_from,time_to,note,court_id,user_id,status&id=eq.${encodeURIComponent(reservationId)}`,
     'Rezervace pro notifikaci nebyla nalezena.',
   );
-  if (reservation.status !== 'pending') return null;
+  if (reservation.status !== expectedStatus) return null;
 
   const [court, profile] = await Promise.all([
     loadSingle<CourtRow>(
@@ -170,11 +172,12 @@ async function processEvent(
   workerToken: string,
 ): Promise<void> {
   try {
-    if (event.event_type !== 'reservation.created') {
+    if (event.event_type !== 'reservation.created' && event.event_type !== 'reservation.approved') {
       throw new Error(`Nepodporovaný typ události: ${event.event_type}`);
     }
 
-    const detail = await loadReservationDetail(configuration, event.reservation_id);
+    const expectedStatus = event.event_type === 'reservation.created' ? 'pending' : 'approved';
+    const detail = await loadReservationDetail(configuration, event.reservation_id, expectedStatus);
     if (!detail) {
       const completed = await callRpc<boolean>(configuration, 'complete_notification_outbox', {
         p_event_id: event.id,
@@ -186,12 +189,27 @@ async function processEvent(
 
     let payload = getNotificationPayload(event.payload);
     if (!payload) {
-      const admins = await loadAdminRecipients(configuration);
-      const messages = buildReservationNotificationEmails({
-        detail,
-        admins,
-        siteUrl: configuration.siteUrl,
-      });
+      let messages: EmailMessage[];
+      if (event.event_type === 'reservation.created') {
+        const admins = await loadAdminRecipients(configuration);
+        messages = buildReservationNotificationEmails({
+          detail,
+          admins,
+          siteUrl: configuration.siteUrl,
+        });
+      } else {
+        const message = buildReservationApprovedEmail(detail, configuration.siteUrl);
+        // Chybějící e-mail není dočasná chyba; event dokončíme bez retry.
+        if (!message) {
+          const completed = await callRpc<boolean>(configuration, 'complete_notification_outbox', {
+            p_event_id: event.id,
+            p_worker_token: workerToken,
+          });
+          if (!completed) throw new Error('Událost už nevlastní aktuální worker.');
+          return;
+        }
+        messages = [message];
+      }
       const storedPayload = await callRpc<unknown>(configuration, 'snapshot_notification_outbox_payload', {
         p_event_id: event.id,
         p_worker_token: workerToken,
