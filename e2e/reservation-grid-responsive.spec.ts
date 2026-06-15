@@ -33,6 +33,15 @@ test.describe('rezervační tabulka na mobilu', () => {
     await page.getByRole('tab', { name: 'Kurt 2' }).click();
     await expect(page.getByRole('tab', { name: 'Kurt 2' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('tabpanel', { name: 'Kurt 2' })).toBeVisible();
+
+    const dateInput = page.getByLabel('Vyberte den');
+    const selectedDate = await dateInput.inputValue();
+    const nextDate = new Date(`${selectedDate}T12:00:00Z`);
+    nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+    await dateInput.fill(nextDate.toISOString().slice(0, 10));
+
+    await expect(page.getByRole('tab', { name: 'Kurt 2' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tabpanel', { name: 'Kurt 2' })).toBeVisible();
   });
 
   test('po tažení přepne kurt a neposune stránku', async ({ page }) => {

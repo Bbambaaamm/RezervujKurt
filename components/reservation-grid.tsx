@@ -44,17 +44,20 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
   const dragStateRef = useRef<DragState>(null);
   const capturedPointerRef = useRef<{ element: HTMLButtonElement; pointerId: number } | null>(null);
   const [mobileCourtId, setMobileCourtId] = useState(() => selection?.courtId ?? courts[0]?.id ?? null);
+  const selectionCourtId = selection?.courtId;
+  const selectionTimeFrom = selection?.timeFrom;
+  const selectionTimeTo = selection?.timeTo;
 
   useEffect(() => {
-    if (selection && courts.some((court) => court.id === selection.courtId)) {
-      setMobileCourtId(selection.courtId);
+    if (selectionCourtId !== undefined && courts.some((court) => court.id === selectionCourtId)) {
+      setMobileCourtId(selectionCourtId);
       return;
     }
 
     setMobileCourtId((currentCourtId) => (
       courts.some((court) => court.id === currentCourtId) ? currentCourtId : courts[0]?.id ?? null
     ));
-  }, [courts, selection]);
+  }, [courts, selectionCourtId, selectionTimeFrom, selectionTimeTo]);
 
   const activeSelection = useMemo(
     () => dragState
