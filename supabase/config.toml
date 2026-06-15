@@ -21,3 +21,6 @@ enable_confirmations = false
 [auth.email.template.magic_link]
 subject = "Přihlášení do RezervujKurt"
 content_path = "./supabase/templates/magic_link.html"
+
+[functions.process-notification-outbox]
+verify_jwt = true

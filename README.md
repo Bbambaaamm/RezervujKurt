@@ -10,6 +10,7 @@ Webový rezervační systém pro tenisové kurty TJ Baník Stříbro. Aplikace p
 - ochrana proti duplicitám a překryvům rezervací v UI i databázi;
 - přehled vlastních rezervací a zrušení povolené budoucí rezervace;
 - administrátorské schválení nebo zrušení čekající rezervace;
+- serverové e-mailové upozornění aktivním administrátorům přes transakční outbox;
 - auditní stopa vytvoření rezervace a změn jejího stavu;
 - unit testy a Playwright smoke scénáře pro anonymní i autentizovaný průchod.
 
@@ -136,6 +137,45 @@ Soubor `.env.local` se necommituje.
 | `NEXT_PUBLIC_SUPABASE_REDIRECT_URL` | doporučeno | Absolutní URL pro návrat z magic linku; aplikace vždy použije cestu `/rezervace`. |
 | `NEXT_PUBLIC_SUPABASE_AUTH_REDIRECT_URL` | volitelná kompatibilita | Starší alternativa redirect URL; při nastavení obou proměnných má přednost `NEXT_PUBLIC_SUPABASE_REDIRECT_URL`. |
 | `SUPABASE_SERVICE_ROLE_KEY` | pouze autentizované E2E | Serverový klíč pro přípravu profilů a cílený úklid E2E dat; nesmí se použít ve frontend kódu ani commitnout. |
+
+Secrets pro Edge Function `process-notification-outbox` se nenastavují jako
+`NEXT_PUBLIC_*` ani do klientského prostředí Vercelu. Patří do secrets příslušného
+Supabase projektu:
+
+```bash
+supabase secrets set \
+  RESEND_API_KEY=<serverový-api-klíč> \
+  NOTIFICATION_FROM_EMAIL='RezervujKurt <rezervace@example.cz>' \
+  SITE_URL='https://rezervuj-kurt.vercel.app'
+```
+
+`SUPABASE_URL` a `SUPABASE_SERVICE_ROLE_KEY` poskytuje hostované Edge Function
+automaticky Supabase. Pro lokální spuštění je nutné dodat odpovídající lokální
+hodnoty bezpečným způsobem; service-role klíč nesmí být dostupný v klientu.
+
+### Worker e-mailových notifikací
+
+Po nasazení migrací nasaď Edge Function:
+
+```bash
+supabase functions deploy process-notification-outbox
+```
+
+Worker přijímá pouze `POST` autorizovaný service-role klíčem. Jednorázové ruční
+spuštění lze provést například takto:
+
+```bash
+curl --request POST \
+  --header "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+  "$SUPABASE_URL/functions/v1/process-notification-outbox"
+```
+
+V produkci nastav v Supabase Dashboardu pravidelné serverové spuštění každou
+minutu (Supabase Cron/pg_cron s Vault secret nebo jiný důvěryhodný scheduler).
+Scheduler musí volat funkci metodou `POST` a service-role token ukládat pouze jako
+serverový secret. Worker atomicky claimuje nejvýše deset událostí, po chybě
+plánuje exponenciální retry a po pěti pokusech ponechá událost ve stavu `failed`
+pro ruční kontrolu.
 
 ### 4. Spusť aplikaci
 

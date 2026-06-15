@@ -123,6 +123,7 @@ Vlastní doména se v první produkční verzi **nepoužívá**. Aplikace bude d
 7. Auth redirect URL se povolují jen pro skutečně používané hosty a požadovanou cestu. Po změně aplikační URL se musí současně zkontrolovat Vercel konfigurace i Supabase Auth allowlist.
 8. SMTP heslo nebo klíč je neveřejný secret. Nesmí mít prefix `NEXT_PUBLIC_` ani být uložený ve Vercelu, pokud ho používá pouze Supabase Auth. Pro staging a production se použijí oddělené SMTP klíče, pokud to zvolený poskytovatel umožňuje; případné sdílení musí vlastník výslovně schválit a evidovat.
 9. Veřejný Supabase anon key není náhradou za autorizaci. Přístup k datům musí nadále vynucovat databázové RLS politiky; toto rozhodnutí je však nemění.
+10. Produktové e-maily o rezervacích odesílá pouze Edge Function přes Resend. Secrets `RESEND_API_KEY`, `NOTIFICATION_FROM_EMAIL` a `SITE_URL` patří do Supabase Edge Function secrets příslušného prostředí a nesmí mít prefix `NEXT_PUBLIC_`.
 
 ## 8. Konfigurace proměnných
 

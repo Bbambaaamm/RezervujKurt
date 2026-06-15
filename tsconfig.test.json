@@ -23,6 +23,7 @@
     "lib/services/reservations.ts",
     "lib/services/profile-save-error.ts",
     "lib/services/reservation-occupancy.ts",
+    "supabase/functions/process-notification-outbox/notification.ts",
     "e2e/helpers/auth-bootstrap.ts"
   ]
 }
