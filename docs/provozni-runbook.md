@@ -59,7 +59,10 @@ Výsledek je **NO-GO**, pokud chybí vlastník, záloha pro databázovou změnu,
 6. Ověř health signál hostingu a dostupnost veřejné stránky.
 7. Projdi kritický smoke podle `docs/runtime-verification.md` nad cílovým prostředím, nikoli nad mock daty.
 8. Zkontroluj chyby auth, Supabase a rezervačních operací v dostupné provozní diagnostice.
-9. Release owner zaznamená výsledek GO, rollback nebo předání do incidentního režimu.
+9. Pokud release používá admin e-mailové notifikace, ověř poslední běh
+   `process-notification-outbox-every-minute` a stav fronty podle
+   `docs/notifikacni-worker.md`.
+10. Release owner zaznamená výsledek GO, rollback nebo předání do incidentního režimu.
 
 ### 2.3 Povinný post-release smoke
 
