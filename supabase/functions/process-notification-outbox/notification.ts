@@ -150,6 +150,53 @@ export function buildReservationNotificationEmails(input: {
   ));
 }
 
+export function buildReservationApprovedEmail(
+  detail: ReservationNotificationDetail,
+  siteUrl: string,
+): EmailMessage | null {
+  const recipient = detail.userEmail?.trim();
+  if (!recipient) return null;
+
+  const reservationsUrl = `${safeSiteUrl(siteUrl)}/moje-rezervace`;
+  const subject = `Rezervace byla schválena – ${detail.courtName}`;
+  const text = [
+    'Dobrý den,',
+    '',
+    'vaše rezervace byla schválena.',
+    '',
+    `Kurt: ${detail.courtName}`,
+    `Datum: ${formatDate(detail.reservationDate)}`,
+    `Čas: ${formatTime(detail.timeFrom)}–${formatTime(detail.timeTo)}`,
+    '',
+    'Rezervaci najdete v přehledu „Moje rezervace“:',
+    reservationsUrl,
+    '',
+    'S pozdravem',
+    'RezervujKurt',
+  ].join('\n');
+  const html = `
+    <p>Dobrý den,</p>
+    <p>vaše rezervace byla schválena.</p>
+    <table>
+      <tbody>
+        <tr><th align="left">Kurt</th><td>${escapeHtml(detail.courtName)}</td></tr>
+        <tr><th align="left">Datum</th><td>${escapeHtml(formatDate(detail.reservationDate))}</td></tr>
+        <tr><th align="left">Čas</th><td>${escapeHtml(formatTime(detail.timeFrom))}–${escapeHtml(formatTime(detail.timeTo))}</td></tr>
+      </tbody>
+    </table>
+    <p>Rezervaci najdete v přehledu <a href="${escapeHtml(reservationsUrl)}">Moje rezervace</a>.</p>
+    <p>S pozdravem<br>RezervujKurt</p>
+  `.trim();
+
+  return {
+    to: recipient,
+    subject,
+    html,
+    text,
+    idempotencyKey: `reservation-approved-${detail.reservationId}-${hashIdempotencyValue(recipient.toLocaleLowerCase('en-US'))}`,
+  };
+}
+
 function isEmailMessage(value: unknown): value is EmailMessage {
   if (!value || typeof value !== 'object') return false;
 

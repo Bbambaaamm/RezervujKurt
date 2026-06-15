@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  buildReservationApprovedEmail,
   buildReservationNotificationEmail,
   buildReservationNotificationEmails,
   getNotificationPayload,
@@ -141,4 +142,54 @@ test('chyba providera neukládá API klíč', () => {
 
   assert.doesNotMatch(sanitized, /re_1234567890abcdefgh/);
   assert.match(sanitized, /\[SKRYTO\]/);
+});
+
+test('approved e-mail míří pouze uživateli, má textovou variantu a escapuje HTML', () => {
+  const message = buildReservationApprovedEmail({
+    ...detail,
+    courtName: 'Kurt <script>alert("x")</script>',
+    userEmail: 'uzivatel@example.com',
+  }, 'https://rezervuj-kurt.vercel.app/');
+
+  assert.ok(message);
+  assert.equal(message.to, 'uzivatel@example.com');
+  assert.doesNotMatch(message.html, /<script>/);
+  assert.match(message.html, /&lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt;/);
+  assert.match(message.text, /Kurt <script>alert\("x"\)<\/script>/);
+  assert.match(message.text, /Moje rezervace/);
+  assert.match(message.html, /\/moje-rezervace/);
+  assert.match(message.idempotencyKey, /^reservation-approved-/);
+});
+
+test('approved e-mail se neposílá adminům a retry zachová idempotenci uživatele', async () => {
+  const message = buildReservationApprovedEmail(detail, 'https://rezervuj-kurt.vercel.app');
+  assert.ok(message);
+
+  const acceptedKeys = new Set<string>();
+  const delivered: EmailMessage[] = [];
+  const input = {
+    messages: [message],
+    sendEmail: async (email: EmailMessage) => {
+      if (acceptedKeys.has(email.idempotencyKey)) return;
+      acceptedKeys.add(email.idempotencyKey);
+      delivered.push(email);
+    },
+  };
+
+  await sendReservationNotificationEmails(input);
+  await sendReservationNotificationEmails(input);
+
+  assert.deepEqual(delivered.map((email) => email.to), ['jan@example.com']);
+  assert.ok(delivered.every((email) => email.to !== 'admin@example.com'));
+});
+
+test('approved event bez e-mailu uživatele nevytvoří zprávu', () => {
+  assert.equal(buildReservationApprovedEmail({
+    ...detail,
+    userEmail: '   ',
+  }, 'https://rezervuj-kurt.vercel.app'), null);
+  assert.equal(buildReservationApprovedEmail({
+    ...detail,
+    userEmail: null,
+  }, 'https://rezervuj-kurt.vercel.app'), null);
 });
