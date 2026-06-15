@@ -12,6 +12,35 @@ test.describe('auth bootstrap smoke', () => {
     await context.close();
   });
 
+  test('member storageState: mobilní navigace nepřetéká a obsahuje členské odkazy', async ({ browser }) => {
+    const context = await browser.newContext({
+      storageState: 'e2e/.auth/member.json',
+      viewport: { width: 390, height: 844 },
+    });
+    const page = await context.newPage();
+
+    await page.goto('/rezervace');
+    await expect(page.getByRole('button', { name: 'Otevřít menu' })).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Hlavní navigace' })).toBeHidden();
+
+    await page.getByRole('button', { name: 'Otevřít menu' }).click();
+
+    const mobileNavigation = page.getByRole('navigation', { name: 'Mobilní navigace' });
+    await expect(mobileNavigation).toBeVisible();
+    await expect(mobileNavigation.getByRole('link', { name: 'Domů', exact: true })).toBeVisible();
+    await expect(mobileNavigation.getByRole('link', { name: 'Rezervace', exact: true })).toBeVisible();
+    await expect(mobileNavigation.getByRole('link', { name: 'Moje rezervace', exact: true })).toBeVisible();
+    await expect(mobileNavigation.getByRole('link', { name: 'Účet', exact: true })).toBeVisible();
+    await expect(mobileNavigation.getByRole('button', { name: 'Odhlášení', exact: true })).toBeVisible();
+
+    const viewportFitsDocument = await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    );
+    expect(viewportFitsDocument).toBe(true);
+
+    await context.close();
+  });
+
   test('admin storageState: přístup na /admin projde guardem', async ({ browser }) => {
     const context = await browser.newContext({ storageState: 'e2e/.auth/admin.json' });
     const page = await context.newPage();
