@@ -284,7 +284,61 @@ export default function AdminPage() {
       ) : null}
 
       {!isLoading && !error && reservations.length > 0 ? (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <>
+        <div className="space-y-3 lg:hidden">
+          {reservations.map((reservation) => (
+            <article key={`mobile-pending-${reservation.id}`} className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Termín</p>
+                  <p className="mt-1 font-semibold text-slate-900">{formatDate(reservation.reservationDate)}</p>
+                  <p className="text-sm text-slate-600">{reservation.timeFrom}–{reservation.timeTo}</p>
+                </div>
+                <span className={`inline-flex shrink-0 rounded-full border px-2 py-1 text-xs font-medium ${getStatusBadgeClass(reservation.status)}`}>
+                  {getReservationStatusLabel(reservation.status)}
+                </span>
+              </div>
+
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                <div>
+                  <dt className="text-slate-500">Kurt</dt>
+                  <dd className="mt-0.5 min-w-0 break-words font-medium text-slate-900">{reservation.courtName}</dd>
+                </div>
+                <div>
+                  <dt className="text-slate-500">Vytvořeno</dt>
+                  <dd className="mt-0.5 text-slate-900">{formatCreatedAt(reservation.createdAt)}</dd>
+                </div>
+                <div className="col-span-2 min-w-0">
+                  <dt className="text-slate-500">Uživatel</dt>
+                  <dd className="mt-0.5 break-words text-slate-900">{getReservationUserLabel(reservation)}</dd>
+                </div>
+              </dl>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handleReservationAction(reservation.id, 'approve')}
+                  disabled={isActionLoadingById[reservation.id]}
+                  aria-disabled={getAriaDisabled(Boolean(isActionLoadingById[reservation.id]))}
+                  className="min-h-11 rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isActionLoadingById[reservation.id] ? 'Schvaluji…' : 'Schválit'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleReservationAction(reservation.id, 'cancel')}
+                  disabled={isActionLoadingById[reservation.id]}
+                  aria-disabled={getAriaDisabled(Boolean(isActionLoadingById[reservation.id]))}
+                  className="min-h-11 rounded-md border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isActionLoadingById[reservation.id] ? 'Ruším…' : 'Zrušit'}
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white lg:block">
           <table className="min-w-full text-sm">
             <thead className="bg-slate-50 text-left text-slate-600">
               <tr>
@@ -345,6 +399,7 @@ export default function AdminPage() {
             </tbody>
           </table>
         </div>
+        </>
       ) : null}
 
 
@@ -354,7 +409,38 @@ export default function AdminPage() {
           {recentReservations.length === 0 ? (
             <p className="text-sm text-slate-600">Historie rezervací je prázdná.</p>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            <div className="divide-y divide-slate-100 lg:hidden">
+              {recentReservations.map((reservation) => (
+                <article key={`mobile-recent-${reservation.id}`} className="space-y-3 py-4 first:pt-1 last:pb-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-slate-900">{formatDate(reservation.reservationDate)}</p>
+                      <p className="text-sm text-slate-600">{reservation.timeFrom}–{reservation.timeTo}</p>
+                    </div>
+                    <span className={`inline-flex shrink-0 rounded-full border px-2 py-1 text-xs font-medium ${getStatusBadgeClass(reservation.status)}`}>
+                      {getReservationStatusLabel(reservation.status)}
+                    </span>
+                  </div>
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                    <div>
+                      <dt className="text-slate-500">Kurt</dt>
+                      <dd className="mt-0.5 min-w-0 break-words font-medium text-slate-900">{reservation.courtName}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-slate-500">Vytvořeno</dt>
+                      <dd className="mt-0.5 text-slate-900">{formatCreatedAt(reservation.createdAt)}</dd>
+                    </div>
+                    <div className="col-span-2 min-w-0">
+                      <dt className="text-slate-500">Uživatel</dt>
+                      <dd className="mt-0.5 break-words text-slate-900">{getReservationUserLabel(reservation)}</dd>
+                    </div>
+                  </dl>
+                </article>
+              ))}
+            </div>
+
+            <div className="hidden overflow-x-auto lg:block">
               <table className="min-w-full text-sm">
                 <thead className="bg-slate-50 text-left text-slate-600">
                   <tr>
@@ -392,6 +478,7 @@ export default function AdminPage() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </section>
       ) : null}
