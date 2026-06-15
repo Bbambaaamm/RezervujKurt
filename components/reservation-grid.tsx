@@ -42,6 +42,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
 
   const [dragState, setDragState] = useState<DragState>(null);
   const dragStateRef = useRef<DragState>(null);
+  const capturedPointerRef = useRef<{ element: HTMLButtonElement; pointerId: number } | null>(null);
   const [mobileCourtId, setMobileCourtId] = useState(() => selection?.courtId ?? courts[0]?.id ?? null);
 
   useEffect(() => {
@@ -50,10 +51,10 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
       return;
     }
 
-    if (!courts.some((court) => court.id === mobileCourtId)) {
-      setMobileCourtId(courts[0]?.id ?? null);
-    }
-  }, [courts, mobileCourtId, selection]);
+    setMobileCourtId((currentCourtId) => (
+      courts.some((court) => court.id === currentCourtId) ? currentCourtId : courts[0]?.id ?? null
+    ));
+  }, [courts, selection]);
 
   const activeSelection = useMemo(
     () => dragState
@@ -93,6 +94,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
 
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
+    capturedPointerRef.current = { element: event.currentTarget, pointerId: event.pointerId };
     updateDragState({ courtId, startTime: time, endTime: time });
   };
 
@@ -109,6 +111,16 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
     updateDragState({ ...currentDragState, endTime: time });
   };
 
+  const releaseCapturedPointer = () => {
+    const capturedPointer = capturedPointerRef.current;
+    if (!capturedPointer) return;
+
+    if (capturedPointer.element.hasPointerCapture(capturedPointer.pointerId)) {
+      capturedPointer.element.releasePointerCapture(capturedPointer.pointerId);
+    }
+    capturedPointerRef.current = null;
+  };
+
   const finishSelection = () => {
     const currentDragState = dragStateRef.current;
     if (!currentDragState) return;
@@ -119,12 +131,15 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
       return getReservationSlotState(reservations, currentDragState.courtId, selectedDate, time, time + 0.5).isOccupied;
     });
 
-    onSelectionChange?.(
-      hasBlockedSlot
-        ? null
-        : { courtId: currentDragState.courtId, timeFrom: formatTimeLabel(from), timeTo: formatTimeLabel(to) },
-    );
+    const nextSelection = hasBlockedSlot
+      ? null
+      : { courtId: currentDragState.courtId, timeFrom: formatTimeLabel(from), timeTo: formatTimeLabel(to) };
+
+    releaseCapturedPointer();
     updateDragState(null);
+    onSelectionChange?.(
+      nextSelection,
+    );
   };
 
   const handlePointerUp = (event: ReactPointerEvent<HTMLElement>) => {
@@ -134,6 +149,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
   };
 
   const handlePointerCancel = () => {
+    releaseCapturedPointer();
     updateDragState(null);
   };
 
