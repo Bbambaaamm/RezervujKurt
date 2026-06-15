@@ -170,12 +170,12 @@ curl --request POST \
   "$SUPABASE_URL/functions/v1/process-notification-outbox"
 ```
 
-V produkci nastav v Supabase Dashboardu pravidelné serverové spuštění každou
-minutu (Supabase Cron/pg_cron s Vault secret nebo jiný důvěryhodný scheduler).
-Scheduler musí volat funkci metodou `POST` a service-role token ukládat pouze jako
-serverový secret. Worker atomicky claimuje nejvýše deset událostí, po chybě
-plánuje exponenciální retry a po pěti pokusech ponechá událost ve stavu `failed`
-pro ruční kontrolu.
+V produkci použij nativní Supabase Cron s `pg_net` a Vault. Kompletní postup,
+bezpečný SQL snippet, monitoring, ověření i porovnání s GitHub Actions jsou v
+[`docs/notifikacni-worker.md`](docs/notifikacni-worker.md). Scheduler volá funkci
+metodou `POST` každou minutu a service-role token zůstává pouze ve Vault.
+Worker atomicky claimuje nejvýše deset událostí, po chybě plánuje exponenciální
+retry a po pěti pokusech ponechá událost ve stavu `failed` pro ruční kontrolu.
 
 ### 4. Spusť aplikaci
 
