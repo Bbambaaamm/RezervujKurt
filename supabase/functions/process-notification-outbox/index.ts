@@ -1,9 +1,11 @@
 import {
-  buildReservationNotificationEmail,
+  buildReservationNotificationEmails,
+  getNotificationPayload,
   getRetryDecision,
   sanitizeProviderError,
   sendReservationNotificationEmails,
   type AdminRecipient,
+  type EmailMessage,
   type NotificationOutboxEvent,
   type ReservationNotificationDetail,
 } from './notification.ts';
@@ -16,6 +18,7 @@ type ReservationRow = {
   note: string | null;
   court_id: number;
   user_id: string;
+  status: 'pending' | 'approved' | 'cancelled';
 };
 
 type CourtRow = { name: string };
@@ -95,12 +98,14 @@ async function loadSingle<T>(
 async function loadReservationDetail(
   configuration: Configuration,
   reservationId: string,
-): Promise<ReservationNotificationDetail> {
+): Promise<ReservationNotificationDetail | null> {
   const reservation = await loadSingle<ReservationRow>(
     configuration,
-    `reservations?select=id,reservation_date,time_from,time_to,note,court_id,user_id&id=eq.${encodeURIComponent(reservationId)}`,
+    `reservations?select=id,reservation_date,time_from,time_to,note,court_id,user_id,status&id=eq.${encodeURIComponent(reservationId)}`,
     'Rezervace pro notifikaci nebyla nalezena.',
   );
+  if (reservation.status !== 'pending') return null;
+
   const [court, profile] = await Promise.all([
     loadSingle<CourtRow>(
       configuration,
@@ -136,7 +141,7 @@ async function loadAdminRecipients(configuration: Configuration): Promise<AdminR
 
 async function sendEmail(
   configuration: Configuration,
-  message: ReturnType<typeof buildReservationNotificationEmail>,
+  message: EmailMessage,
 ): Promise<void> {
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -169,14 +174,35 @@ async function processEvent(
       throw new Error(`Nepodporovaný typ události: ${event.event_type}`);
     }
 
-    const [detail, admins] = await Promise.all([
-      loadReservationDetail(configuration, event.reservation_id),
-      loadAdminRecipients(configuration),
-    ]);
+    const detail = await loadReservationDetail(configuration, event.reservation_id);
+    if (!detail) {
+      const completed = await callRpc<boolean>(configuration, 'complete_notification_outbox', {
+        p_event_id: event.id,
+        p_worker_token: workerToken,
+      });
+      if (!completed) throw new Error('Událost už nevlastní aktuální worker.');
+      return;
+    }
+
+    let payload = getNotificationPayload(event.payload);
+    if (!payload) {
+      const admins = await loadAdminRecipients(configuration);
+      const messages = buildReservationNotificationEmails({
+        detail,
+        admins,
+        siteUrl: configuration.siteUrl,
+      });
+      const storedPayload = await callRpc<unknown>(configuration, 'snapshot_notification_outbox_payload', {
+        p_event_id: event.id,
+        p_worker_token: workerToken,
+        p_payload: { messages },
+      });
+      payload = getNotificationPayload(storedPayload);
+      if (!payload) throw new Error('Uložený payload notifikace má neplatný formát.');
+    }
+
     await sendReservationNotificationEmails({
-      detail,
-      admins,
-      siteUrl: configuration.siteUrl,
+      messages: payload.messages,
       sendEmail: (message) => sendEmail(configuration, message),
     });
 

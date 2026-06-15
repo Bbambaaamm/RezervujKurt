@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildReservationNotificationEmail,
+  buildReservationNotificationEmails,
+  getNotificationPayload,
   getRetryDecision,
   sanitizeProviderError,
   selectAdminEmails,
@@ -54,12 +56,14 @@ test('každý admin dostane samostatný e-mail s deterministickým idempotency k
     delivered.push(message);
   };
   const input = {
-    detail,
-    admins: [
-      { email: 'prvni@example.com', admin_notifications_enabled: true },
-      { email: 'druhy@example.com', admin_notifications_enabled: true },
-    ],
-    siteUrl: 'https://rezervuj-kurt.vercel.app',
+    messages: buildReservationNotificationEmails({
+      detail,
+      admins: [
+        { email: 'prvni@example.com', admin_notifications_enabled: true },
+        { email: 'druhy@example.com', admin_notifications_enabled: true },
+      ],
+      siteUrl: 'https://rezervuj-kurt.vercel.app',
+    }),
     sendEmail,
   };
 
@@ -72,6 +76,51 @@ test('každý admin dostane samostatný e-mail s deterministickým idempotency k
     'druhy@example.com',
   ]);
   assert.equal(new Set(delivered.map((message) => message.idempotencyKey)).size, 2);
+});
+
+test('uložený payload zachová přesnou zprávu a idempotency klíč pro retry', () => {
+  const original = buildReservationNotificationEmails({
+    detail,
+    admins: [{ email: 'admin@example.com', admin_notifications_enabled: true }],
+    siteUrl: 'https://rezervuj-kurt.vercel.app',
+  });
+  const payload = getNotificationPayload(JSON.parse(JSON.stringify({ messages: original })));
+
+  assert.deepEqual(payload?.messages, original);
+});
+
+test('chyba jednoho admina nezablokuje odeslání dalším příjemcům', async () => {
+  const attemptedRecipients: string[] = [];
+
+  await assert.rejects(
+    () => sendReservationNotificationEmails({
+      messages: buildReservationNotificationEmails({
+        detail,
+        admins: [
+          { email: 'chybny@example.com', admin_notifications_enabled: true },
+          { email: 'funkcni@example.com', admin_notifications_enabled: true },
+        ],
+        siteUrl: 'https://rezervuj-kurt.vercel.app',
+      }),
+      sendEmail: async (message) => {
+        attemptedRecipients.push(message.to);
+        if (message.to === 'chybny@example.com') {
+          throw new Error('E-mail provider vrátil stav 422.');
+        }
+      },
+    }),
+    /Odeslání selhalo pro 1 z 2 příjemců/,
+  );
+
+  assert.deepEqual(attemptedRecipients, [
+    'chybny@example.com',
+    'funkcni@example.com',
+  ]);
+});
+
+test('neplatný uložený payload se nepoužije k odesílání', () => {
+  assert.equal(getNotificationPayload({ messages: [{ to: 'admin@example.com' }] }), null);
+  assert.equal(getNotificationPayload({}), null);
 });
 
 test('chyba providera má omezený exponenciální retry a po pátém pokusu končí', () => {
