@@ -16,3 +16,31 @@ test('anonymous smoke: grid je viditelný a rezervace je blokovaná', async ({ p
   await expect(page.getByRole('link', { name: 'Přejít na přihlášení' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Rezervovat' })).toHaveCount(0);
 });
+
+test('anonymous mobile: navigace je kompaktní a stránka nepřetéká', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await context.newPage();
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Otevřít menu' }).click();
+
+  const mobileNavigation = page.getByRole('navigation', { name: 'Mobilní navigace' });
+  await expect(mobileNavigation).toBeVisible();
+  await expect(mobileNavigation.getByRole('link', { name: 'Domů', exact: true })).toBeVisible();
+  await expect(mobileNavigation.getByRole('link', { name: 'Rezervace', exact: true })).toBeVisible();
+  await expect(mobileNavigation.getByRole('link', { name: 'Přihlášení', exact: true })).toBeVisible();
+
+  const viewportFitsDocument = await page.evaluate(
+    () => document.documentElement.scrollWidth <= window.innerWidth,
+  );
+  expect(viewportFitsDocument).toBe(true);
+
+  await context.close();
+});
+
+test('anonymous desktop: horizontální navigace zůstává zobrazená', async ({ page }) => {
+  await page.goto('/');
+
+  await expect(page.getByRole('navigation', { name: 'Hlavní navigace' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Otevřít menu' })).toBeHidden();
+});
