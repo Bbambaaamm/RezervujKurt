@@ -1,9 +1,11 @@
 import {
-  buildReservationNotificationEmail,
+  buildReservationNotificationEmails,
+  getNotificationPayload,
   getRetryDecision,
   sanitizeProviderError,
   sendReservationNotificationEmails,
   type AdminRecipient,
+  type EmailMessage,
   type NotificationOutboxEvent,
   type ReservationNotificationDetail,
 } from './notification.ts';
@@ -139,7 +141,7 @@ async function loadAdminRecipients(configuration: Configuration): Promise<AdminR
 
 async function sendEmail(
   configuration: Configuration,
-  message: ReturnType<typeof buildReservationNotificationEmail>,
+  message: EmailMessage,
 ): Promise<void> {
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -182,11 +184,25 @@ async function processEvent(
       return;
     }
 
-    const admins = await loadAdminRecipients(configuration);
+    let payload = getNotificationPayload(event.payload);
+    if (!payload) {
+      const admins = await loadAdminRecipients(configuration);
+      const messages = buildReservationNotificationEmails({
+        detail,
+        admins,
+        siteUrl: configuration.siteUrl,
+      });
+      const storedPayload = await callRpc<unknown>(configuration, 'snapshot_notification_outbox_payload', {
+        p_event_id: event.id,
+        p_worker_token: workerToken,
+        p_payload: { messages },
+      });
+      payload = getNotificationPayload(storedPayload);
+      if (!payload) throw new Error('Uložený payload notifikace má neplatný formát.');
+    }
+
     await sendReservationNotificationEmails({
-      detail,
-      admins,
-      siteUrl: configuration.siteUrl,
+      messages: payload.messages,
       sendEmail: (message) => sendEmail(configuration, message),
     });
 

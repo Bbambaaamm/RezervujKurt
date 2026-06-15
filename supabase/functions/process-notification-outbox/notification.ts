@@ -2,6 +2,7 @@ export type NotificationOutboxEvent = {
   id: number;
   reservation_id: string;
   event_type: string;
+  payload: unknown;
   status: 'pending' | 'processing' | 'sent' | 'failed';
   attempt_count: number;
 };
@@ -32,6 +33,10 @@ export type EmailMessage = {
 };
 
 export type EmailSender = (message: EmailMessage) => Promise<void>;
+
+export type NotificationPayload = {
+  messages: EmailMessage[];
+};
 
 export function escapeHtml(value: string): string {
   return value
@@ -129,13 +134,42 @@ export function buildReservationNotificationEmail(
     subject,
     html,
     text,
-    idempotencyKey: [
-      'reservation-created',
-      detail.reservationId,
-      hashIdempotencyValue(recipient.toLocaleLowerCase('en-US')),
-      hashIdempotencyValue(JSON.stringify({ subject, html, text })),
-    ].join('-'),
+    idempotencyKey: `reservation-created-${detail.reservationId}-${hashIdempotencyValue(recipient.toLocaleLowerCase('en-US'))}`,
   };
+}
+
+export function buildReservationNotificationEmails(input: {
+  detail: ReservationNotificationDetail;
+  admins: AdminRecipient[];
+  siteUrl: string;
+}): EmailMessage[] {
+  return selectAdminEmails(input.admins).map((recipient) => buildReservationNotificationEmail(
+    input.detail,
+    recipient,
+    input.siteUrl,
+  ));
+}
+
+function isEmailMessage(value: unknown): value is EmailMessage {
+  if (!value || typeof value !== 'object') return false;
+
+  const message = value as Record<string, unknown>;
+  return (
+    typeof message.to === 'string'
+    && typeof message.subject === 'string'
+    && typeof message.html === 'string'
+    && typeof message.text === 'string'
+    && typeof message.idempotencyKey === 'string'
+  );
+}
+
+export function getNotificationPayload(value: unknown): NotificationPayload | null {
+  if (!value || typeof value !== 'object') return null;
+
+  const messages = (value as Record<string, unknown>).messages;
+  if (!Array.isArray(messages) || !messages.every(isEmailMessage)) return null;
+
+  return { messages };
 }
 
 export function getRetryDecision(attemptCount: number, now = new Date()): {
@@ -164,21 +198,14 @@ export function sanitizeProviderError(error: unknown): string {
 }
 
 export async function sendReservationNotificationEmails(input: {
-  detail: ReservationNotificationDetail;
-  admins: AdminRecipient[];
-  siteUrl: string;
+  messages: EmailMessage[];
   sendEmail: EmailSender;
 }): Promise<number> {
-  const recipients = selectAdminEmails(input.admins);
   const failures: unknown[] = [];
 
-  for (const recipient of recipients) {
+  for (const message of input.messages) {
     try {
-      await input.sendEmail(buildReservationNotificationEmail(
-        input.detail,
-        recipient,
-        input.siteUrl,
-      ));
+      await input.sendEmail(message);
     } catch (error) {
       failures.push(error);
     }
@@ -187,9 +214,9 @@ export async function sendReservationNotificationEmails(input: {
   if (failures.length > 0) {
     const firstError = sanitizeProviderError(failures[0]);
     throw new Error(
-      `Odeslání selhalo pro ${failures.length} z ${recipients.length} příjemců. První chyba: ${firstError}`,
+      `Odeslání selhalo pro ${failures.length} z ${input.messages.length} příjemců. První chyba: ${firstError}`,
     );
   }
 
-  return recipients.length;
+  return input.messages.length;
 }

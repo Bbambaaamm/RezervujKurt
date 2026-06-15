@@ -19,3 +19,9 @@ test('worker před odesláním ověří, že rezervace stále čeká na schvále
     /if\s*\(!detail\)\s*\{[\s\S]*?complete_notification_outbox[\s\S]*?return;/,
   );
 });
+
+test('worker před prvním odesláním uloží payload a při retry použije snapshot', () => {
+  assert.match(workerSource, /getNotificationPayload\(event\.payload\)/);
+  assert.match(workerSource, /snapshot_notification_outbox_payload/);
+  assert.match(workerSource, /messages:\s*payload\.messages/);
+});

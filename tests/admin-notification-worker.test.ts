@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildReservationNotificationEmail,
+  buildReservationNotificationEmails,
+  getNotificationPayload,
   getRetryDecision,
   sanitizeProviderError,
   selectAdminEmails,
@@ -54,12 +56,14 @@ test('každý admin dostane samostatný e-mail s deterministickým idempotency k
     delivered.push(message);
   };
   const input = {
-    detail,
-    admins: [
-      { email: 'prvni@example.com', admin_notifications_enabled: true },
-      { email: 'druhy@example.com', admin_notifications_enabled: true },
-    ],
-    siteUrl: 'https://rezervuj-kurt.vercel.app',
+    messages: buildReservationNotificationEmails({
+      detail,
+      admins: [
+        { email: 'prvni@example.com', admin_notifications_enabled: true },
+        { email: 'druhy@example.com', admin_notifications_enabled: true },
+      ],
+      siteUrl: 'https://rezervuj-kurt.vercel.app',
+    }),
     sendEmail,
   };
 
@@ -74,19 +78,15 @@ test('každý admin dostane samostatný e-mail s deterministickým idempotency k
   assert.equal(new Set(delivered.map((message) => message.idempotencyKey)).size, 2);
 });
 
-test('změna payloadu vytvoří nový idempotency klíč', () => {
-  const original = buildReservationNotificationEmail(
+test('uložený payload zachová přesnou zprávu a idempotency klíč pro retry', () => {
+  const original = buildReservationNotificationEmails({
     detail,
-    'admin@example.com',
-    'https://rezervuj-kurt.vercel.app',
-  );
-  const changed = buildReservationNotificationEmail(
-    { ...detail, userName: 'Jan Novotný' },
-    'admin@example.com',
-    'https://rezervuj-kurt.vercel.app',
-  );
+    admins: [{ email: 'admin@example.com', admin_notifications_enabled: true }],
+    siteUrl: 'https://rezervuj-kurt.vercel.app',
+  });
+  const payload = getNotificationPayload(JSON.parse(JSON.stringify({ messages: original })));
 
-  assert.notEqual(original.idempotencyKey, changed.idempotencyKey);
+  assert.deepEqual(payload?.messages, original);
 });
 
 test('chyba jednoho admina nezablokuje odeslání dalším příjemcům', async () => {
@@ -94,12 +94,14 @@ test('chyba jednoho admina nezablokuje odeslání dalším příjemcům', async 
 
   await assert.rejects(
     () => sendReservationNotificationEmails({
-      detail,
-      admins: [
-        { email: 'chybny@example.com', admin_notifications_enabled: true },
-        { email: 'funkcni@example.com', admin_notifications_enabled: true },
-      ],
-      siteUrl: 'https://rezervuj-kurt.vercel.app',
+      messages: buildReservationNotificationEmails({
+        detail,
+        admins: [
+          { email: 'chybny@example.com', admin_notifications_enabled: true },
+          { email: 'funkcni@example.com', admin_notifications_enabled: true },
+        ],
+        siteUrl: 'https://rezervuj-kurt.vercel.app',
+      }),
       sendEmail: async (message) => {
         attemptedRecipients.push(message.to);
         if (message.to === 'chybny@example.com') {
@@ -114,6 +116,11 @@ test('chyba jednoho admina nezablokuje odeslání dalším příjemcům', async 
     'chybny@example.com',
     'funkcni@example.com',
   ]);
+});
+
+test('neplatný uložený payload se nepoužije k odesílání', () => {
+  assert.equal(getNotificationPayload({ messages: [{ to: 'admin@example.com' }] }), null);
+  assert.equal(getNotificationPayload({}), null);
 });
 
 test('chyba providera má omezený exponenciální retry a po pátém pokusu končí', () => {
