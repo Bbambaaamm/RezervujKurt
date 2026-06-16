@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 
 import { courts as fallbackCourts, mockReservations as fallbackReservations, openHours } from '@/lib/mockData';
-import { getReservationGridColumnLabels } from '@/lib/services/court-display';
 import { buildReservationSlotRenderClassName, getReservationSlotState, isReservationSlotSelected, type ReservationSlotSelectionPosition } from '@/lib/services/reservation-slot-state';
 import type { Court, Reservation } from '@/lib/types/domain';
 
@@ -238,7 +237,6 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
   };
 
   const mobileCourt = courts.find((court) => court.id === mobileCourtId) ?? courts[0];
-  const courtColumnLabels = getReservationGridColumnLabels(courts);
   const pointerHandlers = {
     onPointerMove: handlePointerMove,
     onPointerUp: handlePointerUp,
@@ -299,9 +297,9 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
       >
         <div className="grid min-w-[760px] grid-cols-4">
           <div className="sticky top-0 z-20 border-b border-r border-slate-300 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900">Čas</div>
-          {courts.map((court, index) => (
+          {courts.map((court) => (
             <div key={court.id} className="sticky top-0 z-20 border-b border-r border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900 last:border-r-0">
-              {courtColumnLabels[index]}
+              {court.name}
             </div>
           ))}
 
