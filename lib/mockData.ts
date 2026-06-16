@@ -1,10 +1,4 @@
-import type { Court, Reservation } from './types/domain';
-
-export const courts: Court[] = [
-  { id: 1, name: 'Kurt 1', surface: 'antuka' },
-  { id: 2, name: 'Kurt 2', surface: 'antuka' },
-  { id: 3, name: 'Kurt 3', surface: 'antuka' },
-];
+import type { Reservation } from './types/domain';
 
 export const openHours = { start: 7, end: 21 };
 

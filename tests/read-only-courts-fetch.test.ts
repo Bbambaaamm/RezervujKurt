@@ -28,7 +28,7 @@ test('getCourtsReadOnly: používá anonymní courts endpoint bez user/profile f
     requested.auth = String(headers.Authorization ?? '');
     requested.apikey = String(headers.apikey ?? '');
 
-    return createJsonResponse('[{"id":1,"name":"Kurt 1","surface":"antuka","is_active":true}]');
+    return createJsonResponse('[{"id":1,"name":"Zelená","surface":"antuka","is_active":true}]');
   };
 
   const { getCourtsReadOnly } = await import('../lib/services/read-only');
@@ -36,7 +36,7 @@ test('getCourtsReadOnly: používá anonymní courts endpoint bez user/profile f
 
   assert.equal(result.length, 1);
   assert.equal(result[0].id, 1);
-  assert.equal(result[0].name, 'Kurt 1');
+  assert.equal(result[0].name, 'Zelená');
 
   const parsedUrl = new URL(requested.url);
   assert.equal(parsedUrl.pathname, '/rest/v1/courts');

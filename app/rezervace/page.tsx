@@ -3,7 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ReservationGrid } from '@/components/reservation-grid';
-import { courts as fallbackCourts, mockReservations as fallbackReservations } from '@/lib/mockData';
+import { mockReservations as fallbackReservations } from '@/lib/mockData';
 import { checkReservationSlotAvailability, createReservation } from '@/lib/services/reservations';
 import { ReservationConflictError, ReservationUnauthorizedError, ReservationValidationError } from '@/lib/services/supabase-error-mapping';
 import { getCourtsReadOnly, getReservationsReadOnly } from '@/lib/services/read-only';
@@ -44,6 +44,10 @@ export default function ReservationPage() {
   const [availabilityWarning, setAvailabilityWarning] = useState<string | null>(null);
   const formattedSelectedDate = useMemo(() => formatCzechDate(selectedDate), [selectedDate]);
   const isAuthenticated = Boolean(sessionToken && sessionUserId);
+  const selectedCourtName = useMemo(
+    () => courts.find((court) => String(court.id) === courtId)?.name ?? null,
+    [courtId, courts],
+  );
   const showDevFallbackWarning =
     process.env.NODE_ENV === 'development' &&
     (courtsSourceMode === 'mock fallback' || reservationsSourceMode === 'mock fallback');
@@ -69,7 +73,43 @@ export default function ReservationPage() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  useEffect(() => { /* existing */ let active = true; async function loadCourts() { try { const loadedCourts = await getCourtsReadOnly(); if (active && loadedCourts.length > 0) { setCourts(loadedCourts); setCourtId(String(loadedCourts[0].id)); setCourtsSourceMode('supabase'); } } catch (error) { if (active) { setCourts(fallbackCourts); setCourtsSourceMode('mock fallback'); } if (error instanceof SupabaseRequestError) { console.error('[DEV fallback] Načtení kurtů ze Supabase selhalo, používám fallback data.', { endpoint: error.endpoint, status: error.status, response: error.responseBody, }); return; } console.error('[DEV fallback] Načtení kurtů ze Supabase selhalo, používám fallback data.', error); }} loadCourts(); return () => { active = false; }; }, []);
+  useEffect(() => {
+    let active = true;
+
+    async function loadCourts() {
+      try {
+        const loadedCourts = await getCourtsReadOnly();
+
+        if (active && loadedCourts.length > 0) {
+          setCourts(loadedCourts);
+          setCourtId(String(loadedCourts[0].id));
+          setCourtsSourceMode('supabase');
+        }
+      } catch (error) {
+        if (active) {
+          setCourts([]);
+          setCourtsSourceMode('mock fallback');
+        }
+
+        if (error instanceof SupabaseRequestError) {
+          console.error('[DEV fallback] Načtení kurtů ze Supabase selhalo, používám fallback data.', {
+            endpoint: error.endpoint,
+            status: error.status,
+            response: error.responseBody,
+          });
+          return;
+        }
+
+        console.error('[DEV fallback] Načtení kurtů ze Supabase selhalo, používám fallback data.', error);
+      }
+    }
+
+    loadCourts();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const reservationsReloadRequestRef = useRef(0);
 
@@ -263,9 +303,9 @@ export default function ReservationPage() {
         <div className="min-w-0">
           <p className="mb-1 text-xs font-semibold tracking-wide text-slate-500">Vybraný termín</p>
           <div className="flex h-10 items-center rounded-xl border border-slate-200 bg-white px-3">
-          {selectionReady ? (
+          {selectionReady && selectedCourtName ? (
             <p className="truncate text-sm font-semibold text-slate-900">
-              {(courts.find((court) => String(court.id) === courtId)?.name ?? `Kurt ${courtId}`)} · {timeFrom}–{timeTo}
+              {selectedCourtName} · {timeFrom}–{timeTo}
             </p>
           ) : (
             <p className="truncate text-sm text-slate-600">Nejdřív vyberte volná okna v přehledu kurtů.</p>

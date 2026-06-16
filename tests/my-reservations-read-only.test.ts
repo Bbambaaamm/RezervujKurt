@@ -33,10 +33,19 @@ test.afterEach(() => {
 test('getMyReservationsReadOnly: endpoint obsahuje filter user_id a ordering', async () => {
   ensureTestAliasBridge();
 
-  const requestedUrls: string[] = [];
-  globalThis.fetch = async (input: RequestInfo | URL) => {
-    requestedUrls.push(String(input));
-    return createJsonResponse('[]');
+  const requests: Array<{ url: string; auth: string }> = [];
+  const responses = [
+    [{ id: 'r1', reservation_date: '2026-05-20', time_from: '10:00:00', time_to: '11:00:00', created_at: '2026-05-20T09:00:00Z', status: 'approved', court_id: 1, user_id: 'user-123' }],
+    [{ id: 1, name: 'Zelená' }],
+  ];
+
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const headers = new Headers(init?.headers);
+    requests.push({
+      url: String(input),
+      auth: String(headers.get('Authorization') ?? ''),
+    });
+    return createJsonResponse(JSON.stringify(responses.shift() ?? []));
   };
 
   const { getMyReservationsReadOnly } = await import('../lib/services/read-only');
@@ -49,12 +58,20 @@ test('getMyReservationsReadOnly: endpoint obsahuje filter user_id a ordering', a
     },
   });
 
-  assert.deepEqual(result, []);
-  assert.equal(requestedUrls.length, 1);
+  assert.equal(result.length, 1);
+  assert.equal(result[0].courtName, 'Zelená');
+  assert.equal(requests.length, 2);
 
-  const requestUrl = new URL(requestedUrls[0]);
+  const requestUrl = new URL(requests[0].url);
   assert.equal(requestUrl.searchParams.get('user_id'), 'eq.user-123');
   assert.equal(requestUrl.searchParams.get('order'), 'reservation_date.asc,time_from.asc');
+  assert.equal(requests[0].auth, 'Bearer test-access-token');
+
+  const courtRequestUrl = new URL(requests[1].url);
+  assert.equal(courtRequestUrl.pathname, '/rest/v1/courts');
+  assert.equal(courtRequestUrl.searchParams.get('select'), 'id,name');
+  assert.equal(courtRequestUrl.searchParams.get('id'), 'in.(1)');
+  assert.equal(requests[1].auth, 'Bearer anon-key');
 });
 
 test('getMyReservationsReadOnly: anonymous session vrací unauthorized guard', async () => {
