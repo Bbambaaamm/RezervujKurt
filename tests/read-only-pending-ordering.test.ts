@@ -130,3 +130,85 @@ test('getPendingReservationsReadOnlyWithSession: mapper nezahodí rezervaci bez 
   assert.equal(result[0].id, 'r1');
   assert.equal(getReservationUserLabel(result[0]), 'Uživatel');
 });
+
+test('getMyReservationsReadOnly: doplní název kurtu z veřejného read-only courts endpointu', async () => {
+  ensureTestAliasBridge();
+
+  const requestedUrls: string[] = [];
+  const responses = [
+    [{ id: 'r1', reservation_date: '2026-06-16', time_from: '10:00:00', time_to: '11:00:00', created_at: '2026-06-16T09:00:00Z', status: 'approved', note: null, court_id: 1, user_id: 'user-1' }],
+    [{ id: 1, name: 'Zelená', surface: 'antuka', is_active: true }],
+  ];
+
+  globalThis.fetch = async (input: RequestInfo | URL) => {
+    requestedUrls.push(String(input));
+    return createJsonResponse(JSON.stringify(responses.shift() ?? []));
+  };
+
+  const { getMyReservationsReadOnly } = await import('../lib/services/read-only');
+  const result = await getMyReservationsReadOnly({ access_token: 'access-token', user: { id: 'user-1' } });
+
+  assert.equal(result.length, 1);
+  assert.equal(result[0].courtName, 'Zelená');
+  assert.equal(requestedUrls.length, 2);
+  assert.equal(new URL(requestedUrls[0]).pathname, '/rest/v1/reservations');
+  assert.equal(new URL(requestedUrls[1]).pathname, '/rest/v1/courts');
+  assert.equal(new URL(requestedUrls[1]).searchParams.get('is_active'), 'eq.true');
+});
+
+test('getMyReservationsReadOnly: při selhání lookupu kurtů nespadne a použije fallback', async () => {
+  ensureTestAliasBridge();
+
+  let call = 0;
+  globalThis.fetch = async () => {
+    call += 1;
+    if (call === 1) {
+      return createJsonResponse(JSON.stringify([
+        { id: 'r1', reservation_date: '2026-06-16', time_from: '10:00:00', time_to: '11:00:00', created_at: '2026-06-16T09:00:00Z', status: 'approved', note: null, court_id: 7, user_id: 'user-1' },
+      ]));
+    }
+
+    return new Response('{"message":"courts unavailable"}', { status: 500, headers: { 'content-type': 'application/json' } });
+  };
+
+  const { getMyReservationsReadOnly } = await import('../lib/services/read-only');
+  const result = await getMyReservationsReadOnly({ access_token: 'access-token', user: { id: 'user-1' } });
+
+  assert.equal(result.length, 1);
+  assert.equal(result[0].courtName, 'Kurt #7');
+});
+
+test('getMyReservationsReadOnly: při chybějícím court_id v courts použije fallback', async () => {
+  ensureTestAliasBridge();
+
+  const responses = [
+    [{ id: 'r1', reservation_date: '2026-06-16', time_from: '10:00:00', time_to: '11:00:00', created_at: '2026-06-16T09:00:00Z', status: 'approved', note: null, court_id: 9, user_id: 'user-1' }],
+    [{ id: 1, name: 'Zelená', surface: 'antuka', is_active: true }],
+  ];
+
+  globalThis.fetch = async () => createJsonResponse(JSON.stringify(responses.shift() ?? []));
+
+  const { getMyReservationsReadOnly } = await import('../lib/services/read-only');
+  const result = await getMyReservationsReadOnly({ access_token: 'access-token', user: { id: 'user-1' } });
+
+  assert.equal(result.length, 1);
+  assert.equal(result[0].courtName, 'Kurt #9');
+});
+
+test('getPendingReservationsReadOnlyWithSession: admin přehled použije aktuální název z courts.name', async () => {
+  ensureTestAliasBridge();
+
+  const responses = [
+    [{ id: 'r1', reservation_date: '2026-06-16', time_from: '10:00:00', time_to: '11:00:00', created_at: '2026-06-16T09:00:00Z', status: 'pending', court_id: 1, user_id: 'user-1' }],
+    [{ id: 1, name: 'Zelená' }],
+    [{ id: 'user-1', full_name: 'Jan Novák', email: 'jan@example.test' }],
+  ];
+
+  globalThis.fetch = async () => createJsonResponse(JSON.stringify(responses.shift() ?? []));
+
+  const { getPendingReservationsReadOnlyWithSession } = await import('../lib/services/read-only');
+  const result = await getPendingReservationsReadOnlyWithSession('access-token');
+
+  assert.equal(result.length, 1);
+  assert.equal(result[0].courtName, 'Zelená');
+});

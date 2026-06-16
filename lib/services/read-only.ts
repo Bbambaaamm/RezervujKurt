@@ -122,6 +122,10 @@ function mapReservation(row: ReservationRow): Reservation {
   };
 }
 
+function getCourtNameFallback(courtId: number) {
+  return `Kurt #${courtId}`;
+}
+
 function mapReservationOverview(row: ReservationOverviewRow): ReservationOverview {
   return {
     id: row.id,
@@ -129,7 +133,7 @@ function mapReservationOverview(row: ReservationOverviewRow): ReservationOvervie
     timeFrom: row.time_from,
     timeTo: row.time_to,
     createdAt: row.created_at,
-    courtName: `Kurt ${row.court_id}`,
+    courtName: getCourtNameFallback(row.court_id),
     userId: row.user_id,
     userDisplayName: null,
     userEmail: null,
@@ -233,7 +237,7 @@ async function getReservationsOverviewByEndpoint(endpoint: string, accessToken: 
 
     return reservations.map((row) => {
       const baseReservation = mapReservationOverview(row);
-      const courtName = courtsById.get(row.court_id) ?? `${row.court_id}`;
+      const courtName = courtsById.get(row.court_id) ?? getCourtNameFallback(row.court_id);
       const profileRow = profilesById.get(row.user_id);
       const fullName = profileRow?.full_name ?? null;
       const email = profileRow?.email ?? null;
@@ -265,12 +269,28 @@ export async function getMyReservationsReadOnly(session: AuthSession | null) {
 
   const endpoint = `reservations?select=id,reservation_date,time_from,time_to,created_at,status,note,court_id,user_id&user_id=eq.${session.user.id}&order=reservation_date.asc,time_from.asc`;
   const rows = await supabaseSelectWithAccessToken<ReservationOverviewRow>(endpoint, session.access_token);
+  const courtIds = [...new Set(rows.map((row) => row.court_id))];
+  let courtsById = new Map<number, string>();
+
+  if (courtIds.length) {
+    try {
+      const courts = await getCourtsReadOnly();
+      courtsById = new Map(courts.filter((court) => courtIds.includes(court.id)).map((court) => [court.id, court.name]));
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('my reservations courts lookup unavailable, rendering fallback court names', { error });
+      }
+    }
+  }
 
   if (process.env.NODE_ENV === 'development') {
     console.info('my reservations loaded', { count: rows.length });
   }
 
-  return rows.map(mapReservationOverview);
+  return rows.map((row) => ({
+    ...mapReservationOverview(row),
+    courtName: courtsById.get(row.court_id) ?? getCourtNameFallback(row.court_id),
+  }));
 }
 
 export async function getPendingReservationsReadOnlyWithSession(accessToken: string) {
