@@ -5,6 +5,7 @@ import path from 'node:path';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
+import { courts as fallbackCourts } from '../lib/mockData';
 import type { Court, Reservation } from '../lib/types/domain';
 
 const originalFetch = globalThis.fetch;
@@ -94,8 +95,17 @@ test('/rezervace grid vykreslí názvy kurtů a obsazenost podle court_id', asyn
   assert.match(markup, /Kurt 5, 11:00 až 11:30, stav obsazeno, poznámka Rezervace pro Kurt 5/);
 });
 
-test('/rezervace grid nezmizí, když lookup názvů kurtů vrátí prázdný seznam', async () => {
+test('ReservationGrid nepovažuje každé prázdné courts pole za aktivní fallback kurty', async () => {
   const markup = await renderGrid([], [createReservation({ courtId: 1 })]);
+
+  assert.match(markup, /Čas/);
+  assert.doesNotMatch(markup, /Kurt 1/);
+  assert.doesNotMatch(markup, /Kurt 2/);
+  assert.doesNotMatch(markup, /Kurt 3/);
+});
+
+test('/rezervace může po rozhodnutí stránky zobrazit nouzový grid s explicitními fallback kurty', async () => {
+  const markup = await renderGrid(fallbackCourts, [createReservation({ courtId: 1 })]);
 
   assert.match(markup, /Čas/);
   assert.match(markup, /Kurt 1/);

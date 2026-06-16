@@ -36,7 +36,6 @@ function normalizeRange(start: number, end: number) {
 }
 
 export function ReservationGrid({ selectedDate, courts = fallbackCourts, reservations = fallbackReservations, selection = null, onSelectionChange }: ReservationGridProps) {
-  const visibleCourts = courts.length > 0 ? courts : fallbackCourts;
   const halfHourSlots = useMemo(
     () => Array.from({ length: (openHours.end - openHours.start) * 2 }, (_, i) => openHours.start + i * 0.5),
     [],
@@ -45,21 +44,21 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
   const [dragState, setDragState] = useState<DragState>(null);
   const dragStateRef = useRef<DragState>(null);
   const capturedPointerRef = useRef<{ element: HTMLButtonElement; pointerId: number } | null>(null);
-  const [mobileCourtId, setMobileCourtId] = useState(() => selection?.courtId ?? visibleCourts[0]?.id ?? null);
+  const [mobileCourtId, setMobileCourtId] = useState(() => selection?.courtId ?? courts[0]?.id ?? null);
   const selectionCourtId = selection?.courtId;
   const selectionTimeFrom = selection?.timeFrom;
   const selectionTimeTo = selection?.timeTo;
 
   useEffect(() => {
-    if (selectionCourtId !== undefined && visibleCourts.some((court) => court.id === selectionCourtId)) {
+    if (selectionCourtId !== undefined && courts.some((court) => court.id === selectionCourtId)) {
       setMobileCourtId(selectionCourtId);
       return;
     }
 
     setMobileCourtId((currentCourtId) => (
-      visibleCourts.some((court) => court.id === currentCourtId) ? currentCourtId : visibleCourts[0]?.id ?? null
+      courts.some((court) => court.id === currentCourtId) ? currentCourtId : courts[0]?.id ?? null
     ));
-  }, [visibleCourts, selectionCourtId, selectionTimeFrom, selectionTimeTo]);
+  }, [courts, selectionCourtId, selectionTimeFrom, selectionTimeTo]);
 
   const activeSelection = useMemo(
     () => dragState
@@ -95,7 +94,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
   };
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLButtonElement>, courtId: number, time: number, isOccupied: boolean) => {
-    if (isOccupied || event.button !== 0) return;
+    if (!onSelectionChange || isOccupied || event.button !== 0) return;
 
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -238,8 +237,8 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
     );
   };
 
-  const mobileCourt = visibleCourts.find((court) => court.id === mobileCourtId) ?? visibleCourts[0];
-  const courtColumnLabels = getReservationGridColumnLabels(visibleCourts);
+  const mobileCourt = courts.find((court) => court.id === mobileCourtId) ?? courts[0];
+  const courtColumnLabels = getReservationGridColumnLabels(courts);
   const pointerHandlers = {
     onPointerMove: handlePointerMove,
     onPointerUp: handlePointerUp,
@@ -252,7 +251,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
 
       <div className="space-y-2 md:hidden">
         <div className="grid grid-cols-3 rounded-xl bg-slate-200 p-1" role="tablist" aria-label="Výběr kurtu">
-          {visibleCourts.map((court) => {
+          {courts.map((court) => {
             const isActive = court.id === mobileCourt?.id;
             return (
               <button
@@ -300,7 +299,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
       >
         <div className="grid min-w-[760px] grid-cols-4">
           <div className="sticky top-0 z-20 border-b border-r border-slate-300 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900">Čas</div>
-          {visibleCourts.map((court, index) => (
+          {courts.map((court, index) => (
             <div key={court.id} className="sticky top-0 z-20 border-b border-r border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900 last:border-r-0">
               {courtColumnLabels[index]}
             </div>
@@ -311,7 +310,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
               <div className="border-b border-r border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-600">
                 {formatTimeLabel(time)} - {formatTimeLabel(time + 0.5)}
               </div>
-              {visibleCourts.map((court) => renderSlot(court, time))}
+              {courts.map((court) => renderSlot(court, time))}
             </div>
           ))}
         </div>
