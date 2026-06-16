@@ -6,7 +6,6 @@ import { SupabaseNetworkError, SupabaseRequestError, supabaseSelect, supabaseSel
 type CourtRow = {
   id: number;
   name: string;
-  surface: string;
   is_active: boolean;
 };
 
@@ -174,7 +173,7 @@ function logSupabaseRequestFailure(error: unknown) {
 }
 
 export async function getCourtsReadOnly() {
-  const endpoint = 'courts?select=id,name,surface,is_active&is_active=eq.true&order=id.asc';
+  const endpoint = 'courts?select=id,name,is_active&is_active=eq.true&order=id.asc';
 
   console.info('getCourtsReadOnly request', { endpoint });
 
