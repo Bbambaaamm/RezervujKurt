@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 
-import { mockReservations as fallbackReservations, openHours } from '@/lib/mockData';
+import { courts as fallbackCourts, mockReservations as fallbackReservations, openHours } from '@/lib/mockData';
 import { buildReservationSlotRenderClassName, getReservationSlotState, isReservationSlotSelected, type ReservationSlotSelectionPosition } from '@/lib/services/reservation-slot-state';
 import type { Court, Reservation } from '@/lib/types/domain';
 
@@ -34,7 +34,7 @@ function normalizeRange(start: number, end: number) {
   return { from: Math.min(start, end), to: Math.max(start, end) + 0.5 };
 }
 
-export function ReservationGrid({ selectedDate, courts = [], reservations = fallbackReservations, selection = null, onSelectionChange }: ReservationGridProps) {
+export function ReservationGrid({ selectedDate, courts = fallbackCourts, reservations = fallbackReservations, selection = null, onSelectionChange }: ReservationGridProps) {
   const halfHourSlots = useMemo(
     () => Array.from({ length: (openHours.end - openHours.start) * 2 }, (_, i) => openHours.start + i * 0.5),
     [],
