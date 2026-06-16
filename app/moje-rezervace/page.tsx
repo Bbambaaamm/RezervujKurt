@@ -27,6 +27,10 @@ function formatCreatedAt(value: string | null) {
   }).format(parsedDate);
 }
 
+function formatReservationNote(note: string | null) {
+  return note?.trim() || '—';
+}
+
 function getStatusBadgeClass(status: ReservationOverview['status']) {
   if (status === 'approved') return 'border-emerald-200 bg-emerald-50 text-emerald-800';
   if (status === 'cancelled') return 'border-rose-200 bg-rose-50 text-rose-800';
@@ -159,6 +163,10 @@ export default function MyReservationsPage() {
                 <dt className="text-slate-500">Vytvořeno</dt>
                 <dd className="mt-0.5 text-slate-900">{formatCreatedAt(reservation.createdAt)}</dd>
               </div>
+              <div className="col-span-2 min-w-0">
+                <dt className="text-slate-500">Poznámka</dt>
+                <dd className="mt-0.5 break-words text-slate-900">{formatReservationNote(reservation.note)}</dd>
+              </div>
             </dl>
 
             {isMyReservationCancelable(reservation) ? (
@@ -190,6 +198,7 @@ export default function MyReservationsPage() {
               <th className="px-3 py-2">Čas do</th>
               <th className="px-3 py-2">Kurt</th>
               <th className="px-3 py-2">Stav</th>
+              <th className="px-3 py-2">Poznámka</th>
               <th className="px-3 py-2">Vytvořeno</th>
               <th className="px-3 py-2">Akce</th>
             </tr>
@@ -206,6 +215,7 @@ export default function MyReservationsPage() {
                     {getReservationStatusLabel(reservation.status)}
                   </span>
                 </td>
+                <td className="max-w-[16rem] px-3 py-2"><span className="block truncate" title={formatReservationNote(reservation.note)}>{formatReservationNote(reservation.note)}</span></td>
                 <td className="px-3 py-2">{formatCreatedAt(reservation.createdAt)}</td>
                 <td className="px-3 py-2">
                   {isMyReservationCancelable(reservation) ? (
@@ -226,7 +236,7 @@ export default function MyReservationsPage() {
             ))}
             {reservations.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-4 text-center text-slate-500">
+                <td colSpan={8} className="px-3 py-4 text-center text-slate-500">
                   Zatím nemáte žádné rezervace.
                 </td>
               </tr>

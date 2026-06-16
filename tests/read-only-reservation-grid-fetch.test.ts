@@ -19,7 +19,7 @@ test.afterEach(() => {
   globalThis.fetch = originalFetch;
 });
 
-test('getReservationsReadOnly: používá public occupancy endpoint bez user filtru a jen minimální pole', async () => {
+test('getReservationsReadOnly: používá public occupancy endpoint bez user filtru včetně poznámky obsazenosti', async () => {
   const requested = { url: '', auth: '', apikey: '' };
 
   globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -37,7 +37,7 @@ test('getReservationsReadOnly: používá public occupancy endpoint bez user fil
 
   const parsedUrl = new URL(requested.url);
   assert.equal(parsedUrl.pathname, '/rest/v1/reservation_public_occupancy');
-  assert.equal(parsedUrl.searchParams.get('select'), 'court_id,reservation_date,time_from,time_to,status');
+  assert.equal(parsedUrl.searchParams.get('select'), 'court_id,reservation_date,time_from,time_to,status,note');
   assert.equal(parsedUrl.searchParams.get('reservation_date'), 'eq.2026-05-20');
   assert.equal(parsedUrl.searchParams.get('status'), 'in.(pending,approved)');
   assert.equal(parsedUrl.searchParams.get('order'), 'time_from.asc');

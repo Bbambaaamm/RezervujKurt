@@ -191,6 +191,10 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
           : '';
     const slotClassName = buildReservationSlotRenderClassName(slot.type, isSelected, selectedPosition, interactionClassName);
     const slotStateLabel = canApplySelectedStyle ? 'vybráno' : slot.type === 'volno' ? 'volno' : slot.type === 'cekajici' ? 'čeká na schválení' : 'obsazeno';
+    const slotNote = slot.reservation?.note?.trim() || null;
+    const slotAriaLabel = slotNote
+      ? `${court.name}, ${formatTimeLabel(time)} až ${formatTimeLabel(time + 0.5)}, stav ${slotStateLabel}, poznámka ${slotNote}`
+      : `${court.name}, ${formatTimeLabel(time)} až ${formatTimeLabel(time + 0.5)}, stav ${slotStateLabel}`;
     const showSelectedText = isSelectedByRange && (selectedPosition === 'single' || selectedPosition === 'start');
 
     return (
@@ -201,7 +205,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
         data-slot-time={time}
         onPointerDown={(event) => handlePointerDown(event, court.id, time, slot.isOccupied)}
         className={`${slotClassName} ${mobile ? 'touch-none' : ''}`}
-        aria-label={`${court.name}, ${formatTimeLabel(time)} až ${formatTimeLabel(time + 0.5)}, stav ${slotStateLabel}`}
+        aria-label={slotAriaLabel}
         aria-pressed={slot.type === 'volno' ? isSelected : undefined}
       >
         <span className="flex h-11 h-full w-full flex-col justify-center overflow-hidden px-3 py-1.5 text-left">
@@ -217,9 +221,15 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
           ) : slot.type === 'volno' ? (
             <span className="block truncate whitespace-nowrap text-sm font-medium leading-tight text-slate-700">Volno</span>
           ) : slot.type === 'cekajici' ? (
-            <span className="block truncate whitespace-nowrap text-sm font-medium leading-tight text-amber-900">Čeká na schválení</span>
+            <>
+              <span className="block truncate whitespace-nowrap text-sm font-medium leading-tight text-amber-900">Čeká na schválení</span>
+              {slotNote ? <span className="block max-w-full truncate whitespace-nowrap text-xs leading-tight text-amber-800/80" title={slotNote}>{slotNote}</span> : null}
+            </>
           ) : (
-            <span className="block truncate whitespace-nowrap text-sm font-medium leading-tight text-rose-900">Obsazeno</span>
+            <>
+              <span className="block truncate whitespace-nowrap text-sm font-medium leading-tight text-rose-900">Obsazeno</span>
+              {slotNote ? <span className="block max-w-full truncate whitespace-nowrap text-xs leading-tight text-rose-800/80" title={slotNote}>{slotNote}</span> : null}
+            </>
           )}
         </span>
       </button>
