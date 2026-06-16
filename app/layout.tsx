@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Header } from '@/components/header';
 import { AuthSessionSync } from '@/components/auth-session-sync';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 export const metadata: Metadata = {
   title: 'RezervujKurt | TJ Baník Stříbro',
@@ -15,6 +16,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <AuthSessionSync />
         <Header />
         <main className="mx-auto max-w-6xl px-4 py-5">{children}</main>
+        <SpeedInsights />
       </body>
     </html>
   );
