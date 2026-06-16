@@ -48,3 +48,12 @@ test('getCourtsReadOnly: používá anonymní courts endpoint bez user/profile f
   assert.equal(requested.auth, 'Bearer anon-key');
   assert.equal(requested.apikey, 'anon-key');
 });
+
+test('getCourtsReadOnly: mapuje aktuální název z public.courts.name', async () => {
+  globalThis.fetch = async () => createJsonResponse('[{"id":1,"name":"Zelená","surface":"antuka","is_active":true}]');
+
+  const { getCourtsReadOnly } = await import('../lib/services/read-only');
+  const result = await getCourtsReadOnly();
+
+  assert.equal(result[0].name, 'Zelená');
+});

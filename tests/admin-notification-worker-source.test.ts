@@ -36,3 +36,8 @@ test('worker před prvním odesláním uloží payload a při retry použije sna
   assert.match(workerSource, /snapshot_notification_outbox_payload/);
   assert.match(workerSource, /messages:\s*payload\.messages/);
 });
+
+test('worker používá název kurtu načtený z public.courts.name', () => {
+  assert.match(workerSource, /courts\?select=name&id=eq\.\$\{reservation\.court_id\}/);
+  assert.match(workerSource, /courtName:\s*court\.name/);
+});

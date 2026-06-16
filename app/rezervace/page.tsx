@@ -265,7 +265,7 @@ export default function ReservationPage() {
           <div className="flex h-10 items-center rounded-xl border border-slate-200 bg-white px-3">
           {selectionReady ? (
             <p className="truncate text-sm font-semibold text-slate-900">
-              {(courts.find((court) => String(court.id) === courtId)?.name ?? `Kurt ${courtId}`)} · {timeFrom}–{timeTo}
+              {(courts.find((court) => String(court.id) === courtId)?.name ?? `Kurt #${courtId}`)} · {timeFrom}–{timeTo}
             </p>
           ) : (
             <p className="truncate text-sm text-slate-600">Nejdřív vyberte volná okna v přehledu kurtů.</p>

@@ -15,6 +15,11 @@ const requiredPolicies = [
     reason: 'Anonymní návštěvník musí načíst aktivní kurty pro veřejnou stránku /rezervace.'
   },
   {
+    table: 'public.courts',
+    name: 'courts_select_active_authenticated',
+    reason: 'Přihlášený uživatel musí bezpečně číst aktivní kurty pro názvy ve vlastních rezervacích.'
+  },
+  {
     table: 'public.reservations',
     name: 'reservations_select_owner_or_admin',
     reason: 'Admin musí mít SELECT na reservations přes policy owner_or_admin i po db resetu.'
