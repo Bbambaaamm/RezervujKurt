@@ -153,7 +153,7 @@ test('getMyReservationsReadOnly: doplní název kurtu z veřejného read-only co
   assert.equal(requestedUrls.length, 2);
   assert.equal(new URL(requestedUrls[0]).pathname, '/rest/v1/reservations');
   assert.equal(new URL(requestedUrls[1]).pathname, '/rest/v1/courts');
-  assert.equal(new URL(requestedUrls[1]).searchParams.get('id'), 'in.(1)');
+  assert.equal(new URL(requestedUrls[1]).searchParams.get('is_active'), 'eq.true');
 });
 
 test('getMyReservationsReadOnly: při selhání lookupu kurtů nespadne a použije fallback', async () => {

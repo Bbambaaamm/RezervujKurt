@@ -69,41 +69,7 @@ export default function ReservationPage() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    let active = true;
-
-    async function loadCourts() {
-      try {
-        const loadedCourts = await getCourtsReadOnly();
-        console.info('reservation page courts loaded', {
-          count: loadedCourts.length,
-          courts: loadedCourts.map((court) => ({ id: court.id, name: court.name })),
-        });
-
-        if (!active) return;
-
-        setCourts(loadedCourts);
-        if (loadedCourts.length > 0) {
-          setCourtId(String(loadedCourts[0].id));
-        }
-        setCourtsSourceMode('supabase');
-      } catch (error) {
-        if (active && process.env.NODE_ENV === 'development') {
-          setCourts(fallbackCourts);
-          setCourtsSourceMode('mock fallback');
-        }
-
-        if (error instanceof SupabaseRequestError) {
-          console.error('[DEV fallback] Načtení kurtů ze Supabase selhalo.', { endpoint: error.endpoint, status: error.status, response: error.responseBody });
-          return;
-        }
-        console.error('[DEV fallback] Načtení kurtů ze Supabase selhalo.', error);
-      }
-    }
-
-    loadCourts();
-    return () => { active = false; };
-  }, []);
+  useEffect(() => { /* existing */ let active = true; async function loadCourts() { try { const loadedCourts = await getCourtsReadOnly(); if (active && loadedCourts.length > 0) { setCourts(loadedCourts); setCourtId(String(loadedCourts[0].id)); setCourtsSourceMode('supabase'); } } catch (error) { if (active) { setCourts(fallbackCourts); setCourtsSourceMode('mock fallback'); } if (error instanceof SupabaseRequestError) { console.error('[DEV fallback] Načtení kurtů ze Supabase selhalo, používám fallback data.', { endpoint: error.endpoint, status: error.status, response: error.responseBody, }); return; } console.error('[DEV fallback] Načtení kurtů ze Supabase selhalo, používám fallback data.', error); }} loadCourts(); return () => { active = false; }; }, []);
 
   const reservationsReloadRequestRef = useRef(0);
 
