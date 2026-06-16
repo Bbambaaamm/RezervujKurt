@@ -272,7 +272,7 @@ export async function getMyReservationsReadOnly(session: AuthSession | null) {
         if (process.env.NODE_ENV === 'development') {
           console.info('My reservations courts lookup request.', { endpoint: courtsEndpoint });
         }
-        return supabaseSelectWithAccessToken<PendingCourtRow>(courtsEndpoint, session.access_token);
+        return supabaseSelect<PendingCourtRow>(courtsEndpoint);
       })()
     : [];
   const courtsById = new Map(courtRows.map((row) => [row.id, row.name]));
