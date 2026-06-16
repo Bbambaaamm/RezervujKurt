@@ -67,6 +67,33 @@ function parseHour(timeValue: string) {
   return hours + minutes / 60;
 }
 
+function getReservationReadKey(row: Pick<ReservationRow, 'court_id' | 'reservation_date' | 'time_from' | 'time_to' | 'status'>) {
+  return `${row.court_id}|${row.reservation_date}|${row.time_from}|${row.time_to}|${row.status}`;
+}
+
+async function getPrivateReservationNotes(date: string, accessToken: string) {
+  const endpoint = `reservations?select=court_id,reservation_date,time_from,time_to,status,note&reservation_date=eq.${date}&status=in.(pending,approved)&order=time_from.asc`;
+
+  if (process.env.NODE_ENV === 'development') {
+    console.info('getPrivateReservationNotes request', { date, endpoint });
+  }
+
+  return supabaseSelectWithAccessToken<ReservationRow>(endpoint, accessToken);
+}
+
+function mergeReservationNotes(publicRows: ReservationRow[], privateRows: ReservationRow[]) {
+  const notesByKey = new Map(
+    privateRows
+      .map((row) => [getReservationReadKey(row), row.note?.trim() || null] as const)
+      .filter(([, note]) => note),
+  );
+
+  return publicRows.map((row) => ({
+    ...row,
+    note: notesByKey.get(getReservationReadKey(row)) ?? null,
+  }));
+}
+
 function mapCourt(row: CourtRow): Court {
   return {
     id: row.id,
@@ -151,15 +178,24 @@ export async function getCourtsReadOnly() {
 }
 
 export async function getReservationsReadOnly(date: string, accessToken?: string | null) {
-  const endpoint = `reservation_public_occupancy?select=court_id,reservation_date,time_from,time_to,status,note&reservation_date=eq.${date}&status=in.(pending,approved)&order=time_from.asc`;
+  const endpoint = `reservation_public_occupancy?select=court_id,reservation_date,time_from,time_to,status&reservation_date=eq.${date}&status=in.(pending,approved)&order=time_from.asc`;
 
   if (process.env.NODE_ENV === 'development') {
     console.info('getReservationsReadOnly request', { date, endpoint });
   }
 
-  const rows = accessToken
-    ? await supabaseSelectWithAccessToken<ReservationRow>(endpoint, accessToken)
-    : await supabaseSelect<ReservationRow>(endpoint);
+  const publicRows = await supabaseSelect<ReservationRow>(endpoint);
+  let rows = publicRows;
+
+  if (accessToken) {
+    try {
+      rows = mergeReservationNotes(publicRows, await getPrivateReservationNotes(date, accessToken));
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('private reservation notes unavailable, rendering public occupancy without notes', { date, error });
+      }
+    }
+  }
 
   if (process.env.NODE_ENV === 'development') {
     console.info('getReservationsReadOnly loaded', { date, rawCount: rows.length, mappedCount: rows.length });
