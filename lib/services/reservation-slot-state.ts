@@ -49,8 +49,8 @@ export function isReservationSlotSelected(selection: SlotSelection, courtId: num
 export function getReservationSlotState(reservations: Reservation[], courtId: number, date: string, slotFrom: number, slotTo: number) {
   const reservation = reservations.find((item) => item.courtId === courtId && item.date === date && isReservationSlotOccupied(item, slotFrom, slotTo));
 
-  if (!reservation) return { type: 'volno' as const, label: 'Volno', isOccupied: false };
-  return { type: reservation.status as ReservationSlotType, label: reservation.status === 'cekajici' ? 'Čeká na schválení' : 'Obsazeno', isOccupied: true };
+  if (!reservation) return { type: 'volno' as const, label: 'Volno', isOccupied: false, reservation: null };
+  return { type: reservation.status as ReservationSlotType, label: reservation.status === 'cekajici' ? 'Čeká na schválení' : 'Obsazeno', isOccupied: true, reservation };
 }
 
 export function getReservationSlotClassName(slotType: ReservationSlotType, isSelected: boolean, selectedPosition: ReservationSlotSelectionPosition = 'single') {

@@ -19,7 +19,7 @@ test.afterEach(() => {
   globalThis.fetch = originalFetch;
 });
 
-test('getReservationsReadOnly: používá public occupancy endpoint bez user filtru a jen minimální pole', async () => {
+test('getReservationsReadOnly: používá public occupancy endpoint bez user filtru a bez soukromé poznámky', async () => {
   const requested = { url: '', auth: '', apikey: '' };
 
   globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -44,4 +44,48 @@ test('getReservationsReadOnly: používá public occupancy endpoint bez user fil
   assert.equal(parsedUrl.searchParams.get('user_id'), null);
   assert.equal(requested.auth, 'Bearer anon-key');
   assert.equal(requested.apikey, 'anon-key');
+});
+
+test('getReservationsReadOnly: poznámku načte jen přes autorizovaný privátní dotaz a sloučí ji do obsazenosti', async () => {
+  const requestedUrls: string[] = [];
+  const requestedAuth: string[] = [];
+
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    requestedUrls.push(String(input));
+    const headers = (init?.headers ?? {}) as Record<string, string>;
+    requestedAuth.push(String(headers.Authorization ?? ''));
+
+    const parsedUrl = new URL(String(input));
+    if (parsedUrl.pathname === '/rest/v1/reservation_public_occupancy') {
+      return createJsonResponse(JSON.stringify([
+        {
+          court_id: 1,
+          reservation_date: '2026-05-20',
+          time_from: '09:00:00',
+          time_to: '10:00:00',
+          status: 'approved',
+        },
+      ]));
+    }
+
+    return createJsonResponse(JSON.stringify([
+      {
+        court_id: 1,
+        reservation_date: '2026-05-20',
+        time_from: '09:00:00',
+        time_to: '10:00:00',
+        status: 'approved',
+        note: 'Soukromá poznámka',
+      },
+    ]));
+  };
+
+  const { getReservationsReadOnly } = await import('../lib/services/read-only');
+  const result = await getReservationsReadOnly('2026-05-20', 'user-token');
+
+  assert.equal(result[0]?.note, 'Soukromá poznámka');
+  assert.equal(new URL(requestedUrls[0]).pathname, '/rest/v1/reservation_public_occupancy');
+  assert.equal(new URL(requestedUrls[1]).pathname, '/rest/v1/reservations');
+  assert.equal(new URL(requestedUrls[1]).searchParams.get('select'), 'court_id,reservation_date,time_from,time_to,status,note');
+  assert.deepEqual(requestedAuth, ['Bearer anon-key', 'Bearer user-token']);
 });

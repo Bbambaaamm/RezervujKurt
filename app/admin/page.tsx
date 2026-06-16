@@ -54,6 +54,10 @@ function getErrorMessage(error: unknown) {
 }
 
 
+function formatReservationNote(note: string | null) {
+  return note?.trim() || '—';
+}
+
 function getStatusBadgeClass(status: ReservationOverview['status']) {
   if (status === 'approved') return 'border-emerald-200 bg-emerald-50 text-emerald-800';
   if (status === 'cancelled') return 'border-rose-200 bg-rose-50 text-rose-800';
@@ -312,6 +316,10 @@ export default function AdminPage() {
                   <dt className="text-slate-500">Uživatel</dt>
                   <dd className="mt-0.5 break-words text-slate-900">{getReservationUserLabel(reservation)}</dd>
                 </div>
+                <div className="col-span-2 min-w-0">
+                  <dt className="text-slate-500">Poznámka</dt>
+                  <dd className="mt-0.5 break-words text-slate-900">{formatReservationNote(reservation.note)}</dd>
+                </div>
               </dl>
 
               <div className="grid grid-cols-2 gap-2">
@@ -348,6 +356,7 @@ export default function AdminPage() {
                 <th className="px-4 py-3 font-medium">Vytvořeno</th>
                 <th className="px-4 py-3 font-medium">Kurt</th>
                 <th className="px-4 py-3 font-medium">Uživatel</th>
+                <th className="px-4 py-3 font-medium">Poznámka</th>
                 <th className="px-4 py-3 font-medium">Stav</th>
                 <th className="px-4 py-3 font-medium">Akce</th>
               </tr>
@@ -366,6 +375,7 @@ export default function AdminPage() {
                   <td className="px-4 py-3">{formatCreatedAt(reservation.createdAt)}</td>
                   <td className="px-4 py-3">{reservation.courtName}</td>
                   <td className="px-4 py-3">{getReservationUserLabel(reservation)}</td>
+                  <td className="max-w-[18rem] px-4 py-3"><span className="block truncate" title={formatReservationNote(reservation.note)}>{formatReservationNote(reservation.note)}</span></td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-medium ${getStatusBadgeClass(reservation.status)}`}>
                       {getReservationStatusLabel(reservation.status)}
@@ -435,6 +445,10 @@ export default function AdminPage() {
                       <dt className="text-slate-500">Uživatel</dt>
                       <dd className="mt-0.5 break-words text-slate-900">{getReservationUserLabel(reservation)}</dd>
                     </div>
+                    <div className="col-span-2 min-w-0">
+                      <dt className="text-slate-500">Poznámka</dt>
+                      <dd className="mt-0.5 break-words text-slate-900">{formatReservationNote(reservation.note)}</dd>
+                    </div>
                   </dl>
                 </article>
               ))}
@@ -450,6 +464,7 @@ export default function AdminPage() {
                     <th className="px-4 py-3 font-medium">Vytvořeno</th>
                     <th className="px-4 py-3 font-medium">Kurt</th>
                     <th className="px-4 py-3 font-medium">Uživatel</th>
+                    <th className="px-4 py-3 font-medium">Poznámka</th>
                     <th className="px-4 py-3 font-medium">Stav</th>
                   </tr>
                 </thead>
@@ -467,6 +482,7 @@ export default function AdminPage() {
                         <td className="px-4 py-3">{formatCreatedAt(reservation.createdAt)}</td>
                         <td className="px-4 py-3">{reservation.courtName}</td>
                         <td className="px-4 py-3">{getReservationUserLabel(reservation)}</td>
+                        <td className="max-w-[18rem] px-4 py-3"><span className="block truncate" title={formatReservationNote(reservation.note)}>{formatReservationNote(reservation.note)}</span></td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-medium ${getStatusBadgeClass(reservation.status)}`}>
                             {getReservationStatusLabel(reservation.status)}
