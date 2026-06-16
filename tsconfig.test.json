@@ -24,6 +24,11 @@
     "lib/services/profile-save-error.ts",
     "lib/services/reservation-occupancy.ts",
     "supabase/functions/process-notification-outbox/notification.ts",
-    "e2e/helpers/auth-bootstrap.ts"
+    "e2e/helpers/auth-bootstrap.ts",
+    "components/reservation-grid.tsx",
+    "lib/mockData.ts",
+    "lib/types/domain.ts",
+    "lib/services/read-only.ts",
+    "lib/services/court-display.ts"
   ]
 }
