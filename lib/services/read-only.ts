@@ -101,14 +101,6 @@ function mapCourt(row: CourtRow): Court {
   };
 }
 
-function logCourtLookup(source: string, endpoint: string, rows: Array<Pick<CourtRow, 'id' | 'name'>>) {
-  console.info(source, {
-    endpoint,
-    count: rows.length,
-    courts: rows.map((row) => ({ id: row.id, name: row.name })),
-  });
-}
-
 function mapReservation(row: ReservationRow): Reservation {
   const syntheticId = `${row.court_id}-${row.reservation_date}-${row.time_from}-${row.time_to}`;
 
@@ -175,11 +167,15 @@ function logSupabaseRequestFailure(error: unknown) {
 export async function getCourtsReadOnly() {
   const endpoint = 'courts?select=id,name,is_active&is_active=eq.true&order=id.asc';
 
-  console.info('getCourtsReadOnly request', { endpoint });
+  if (process.env.NODE_ENV === 'development') {
+    console.info('getCourtsReadOnly request', { endpoint });
+  }
 
   const rows = await supabaseSelect<CourtRow>(endpoint);
 
-  logCourtLookup('getCourtsReadOnly loaded', endpoint, rows);
+  if (process.env.NODE_ENV === 'development') {
+    console.info('getCourtsReadOnly loaded', { rawCount: rows.length, mappedCount: rows.length });
+  }
 
   return rows.map(mapCourt);
 }
@@ -277,11 +273,8 @@ export async function getMyReservationsReadOnly(session: AuthSession | null) {
 
   if (courtIds.length) {
     try {
-      const courtsEndpoint = `courts?select=id,name&id=in.(${courtIds.join(',')})`;
-      console.info('my reservations courts lookup request', { endpoint: courtsEndpoint });
-      const courtRows = await supabaseSelectWithAccessToken<PendingCourtRow>(courtsEndpoint, session.access_token);
-      logCourtLookup('my reservations courts lookup loaded', courtsEndpoint, courtRows);
-      courtsById = new Map(courtRows.map((court) => [court.id, court.name]));
+      const courts = await getCourtsReadOnly();
+      courtsById = new Map(courts.filter((court) => courtIds.includes(court.id)).map((court) => [court.id, court.name]));
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         console.warn('my reservations courts lookup unavailable, rendering fallback court names', { error });
@@ -290,7 +283,7 @@ export async function getMyReservationsReadOnly(session: AuthSession | null) {
   }
 
   if (process.env.NODE_ENV === 'development') {
-    console.info('my reservations loaded', { count: rows.length, courtIds, mappedCourtIds: [...courtsById.keys()] });
+    console.info('my reservations loaded', { count: rows.length });
   }
 
   return rows.map((row) => ({
