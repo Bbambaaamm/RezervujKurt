@@ -19,7 +19,7 @@ const detail: ReservationNotificationDetail = {
   timeFrom: '16:00:00',
   timeTo: '17:00:00',
   note: '<img src=x onerror="alert(1)"> & poznámka',
-  courtName: 'Kurt 1',
+  courtName: 'Zelená',
   userName: 'Jan Novák',
   userEmail: 'jan@example.com',
   userPhone: '+420 123 456 789',

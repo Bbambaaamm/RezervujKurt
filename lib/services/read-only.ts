@@ -129,7 +129,7 @@ function mapReservationOverview(row: ReservationOverviewRow): ReservationOvervie
     timeFrom: row.time_from,
     timeTo: row.time_to,
     createdAt: row.created_at,
-    courtName: `Kurt ${row.court_id}`,
+    courtName: `${row.court_id}`,
     userId: row.user_id,
     userDisplayName: null,
     userEmail: null,
@@ -265,12 +265,26 @@ export async function getMyReservationsReadOnly(session: AuthSession | null) {
 
   const endpoint = `reservations?select=id,reservation_date,time_from,time_to,created_at,status,note,court_id,user_id&user_id=eq.${session.user.id}&order=reservation_date.asc,time_from.asc`;
   const rows = await supabaseSelectWithAccessToken<ReservationOverviewRow>(endpoint, session.access_token);
+  const courtIds = [...new Set(rows.map((row) => row.court_id))];
+  const courtRows = courtIds.length
+    ? await (async () => {
+        const courtsEndpoint = `courts?select=id,name&id=in.(${courtIds.join(',')})`;
+        if (process.env.NODE_ENV === 'development') {
+          console.info('My reservations courts lookup request.', { endpoint: courtsEndpoint });
+        }
+        return supabaseSelectWithAccessToken<PendingCourtRow>(courtsEndpoint, session.access_token);
+      })()
+    : [];
+  const courtsById = new Map(courtRows.map((row) => [row.id, row.name]));
 
   if (process.env.NODE_ENV === 'development') {
     console.info('my reservations loaded', { count: rows.length });
   }
 
-  return rows.map(mapReservationOverview);
+  return rows.map((row) => ({
+    ...mapReservationOverview(row),
+    courtName: courtsById.get(row.court_id) ?? `${row.court_id}`,
+  }));
 }
 
 export async function getPendingReservationsReadOnlyWithSession(accessToken: string) {

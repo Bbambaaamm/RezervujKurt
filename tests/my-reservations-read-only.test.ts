@@ -34,9 +34,14 @@ test('getMyReservationsReadOnly: endpoint obsahuje filter user_id a ordering', a
   ensureTestAliasBridge();
 
   const requestedUrls: string[] = [];
+  const responses = [
+    [{ id: 'r1', reservation_date: '2026-05-20', time_from: '10:00:00', time_to: '11:00:00', created_at: '2026-05-20T09:00:00Z', status: 'approved', court_id: 1, user_id: 'user-123' }],
+    [{ id: 1, name: 'Zelená' }],
+  ];
+
   globalThis.fetch = async (input: RequestInfo | URL) => {
     requestedUrls.push(String(input));
-    return createJsonResponse('[]');
+    return createJsonResponse(JSON.stringify(responses.shift() ?? []));
   };
 
   const { getMyReservationsReadOnly } = await import('../lib/services/read-only');
@@ -49,12 +54,18 @@ test('getMyReservationsReadOnly: endpoint obsahuje filter user_id a ordering', a
     },
   });
 
-  assert.deepEqual(result, []);
-  assert.equal(requestedUrls.length, 1);
+  assert.equal(result.length, 1);
+  assert.equal(result[0].courtName, 'Zelená');
+  assert.equal(requestedUrls.length, 2);
 
   const requestUrl = new URL(requestedUrls[0]);
   assert.equal(requestUrl.searchParams.get('user_id'), 'eq.user-123');
   assert.equal(requestUrl.searchParams.get('order'), 'reservation_date.asc,time_from.asc');
+
+  const courtRequestUrl = new URL(requestedUrls[1]);
+  assert.equal(courtRequestUrl.pathname, '/rest/v1/courts');
+  assert.equal(courtRequestUrl.searchParams.get('select'), 'id,name');
+  assert.equal(courtRequestUrl.searchParams.get('id'), 'in.(1)');
 });
 
 test('getMyReservationsReadOnly: anonymous session vrací unauthorized guard', async () => {
