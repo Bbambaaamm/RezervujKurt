@@ -106,6 +106,22 @@ async function closeContext(context: BrowserContext | null) {
   }
 }
 
+function getReservationRow(page: Page, input: { date: string; courtName: string }) {
+  return page
+    .locator('tr')
+    .filter({ hasText: input.date })
+    .filter({ hasText: TIME_FROM })
+    .filter({ hasText: TIME_TO })
+    .filter({ hasText: input.courtName })
+    .filter({ hasText: E2E_RESERVATION_NOTE });
+}
+
+async function waitForReservationRow(page: Page, input: { date: string; courtName: string; statusLabel: string }) {
+  const row = getReservationRow(page, input).filter({ hasText: input.statusLabel });
+  await expect(row).toHaveCount(1);
+  return row;
+}
+
 test('reservation lifecycle smoke: pending -> approved -> cancelled uvolní slot', async ({ browser, page }) => {
   const reservationDate = getTargetDate(2);
   const formattedReservationDate = formatCzechDate(reservationDate);
@@ -146,16 +162,13 @@ test('reservation lifecycle smoke: pending -> approved -> cancelled uvolní slot
     await adminPage.goto('/admin');
     await expect(adminPage.getByRole('heading', { name: 'Administrace rezervací' })).toBeVisible();
 
-    const pendingRow = adminPage
-      .locator('tr')
+    const pendingRow = getReservationRow(adminPage, { date: formattedReservationDate, courtName })
       .filter({ has: adminPage.getByRole('button', { name: 'Schválit' }) })
-      .filter({ hasText: formattedReservationDate })
-      .filter({ hasText: '10:00:00' })
-      .filter({ hasText: '10:30:00' })
-      .filter({ hasText: courtName });
+      .filter({ hasText: 'Čeká na schválení' });
 
     await expect(pendingRow).toHaveCount(1);
     await pendingRow.getByRole('button', { name: 'Schválit' }).click();
+    await waitForReservationRow(adminPage, { date: formattedReservationDate, courtName, statusLabel: 'Schváleno' });
     await expect(pendingRow).toHaveCount(0);
 
     publicContext = await browser.newContext();
@@ -171,14 +184,7 @@ test('reservation lifecycle smoke: pending -> approved -> cancelled uvolní slot
     await memberPage.goto('/moje-rezervace');
     await expect(memberPage.getByRole('heading', { name: 'Moje rezervace' })).toBeVisible();
 
-    const approvedRow = memberPage
-      .locator('tr')
-      .filter({ hasText: formattedReservationDate })
-      .filter({ hasText: '10:00:00' })
-      .filter({ hasText: '10:30:00' })
-      .filter({ hasText: courtName });
-
-    await expect(approvedRow).toHaveCount(1);
+    const approvedRow = await waitForReservationRow(memberPage, { date: formattedReservationDate, courtName, statusLabel: 'Schváleno' });
     await expect(approvedRow.getByText('Schváleno', { exact: true })).toBeVisible();
     await approvedRow.getByRole('button', { name: 'Zrušit' }).click();
     await expect(memberPage.getByText('Rezervace byla zrušena.')).toBeVisible();
