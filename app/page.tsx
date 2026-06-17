@@ -232,7 +232,7 @@ export default function HomePage() {
         </aside>
       </section>
 
-      {(tournaments.length > 0 || tournamentsError) ? (
+      {tournaments.length > 0 ? (
       <section className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-lime-50 p-6 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
