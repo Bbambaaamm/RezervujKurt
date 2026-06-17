@@ -294,11 +294,10 @@ export default function ReservationPage() {
       {isAuthenticated ? (
         <button
           type="submit"
-          aria-label="Rezervovat vybraný termín"
           disabled={!selectionReady || Boolean(availabilityWarning)}
           className="h-10 self-end rounded-xl bg-blue-600 px-5 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
         >
-          Dokončit rezervaci
+          Rezervovat vybraný termín
         </button>
       ) : (
         <a
