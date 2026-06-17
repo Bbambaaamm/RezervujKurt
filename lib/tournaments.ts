@@ -31,6 +31,7 @@ export type TournamentFormInput = {
 const tournamentPosterBucket = 'tournament-posters';
 const maxTournamentPosterSizeBytes = 5 * 1024 * 1024;
 const allowedTournamentPosterTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const missingTournamentPosterBucketMessage = 'Úložiště plakátů turnajů není v Supabase připravené. Spusťte databázovou migraci pro bucket tournament-posters a zkuste nahrání znovu.';
 
 type TournamentRow = {
   id: string;
@@ -93,6 +94,24 @@ function getSafePosterFileName(file: File) {
   return `${randomPart}.${extension}`;
 }
 
+async function getTournamentPosterUploadError(response: Response): Promise<Error> {
+  const responseBody = await response.text();
+
+  try {
+    const parsedBody = JSON.parse(responseBody) as { error?: unknown; message?: unknown; statusCode?: unknown };
+    const errorMessage = typeof parsedBody.message === 'string' ? parsedBody.message : parsedBody.error;
+    const statusCode = typeof parsedBody.statusCode === 'string' ? parsedBody.statusCode : String(response.status);
+
+    if (response.status === 400 && statusCode === '404' && errorMessage === 'Bucket not found') {
+      return new Error(missingTournamentPosterBucketMessage);
+    }
+  } catch {
+    // Supabase Storage obvykle vrací JSON, ale pro diagnostiku zachováme původní tělo odpovědi i při nečekaném formátu.
+  }
+
+  return new Error(`Nahrání plakátu selhalo: ${response.status} ${responseBody}`);
+}
+
 async function uploadTournamentPoster(accessToken: string, file: File): Promise<string> {
   requireSupabaseConfig();
 
@@ -118,7 +137,7 @@ async function uploadTournamentPoster(accessToken: string, file: File): Promise<
   });
 
   if (!response.ok) {
-    throw new Error(`Nahrání plakátu selhalo: ${response.status} ${await response.text()}`);
+    throw await getTournamentPosterUploadError(response);
   }
 
   return getPublicTournamentPosterUrl(path);
