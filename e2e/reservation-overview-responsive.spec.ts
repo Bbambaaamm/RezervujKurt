@@ -66,7 +66,7 @@ async function openMyReservations(page: Page, width: number) {
 
   await page.goto('/moje-rezervace');
   await expect(page.getByRole('heading', { name: 'Moje rezervace' })).toBeVisible();
-  await expect(page.getByText(new RegExp(`^(${courtNames.join('|')})$`)).first()).toBeVisible();
+  await expect(page.getByText(new RegExp(`^(${courtNames.join('|')})$`)).filter({ visible: true }).first()).toBeVisible();
 }
 
 async function expectNoHorizontalOverflow(page: Page) {
