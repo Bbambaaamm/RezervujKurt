@@ -250,13 +250,18 @@ export default function HomePage() {
             <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 lg:col-span-2">{tournamentsError}</p>
           ) : null}
           {tournaments.map((tournament) => (
-            <article key={tournament.id} className="grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:grid-cols-[220px_1fr] lg:col-span-2">
-              <div className={`relative min-h-64 overflow-hidden bg-gradient-to-br ${tournament.accent} p-5 text-white sm:min-h-full`}>
+            <Link
+              key={tournament.id}
+              href={`/rezervace?datum=${encodeURIComponent(tournament.date)}`}
+              aria-label={`Zobrazit turnaj ${tournament.title} v rezervacích`}
+              className="group grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-court hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-court focus-visible:ring-offset-2 sm:grid-cols-[minmax(240px,0.9fr)_1fr] lg:col-span-2"
+            >
+              <div className={`relative min-h-72 overflow-hidden bg-gradient-to-br ${tournament.accent} p-5 text-white sm:min-h-full`}>
                 {tournament.posterUrl ? <div aria-label={`Plakát turnaje ${tournament.title}`} role="img" className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${tournament.posterUrl})` }} /> : null}
                 {tournament.posterUrl ? <div className="absolute inset-0 bg-emerald-950/45" /> : null}
                 <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full border border-white/30" />
                 <div className="absolute -bottom-12 left-8 h-40 w-40 rounded-full bg-white/10" />
-                <div className="relative flex h-full min-h-56 flex-col justify-between rounded-xl border border-white/25 bg-white/10 p-4 shadow-inner backdrop-blur-sm">
+                <div className="relative flex h-full min-h-60 flex-col justify-between rounded-xl border border-white/25 bg-white/10 p-4 shadow-inner backdrop-blur-sm">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/80">Náhled plakátu</p>
                     <h3 className="mt-4 text-2xl font-black uppercase leading-tight tracking-tight">{tournament.title}</h3>
@@ -285,8 +290,11 @@ export default function HomePage() {
                     <dd className="mt-1 text-sm font-medium text-slate-800">{tournament.registration}</dd>
                   </div>
                 </dl>
+                <p className="inline-flex items-center text-sm font-semibold text-court transition group-hover:translate-x-1">
+                  Otevřít termín v rezervacích →
+                </p>
               </div>
-            </article>
+            </Link>
           ))}
         </div>
       </section>
