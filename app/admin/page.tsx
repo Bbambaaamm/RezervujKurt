@@ -379,58 +379,6 @@ export default function AdminPage() {
       <h1 className="text-3xl font-bold">Administrace rezervací</h1>
       <p className="text-sm text-slate-600">Read-only přehled rezervací čekajících na schválení.</p>
 
-      <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">Turnaje a blokace kurtů</h2>
-          <p className="text-sm text-slate-600">Jedna centrální událost automaticky blokuje všechny aktivní kurty v rezervačním přehledu.</p>
-        </div>
-        <form onSubmit={handleTournamentSubmit} className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-          <label className="text-sm font-medium text-slate-700">Název
-            <input value={tournamentForm.title} onChange={(event) => setTournamentForm((prev) => ({ ...prev, title: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
-          </label>
-          <label className="text-sm font-medium text-slate-700">Datum
-            <input type="date" value={tournamentForm.date} onChange={(event) => setTournamentForm((prev) => ({ ...prev, date: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
-          </label>
-          <label className="text-sm font-medium text-slate-700">Od
-            <input type="time" value={tournamentForm.timeFrom} onChange={(event) => setTournamentForm((prev) => ({ ...prev, timeFrom: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
-          </label>
-          <label className="text-sm font-medium text-slate-700">Do
-            <input type="time" value={tournamentForm.timeTo} onChange={(event) => setTournamentForm((prev) => ({ ...prev, timeTo: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
-          </label>
-          <label className="text-sm font-medium text-slate-700 md:col-span-2">Plakát turnaje
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={(event) => setTournamentForm((prev) => ({ ...prev, posterFile: event.target.files?.[0] ?? null }))}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 file:mr-3 file:rounded-md file:border-0 file:bg-court file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-white"
-            />
-            <span className="mt-1 block text-xs font-normal text-slate-500">Vyberte obrázek z počítače nebo mobilu. Podporované formáty: JPG, PNG, WebP, max. 5 MB.</span>
-            {editedTournamentId && tournamentForm.posterUrl && !tournamentForm.posterFile ? <span className="mt-1 block text-xs font-normal text-slate-500">Pokud nevyberete nový obrázek, zůstane zachovaný stávající plakát.</span> : null}
-          </label>
-          <label className="text-sm font-medium text-slate-700 md:col-span-2">Poznámka
-            <input value={tournamentForm.note} onChange={(event) => setTournamentForm((prev) => ({ ...prev, note: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
-          </label>
-          <button type="submit" disabled={isTournamentSaving} className="rounded-md bg-court px-4 py-2 font-semibold text-white disabled:opacity-60">{editedTournamentId ? 'Uložit změny' : 'Vytvořit turnaj'}</button>
-          {editedTournamentId ? <button type="button" onClick={() => { setEditedTournamentId(null); setTournamentForm(emptyTournamentForm); }} className="rounded-md border border-slate-300 px-4 py-2 font-semibold text-slate-700">Zrušit úpravu</button> : null}
-        </form>
-        {tournamentMessage ? <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-950">{tournamentMessage}</p> : null}
-        <div className="divide-y divide-slate-100">
-          {tournaments.length === 0 ? <p className="py-3 text-sm text-slate-600">Žádné turnaje nejsou založené.</p> : null}
-          {tournaments.map((tournament) => (
-            <article key={tournament.id} className="flex flex-col gap-3 py-3 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="font-semibold text-slate-900">{tournament.title}</p>
-                <p className="text-sm text-slate-600">{formatDate(tournament.date)} · {tournament.time}</p>
-              </div>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => editTournament(tournament)} className="rounded-md border border-slate-300 px-3 py-1 text-sm">Upravit</button>
-                <button type="button" onClick={() => void handleTournamentDelete(tournament.id)} className="rounded-md border border-rose-300 bg-rose-50 px-3 py-1 text-sm text-rose-800">Zrušit</button>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
       {shouldRenderLoadingState(isLoading) ? <div aria-busy={getAriaBusy(isLoading)} className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">Načítání rezervací...</div> : null}
 
       {error ? <div role="status" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{error}</div> : null}
@@ -564,6 +512,58 @@ export default function AdminPage() {
         </>
       ) : null}
 
+
+      <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900">Turnaje a blokace kurtů</h2>
+          <p className="text-sm text-slate-600">Jedna centrální událost automaticky blokuje všechny aktivní kurty v rezervačním přehledu.</p>
+        </div>
+        <form onSubmit={handleTournamentSubmit} className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <label className="text-sm font-medium text-slate-700">Název
+            <input value={tournamentForm.title} onChange={(event) => setTournamentForm((prev) => ({ ...prev, title: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
+          </label>
+          <label className="text-sm font-medium text-slate-700">Datum
+            <input type="date" value={tournamentForm.date} onChange={(event) => setTournamentForm((prev) => ({ ...prev, date: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
+          </label>
+          <label className="text-sm font-medium text-slate-700">Od
+            <input type="time" value={tournamentForm.timeFrom} onChange={(event) => setTournamentForm((prev) => ({ ...prev, timeFrom: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
+          </label>
+          <label className="text-sm font-medium text-slate-700">Do
+            <input type="time" value={tournamentForm.timeTo} onChange={(event) => setTournamentForm((prev) => ({ ...prev, timeTo: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
+          </label>
+          <label className="text-sm font-medium text-slate-700 md:col-span-2">Plakát turnaje
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(event) => setTournamentForm((prev) => ({ ...prev, posterFile: event.target.files?.[0] ?? null }))}
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 file:mr-3 file:rounded-md file:border-0 file:bg-court file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-white"
+            />
+            <span className="mt-1 block text-xs font-normal text-slate-500">Vyberte obrázek z počítače nebo mobilu. Podporované formáty: JPG, PNG, WebP, max. 5 MB.</span>
+            {editedTournamentId && tournamentForm.posterUrl && !tournamentForm.posterFile ? <span className="mt-1 block text-xs font-normal text-slate-500">Pokud nevyberete nový obrázek, zůstane zachovaný stávající plakát.</span> : null}
+          </label>
+          <label className="text-sm font-medium text-slate-700 md:col-span-2">Poznámka
+            <input value={tournamentForm.note} onChange={(event) => setTournamentForm((prev) => ({ ...prev, note: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
+          </label>
+          <button type="submit" disabled={isTournamentSaving} className="rounded-md bg-court px-4 py-2 font-semibold text-white disabled:opacity-60">{editedTournamentId ? 'Uložit změny' : 'Vytvořit turnaj'}</button>
+          {editedTournamentId ? <button type="button" onClick={() => { setEditedTournamentId(null); setTournamentForm(emptyTournamentForm); }} className="rounded-md border border-slate-300 px-4 py-2 font-semibold text-slate-700">Zrušit úpravu</button> : null}
+        </form>
+        {tournamentMessage ? <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-950">{tournamentMessage}</p> : null}
+        <div className="divide-y divide-slate-100">
+          {tournaments.length === 0 ? <p className="py-3 text-sm text-slate-600">Žádné turnaje nejsou založené.</p> : null}
+          {tournaments.map((tournament) => (
+            <article key={tournament.id} className="flex flex-col gap-3 py-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="font-semibold text-slate-900">{tournament.title}</p>
+                <p className="text-sm text-slate-600">{formatDate(tournament.date)} · {tournament.time}</p>
+              </div>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => editTournament(tournament)} className="rounded-md border border-slate-300 px-3 py-1 text-sm">Upravit</button>
+                <button type="button" onClick={() => void handleTournamentDelete(tournament.id)} className="rounded-md border border-rose-300 bg-rose-50 px-3 py-1 text-sm text-rose-800">Zrušit</button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
 
       {!isLoading && !error ? (
         <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">

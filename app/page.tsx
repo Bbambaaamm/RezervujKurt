@@ -293,26 +293,6 @@ export default function HomePage() {
       ) : null}
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6">
-        <h2 className="text-xl font-semibold text-slate-950">Profesionální postup blokace dne pro turnaj</h2>
-        <div className="mt-5 grid gap-4 md:grid-cols-3">
-          {[
-            ['1', 'Vytvořit centrální turnaj', 'Správce nejdřív založí turnaj s datem, časem, plakátem a jasným rozsahem blokace.'],
-            ['2', 'Zablokovat všechny kurty', 'Systém pro každý aktivní kurt vytvoří administrační blokaci na celý turnajový interval a tím zabrání kolizním rezervacím.'],
-            ['3', 'Zveřejnit a komunikovat', 'Úvodní stránka ukáže plakát i informaci o uzavírce; hráči v přehledu rezervací uvidí obsazeno s poznámkou turnaje.'],
-          ].map(([step, title, description]) => (
-            <article key={step} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-court text-sm font-bold text-white">{step}</div>
-              <h3 className="font-semibold text-slate-950">{title}</h3>
-              <p className="mt-2 text-sm text-slate-600">{description}</p>
-            </article>
-          ))}
-        </div>
-        <p className="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950">
-          Doporučení: nedělat turnaj jako běžné uživatelské rezervace. Produkčně čistší je samostatný administrační režim „turnaj/blokace“, který zapíše jednu řízenou událost a z ní odvodí blokace kurtů. Díky tomu jde turnaj snadno upravit nebo zrušit bez ručního hledání jednotlivých rezervací.
-        </p>
-      </section>
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-6">
         <h2 className="text-xl font-semibold text-slate-950">Jak rezervace funguje</h2>
         <div className="mt-5 grid gap-4 md:grid-cols-3">
           {[
