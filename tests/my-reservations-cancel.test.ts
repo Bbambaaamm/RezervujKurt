@@ -155,3 +155,13 @@ test('getMyReservationsFeedbackOnReload: explicitně zachová success message pr
     },
   );
 });
+
+test('isMyReservationUpcoming: budoucí pending a approved rezervace jsou aktuální, zrušené patří do historie', async () => {
+  const { isMyReservationUpcoming } = await import('../lib/services/my-reservations');
+  const now = new Date('2026-01-10T09:59:59+01:00');
+
+  assert.equal(isMyReservationUpcoming({ reservationDate: '2026-01-10', timeFrom: '10:00:00', status: 'pending' }, now), true);
+  assert.equal(isMyReservationUpcoming({ reservationDate: '2026-01-10', timeFrom: '10:00:00', status: 'approved' }, now), true);
+  assert.equal(isMyReservationUpcoming({ reservationDate: '2026-01-10', timeFrom: '10:00:00', status: 'cancelled' }, now), false);
+  assert.equal(isMyReservationUpcoming({ reservationDate: '2026-01-10', timeFrom: '09:00:00', status: 'approved' }, now), false);
+});

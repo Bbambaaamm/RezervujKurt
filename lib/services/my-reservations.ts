@@ -101,7 +101,7 @@ export function getMyReservationsFeedbackOnReload(input: GetMyReservationsFeedba
   };
 }
 
-export function isMyReservationCancelable(reservation: CancelableReservation, now = new Date()) {
+export function isMyReservationUpcoming(reservation: CancelableReservation, now = new Date()) {
   if (reservation.status !== 'pending' && reservation.status !== 'approved') {
     return false;
   }
@@ -112,6 +112,10 @@ export function isMyReservationCancelable(reservation: CancelableReservation, no
   }
 
   return reservationStartMs > now.getTime();
+}
+
+export function isMyReservationCancelable(reservation: CancelableReservation, now = new Date()) {
+  return isMyReservationUpcoming(reservation, now);
 }
 
 export async function cancelMyReservation(input: CancelMyReservationInput): Promise<void> {
