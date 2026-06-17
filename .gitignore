@@ -16,6 +16,8 @@ pnpm-debug.log*
 
 # local env files
 .env*
+!.env.example
+!.env.test.local.example
 
 # local Supabase CLI artifacts
 supabase/.branches/

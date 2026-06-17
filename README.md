@@ -231,38 +231,77 @@ npm run start
 
 ## E2E testy
 
-Playwright používá Chromium a ve výchozím nastavení si spustí Next.js dev server. Před prvním lokálním během nainstaluj prohlížeč:
+Playwright používá Chromium a ve výchozím nastavení si spustí Next.js dev server. Standardní lokální E2E workflow je oddělené od `.env.local`: testy načítají ignorovaný soubor `.env.test.local`, vytvářejí vlastní member/admin storage state a lifecycle scénář mají pojistku pouze na lokální Supabase `127.0.0.1:54321` nebo `localhost:54321`. Díky tomu se destruktivní cleanup nikdy nespustí proti hostovanému projektu.
+
+Před prvním lokálním během nainstaluj prohlížeč:
 
 ```bash
 npx playwright install chromium
 ```
 
-Lokální Supabase musí běžet. Před autentizovanými scénáři exportuj do aktuálního shellu lokální URL, anon key a service-role key:
+### Kompletní lokální Playwright běh bez skipů
+
+1. Spusť lokální Supabase:
 
 ```bash
-eval "$(npx supabase status -o env \
-  --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
-  --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_ANON_KEY \
-  --override-name auth.service_role_key=SUPABASE_SERVICE_ROLE_KEY)"
+npx supabase start
 ```
 
-Service-role key používej pouze v lokálním nebo zabezpečeném CI prostředí. Dostupné scénáře:
+2. Vytvoř testovací env soubor a doplň pouze lokální hodnoty z `npx supabase status`:
+
+```bash
+cp .env.test.local.example .env.test.local
+npx supabase status
+```
+
+V `.env.test.local` ponech lokální URL a nahraď jen example klíče:
+
+```dotenv
+PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<lokální anon key>
+SUPABASE_SERVICE_ROLE_KEY=<lokální service-role key>
+E2E_MAILPIT_URL=http://127.0.0.1:54324
+```
+
+Soubor `.env.test.local` je ignorovaný gitem a nesmí obsahovat produkční ani hostované Supabase klíče. Pokud potřebuješ čistý stav databáze, spusť před testy `npx supabase db reset` pouze proti lokální Supabase.
+
+3. Vytvoř auth state soubory pro člena a administrátora:
+
+```bash
+npm run test:e2e:auth:bootstrap
+```
+
+Skript přes lokální Mailpit vytvoří:
+
+- `e2e/.auth/member.json`;
+- `e2e/.auth/admin.json`.
+
+4. Spusť kompletní lokální E2E běh včetně bootstrapu jedním příkazem:
+
+```bash
+npm run test:e2e:local
+```
+
+Tento příkaz nejdřív znovu vytvoří auth state a potom spustí celý Playwright suite. Při správně připravené lokální Supabase se spustí všech 14 Playwright testů bez skipů.
+
+Dostupné dílčí scénáře:
 
 ```bash
 # Anonymní read-only smoke
 npm run test:e2e:smoke
 
-# Vytvoření member/admin session přes lokální Mailpit
+# Vytvoření a ověření member/admin session přes lokální Mailpit
 npm run test:e2e:auth:bootstrap
 
-# Rezervační lifecycle; vyžaduje již připravené session soubory
+# Rezervační lifecycle; vyžaduje lokální Supabase a existující session soubory
 npm run test:e2e:lifecycle
 
 # Doporučený autentizovaný průchod včetně přípravy session
 npm run test:e2e:lifecycle:with-auth-bootstrap
 ```
 
-Pokud aplikace neběží na výchozím `http://127.0.0.1:3000`, nastav `PLAYWRIGHT_BASE_URL`. Přesné předpoklady, seed účty a stabilizační pravidla popisuje [E2E smoke strategie](docs/e2e-smoke-strategy.md).
+Přesné předpoklady, seed účty a stabilizační pravidla popisuje [E2E smoke strategie](docs/e2e-smoke-strategy.md).
 
 ## Dostupné npm skripty
 
@@ -279,9 +318,10 @@ Pokud aplikace neběží na výchozím `http://127.0.0.1:3000`, nastav `PLAYWRIG
 | `npm run supabase:start:codespaces` | Spustí lokální Supabase s veřejnými URL aktuálního Codespace a aktualizuje `.env.local`. |
 | `npm run test:e2e:smoke` | Spustí anonymní Playwright smoke scénář. |
 | `npm run test:e2e:auth` | Spustí auth bootstrap; kompatibilní alias `test:e2e:auth:bootstrap`. |
-| `npm run test:e2e:auth:bootstrap` | Připraví a ověří member/admin Playwright session. |
+| `npm run test:e2e:auth:bootstrap` | Načte `.env.test.local`, ověří lokální Supabase a připraví/ověří member/admin Playwright session. |
 | `npm run test:e2e:lifecycle` | Spustí autentizovaný rezervační lifecycle s existující session. |
 | `npm run test:e2e:lifecycle:with-auth-bootstrap` | Připraví session a následně spustí lifecycle. |
+| `npm run test:e2e:local` | Načte `.env.test.local`, připraví auth state a spustí celý lokální Playwright suite. |
 
 ## Struktura repozitáře
 
