@@ -9,6 +9,7 @@ import { ReservationConflictError, ReservationUnauthorizedError, ReservationVali
 import { getCourtsReadOnly, getReservationsReadOnly } from '@/lib/services/read-only';
 import { supabaseAuthClient } from '@/lib/supabase/auth-client';
 import { SupabaseRequestError } from '@/lib/supabase/client';
+import { isReservationStartInPast, getPragueTodayDate } from '@/lib/services/reservation-time';
 import { isSlotOccupiedByPublicReservations } from '@/lib/services/reservation-submit-guard';
 import { getTournamentBlocksForCourtsFromList, getTournamentsForDate, isTournamentDateBlocked, type Tournament } from '@/lib/tournaments';
 import type { Court, Reservation } from '@/lib/types/domain';
@@ -22,9 +23,7 @@ function formatCzechDate(date: string) { /* unchanged */
 }
 
 function getTodayLocalDate() {
-  const now = new Date();
-  const timezoneOffsetMs = now.getTimezoneOffset() * 60_000;
-  return new Date(now.getTime() - timezoneOffsetMs).toISOString().slice(0, 10);
+  return getPragueTodayDate();
 }
 
 function getDateFromSearchParams(search: string) {
@@ -50,6 +49,7 @@ export default function ReservationPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [availabilityWarning, setAvailabilityWarning] = useState<string | null>(null);
   const [selectedTournaments, setSelectedTournaments] = useState<Tournament[]>([]);
+  const [currentTime, setCurrentTime] = useState(() => new Date());
   const formattedSelectedDate = useMemo(() => formatCzechDate(selectedDate), [selectedDate]);
   const selectedTournament = selectedTournaments[0] ?? null;
   const displayedReservations = useMemo(
@@ -68,6 +68,11 @@ export default function ReservationPage() {
   const showDevFallbackWarning =
     process.env.NODE_ENV === 'development' &&
     (courtsSourceMode === 'mock fallback' || reservationsSourceMode === 'mock fallback');
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setCurrentTime(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const dateFromUrl = getDateFromSearchParams(window.location.search);
@@ -166,7 +171,8 @@ export default function ReservationPage() {
     }
   }, [reservations]);
 
-  const gridSelection = selectionReady ? { courtId: Number(courtId), timeFrom, timeTo } : null;
+  const selectedStartIsPast = selectionReady && isReservationStartInPast(selectedDate, timeFrom, currentTime);
+  const gridSelection = selectionReady && !selectedStartIsPast ? { courtId: Number(courtId), timeFrom, timeTo } : null;
 
   if (process.env.NODE_ENV === 'development') {
     console.info('reservation page grid selection debug', {
@@ -195,6 +201,11 @@ export default function ReservationPage() {
   useEffect(() => {
     if (!selectionReady) {
       setAvailabilityWarning(null);
+      return;
+    }
+
+    if (selectedStartIsPast) {
+      setAvailabilityWarning('Vybraný termín už začal nebo proběhl.');
       return;
     }
 
@@ -247,7 +258,7 @@ export default function ReservationPage() {
     return () => {
       active = false;
     };
-  }, [courtId, selectedDate, selectedTournaments, selectionReady, timeFrom, timeTo]);
+  }, [courtId, selectedDate, selectedStartIsPast, selectedTournaments, selectionReady, timeFrom, timeTo]);
   async function handleCreateReservation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitMessage(null);
@@ -255,6 +266,11 @@ export default function ReservationPage() {
 
     if (!selectionReady) {
       setSubmitError('Nejdřív vyberte volný termín v přehledu kurtů.');
+      return;
+    }
+
+    if (selectedStartIsPast) {
+      setSubmitError('Vybraný termín už začal nebo proběhl. Vyberte prosím budoucí čas.');
       return;
     }
 
@@ -312,7 +328,7 @@ export default function ReservationPage() {
         {selectedTournament.title}: tento den jsou všechny kurty v aplikaci zablokované pro turnaj. Běžnou rezervaci prosím vyberte v jiném termínu.
       </p>
     )}
-    <ReservationGrid selectedDate={selectedDate} courts={courts} reservations={displayedReservations} selection={gridSelection} onSelectionChange={(selection: { courtId: number; timeFrom: string; timeTo: string } | null) => {
+    <ReservationGrid selectedDate={selectedDate} courts={courts} reservations={displayedReservations} selection={gridSelection} now={currentTime} onSelectionChange={(selection: { courtId: number; timeFrom: string; timeTo: string } | null) => {
       if (!selection) {
         setSelectionReady(false);
         return;
@@ -351,7 +367,7 @@ export default function ReservationPage() {
       {isAuthenticated ? (
         <button
           type="submit"
-          disabled={!selectionReady || Boolean(availabilityWarning)}
+          disabled={!selectionReady || selectedStartIsPast || Boolean(availabilityWarning)}
           className="h-10 self-end rounded-xl bg-blue-600 px-5 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
         >
           Rezervovat vybraný termín

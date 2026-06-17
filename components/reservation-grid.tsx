@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointer
 
 import { courts as fallbackCourts, mockReservations as fallbackReservations, openHours } from '@/lib/mockData';
 import { buildReservationSlotRenderClassName, getReservationSlotState, isReservationSlotSelected, type ReservationSlotSelectionPosition } from '@/lib/services/reservation-slot-state';
+import { isReservationStartInPast } from '@/lib/services/reservation-time';
 import type { Court, Reservation } from '@/lib/types/domain';
 
 type ReservationSelection = { courtId: number; timeFrom: string; timeTo: string };
@@ -14,6 +15,7 @@ type ReservationGridProps = {
   reservations?: Reservation[];
   selection?: ReservationSelection | null;
   onSelectionChange?: (selection: ReservationSelection | null) => void;
+  now?: Date;
 };
 
 type SlotKey = `${number}-${number}`;
@@ -34,7 +36,7 @@ function normalizeRange(start: number, end: number) {
   return { from: Math.min(start, end), to: Math.max(start, end) + 0.5 };
 }
 
-export function ReservationGrid({ selectedDate, courts = fallbackCourts, reservations = fallbackReservations, selection = null, onSelectionChange }: ReservationGridProps) {
+export function ReservationGrid({ selectedDate, courts = fallbackCourts, reservations = fallbackReservations, selection = null, onSelectionChange, now = new Date() }: ReservationGridProps) {
   const halfHourSlots = useMemo(
     () => Array.from({ length: (openHours.end - openHours.start) * 2 }, (_, i) => openHours.start + i * 0.5),
     [],
@@ -76,11 +78,11 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
       if (time < from || time >= to) return;
 
       const slot = getReservationSlotState(reservations, dragState.courtId, selectedDate, time, time + 0.5);
-      if (!slot.isOccupied) slots.add(`${dragState.courtId}-${time}`);
+      if (!slot.isOccupied && !isReservationStartInPast(selectedDate, formatTimeLabel(time), now)) slots.add(`${dragState.courtId}-${time}`);
     });
 
     return slots;
-  }, [dragState, halfHourSlots, reservations, selectedDate]);
+  }, [dragState, halfHourSlots, now, reservations, selectedDate]);
 
   const selectedRangeLabel = useMemo(() => {
     if (!activeSelection) return null;
@@ -93,7 +95,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
   };
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLButtonElement>, courtId: number, time: number, isOccupied: boolean) => {
-    if (isOccupied || event.button !== 0) return;
+    if (isOccupied || isReservationStartInPast(selectedDate, formatTimeLabel(time), now) || event.button !== 0) return;
 
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -131,7 +133,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
     const { from, to } = normalizeRange(currentDragState.startTime, currentDragState.endTime);
     const hasBlockedSlot = halfHourSlots.some((time) => {
       if (time < from || time >= to) return false;
-      return getReservationSlotState(reservations, currentDragState.courtId, selectedDate, time, time + 0.5).isOccupied;
+      return getReservationSlotState(reservations, currentDragState.courtId, selectedDate, time, time + 0.5).isOccupied || isReservationStartInPast(selectedDate, formatTimeLabel(time), now);
     });
 
     const nextSelection = hasBlockedSlot
@@ -167,6 +169,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
 
   const renderSlot = (court: Court, time: number, mobile = false) => {
     const slot = getReservationSlotState(reservations, court.id, selectedDate, time, time + 0.5);
+    const isPastSlot = isReservationStartInPast(selectedDate, formatTimeLabel(time), now);
     const slotKey = `${court.id}-${time}` as SlotKey;
     const isSelectedByRange = isReservationSlotSelected(activeSelection, court.id, time, time + 0.5);
     const isSelected = selectedSlots.has(slotKey) || isSelectedByRange;
@@ -186,11 +189,13 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
       ? selectedClassName
       : isDragPreview
         ? 'border-sky-300 bg-sky-100 text-sky-900'
-        : slot.type === 'volno'
-          ? 'hover:bg-sky-50 transition-colors duration-150'
+        : isPastSlot && slot.type === 'volno'
+          ? 'cursor-not-allowed bg-slate-100 text-slate-400 opacity-75'
+          : slot.type === 'volno'
+            ? 'hover:bg-sky-50 transition-colors duration-150'
           : '';
     const slotClassName = buildReservationSlotRenderClassName(slot.type, isSelected, selectedPosition, interactionClassName);
-    const slotStateLabel = canApplySelectedStyle ? 'vybráno' : slot.type === 'volno' ? 'volno' : slot.type === 'cekajici' ? 'čeká na schválení' : 'obsazeno';
+    const slotStateLabel = canApplySelectedStyle ? 'vybráno' : isPastSlot && slot.type === 'volno' ? 'již proběhlo' : slot.type === 'volno' ? 'volno' : slot.type === 'cekajici' ? 'čeká na schválení' : 'obsazeno';
     const slotNote = slot.reservation?.note?.trim() || null;
     const slotAriaLabel = slotNote
       ? `${court.name}, ${formatTimeLabel(time)} až ${formatTimeLabel(time + 0.5)}, stav ${slotStateLabel}, poznámka ${slotNote}`
@@ -204,6 +209,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
         data-court-id={court.id}
         data-slot-time={time}
         onPointerDown={(event) => handlePointerDown(event, court.id, time, slot.isOccupied)}
+        disabled={isPastSlot && slot.type === 'volno'}
         className={`${slotClassName} ${mobile ? 'touch-none' : ''}`}
         aria-label={slotAriaLabel}
         aria-pressed={slot.type === 'volno' ? isSelected : undefined}
@@ -218,6 +224,8 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
             ) : null
           ) : isDragPreview ? (
             <span className="block truncate whitespace-nowrap text-sm font-medium leading-tight text-sky-900">Výběr</span>
+          ) : isPastSlot && slot.type === 'volno' ? (
+            <span className="block truncate whitespace-nowrap text-sm font-medium leading-tight text-slate-500">Již proběhlo</span>
           ) : slot.type === 'volno' ? (
             <span className="block truncate whitespace-nowrap text-sm font-medium leading-tight text-slate-700">Volno</span>
           ) : slot.type === 'cekajici' ? (
