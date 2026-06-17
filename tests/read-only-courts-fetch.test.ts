@@ -40,7 +40,7 @@ test('getCourtsReadOnly: používá anonymní courts endpoint bez user/profile f
 
   const parsedUrl = new URL(requested.url);
   assert.equal(parsedUrl.pathname, '/rest/v1/courts');
-  assert.equal(parsedUrl.searchParams.get('select'), 'id,name,surface,is_active');
+  assert.equal(parsedUrl.searchParams.get('select'), 'id,name,is_active');
   assert.equal(parsedUrl.searchParams.get('is_active'), 'eq.true');
   assert.equal(parsedUrl.searchParams.get('order'), 'id.asc');
   assert.equal(parsedUrl.searchParams.get('user_id'), null);

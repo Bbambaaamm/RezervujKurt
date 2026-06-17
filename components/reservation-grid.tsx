@@ -94,7 +94,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
   };
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLButtonElement>, courtId: number, time: number, isOccupied: boolean) => {
-    if (isOccupied || event.button !== 0) return;
+    if (!onSelectionChange || isOccupied || event.button !== 0) return;
 
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
