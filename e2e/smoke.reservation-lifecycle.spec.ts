@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { expect, test, type BrowserContext, type Page } from '@playwright/test';
+import { expect, test, type APIRequestContext, type BrowserContext, type Page } from '@playwright/test';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -26,6 +26,11 @@ test.skip(!hasLifecycleEnvironment, 'Chybí lokální Supabase env nebo e2e/.aut
 const COURT_ID = 1;
 const TIME_FROM = '10:00:00';
 const TIME_TO = '10:30:00';
+const RESERVATION_STATUS_LABELS = {
+  pending: 'Čeká na schválení',
+  approved: 'Schváleno',
+  cancelled: 'Zrušeno',
+} as const;
 const E2E_RESERVATION_NOTE = 'E2E-LIFECYCLE';
 
 function escapeRegExp(value: string): string {
@@ -74,6 +79,56 @@ async function getCourtName(page: Page, courtId: number): Promise<string> {
   }
 
   return courtName;
+}
+
+
+type ReservationStatus = keyof typeof RESERVATION_STATUS_LABELS;
+
+type ReservationStatusRow = {
+  id?: unknown;
+  status?: unknown;
+};
+
+async function getReservationStatusRows(request: APIRequestContext, reservationDate: string): Promise<ReservationStatusRow[]> {
+  if (!usesLocalSupabase || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error('Lifecycle E2E ověření stavu smí běžet pouze proti lokální Supabase na portu 54321 a vyžaduje SUPABASE_SERVICE_ROLE_KEY.');
+  }
+
+  const response = await request.get(`${SUPABASE_URL}/rest/v1/reservations`, {
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    },
+    params: {
+      select: 'id,status',
+      court_id: `eq.${COURT_ID}`,
+      reservation_date: `eq.${reservationDate}`,
+      time_from: `eq.${TIME_FROM}`,
+      time_to: `eq.${TIME_TO}`,
+      note: `eq.${E2E_RESERVATION_NOTE}`,
+    },
+  });
+
+  if (!response.ok()) {
+    throw new Error(`Načtení stavu E2E rezervace selhalo (${response.status()}): ${await response.text()}`);
+  }
+
+  return response.json() as Promise<ReservationStatusRow[]>;
+}
+
+async function waitForReservationStatus(request: APIRequestContext, reservationDate: string, expectedStatus: ReservationStatus) {
+  await expect.poll(async () => {
+    const rows = await getReservationStatusRows(request, reservationDate);
+
+    if (rows.length !== 1) {
+      return `count:${rows.length}`;
+    }
+
+    return typeof rows[0].status === 'string' ? rows[0].status : 'status:invalid';
+  }, {
+    message: `Rezervace ${reservationDate} ${TIME_FROM}-${TIME_TO} musí mít v lokální DB stav ${expectedStatus}.`,
+    timeout: 10_000,
+  }).toBe(expectedStatus);
 }
 
 async function cleanupReservationSlot(page: Page, reservationDate: string) {
@@ -155,6 +210,7 @@ test('reservation lifecycle smoke: pending -> approved -> cancelled uvolní slot
 
     await memberPage.getByRole('button', { name: /Rezervovat/i }).click();
     await expect(memberPage.getByText('Rezervace vytvořena.')).toBeVisible();
+    await waitForReservationStatus(page.request, reservationDate, 'pending');
     await expect(
       memberPage.getByRole('button', {
         name: new RegExp(`${courtNamePattern}, 10:00 až 10:30, stav čeká na schválení`, 'i'),
@@ -169,16 +225,20 @@ test('reservation lifecycle smoke: pending -> approved -> cancelled uvolní slot
 
     const pendingRow = getReservationRow(adminPage, { date: formattedReservationDate, courtName })
       .filter({ has: adminPage.getByRole('button', { name: 'Schválit' }) })
-      .filter({ hasText: 'Čeká na schválení' });
+      .filter({ hasText: RESERVATION_STATUS_LABELS.pending });
 
     await expect(pendingRow).toHaveCount(1);
     await pendingRow.getByRole('button', { name: 'Schválit' }).click();
-    await waitForReservationRow(adminPage, { date: formattedReservationDate, courtName, statusLabel: 'Schváleno' });
+    await waitForReservationStatus(page.request, reservationDate, 'approved');
     await expect(pendingRow).toHaveCount(0);
+    await adminPage.reload();
+    await waitForReservationRow(adminPage, { date: formattedReservationDate, courtName, statusLabel: RESERVATION_STATUS_LABELS.approved });
 
     publicContext = await browser.newContext();
     const publicPage = await publicContext.newPage();
     await publicPage.goto('/rezervace');
+    await publicPage.locator('#reservation-day').fill(reservationDate);
+    await publicPage.reload();
     await publicPage.locator('#reservation-day').fill(reservationDate);
 
     const publicSlotButton = publicPage.getByRole('button', {
@@ -193,22 +253,24 @@ test('reservation lifecycle smoke: pending -> approved -> cancelled uvolní slot
     const approvedRow = await waitForReservationRow(memberPage, {
       date: formattedReservationDate,
       courtName,
-      statusLabel: 'Schváleno',
+      statusLabel: RESERVATION_STATUS_LABELS.approved,
       includeNote: false,
     });
-    await expect(approvedRow.getByText('Schváleno', { exact: true })).toBeVisible();
+    await expect(approvedRow.getByText(RESERVATION_STATUS_LABELS.approved, { exact: true })).toBeVisible();
     await approvedRow.getByRole('button', { name: 'Zrušit' }).click();
+    await waitForReservationStatus(page.request, reservationDate, 'cancelled');
     await expect(memberPage.getByText('Rezervace byla zrušena.')).toBeVisible();
 
     const cancelledRow = await waitForReservationRow(memberPage, {
       date: formattedReservationDate,
       courtName,
-      statusLabel: 'Zrušeno',
+      statusLabel: RESERVATION_STATUS_LABELS.cancelled,
       includeNote: false,
     });
-    await expect(cancelledRow.getByText('Zrušeno', { exact: true })).toBeVisible();
+    await expect(cancelledRow.getByText(RESERVATION_STATUS_LABELS.cancelled, { exact: true })).toBeVisible();
 
     await publicPage.reload();
+    await publicPage.locator('#reservation-day').fill(reservationDate);
     await expect(
       publicPage.getByRole('button', {
         name: new RegExp(`${courtNamePattern}, 10:00 až 10:30, stav volno`, 'i'),
