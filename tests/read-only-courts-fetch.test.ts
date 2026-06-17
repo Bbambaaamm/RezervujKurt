@@ -28,15 +28,25 @@ test('getCourtsReadOnly: používá anonymní courts endpoint bez user/profile f
     requested.auth = String(headers.Authorization ?? '');
     requested.apikey = String(headers.apikey ?? '');
 
-    return createJsonResponse('[{"id":1,"name":"Kurt 1","surface":"antuka","is_active":true}]');
+    return createJsonResponse(JSON.stringify([
+      { id: 1, name: 'Kurt 3', surface: 'antuka', is_active: true },
+      { id: 2, name: 'Kurt 4', surface: 'antuka', is_active: true },
+      { id: 3, name: 'Kurt 5', surface: 'antuka', is_active: true },
+    ]));
   };
 
   const { getCourtsReadOnly } = await import('../lib/services/read-only');
   const result = await getCourtsReadOnly();
 
-  assert.equal(result.length, 1);
-  assert.equal(result[0].id, 1);
-  assert.equal(result[0].name, 'Kurt 1');
+  assert.equal(result.length, 3);
+  assert.deepEqual(
+    result.map((court) => ({ id: court.id, name: court.name })),
+    [
+      { id: 1, name: 'Kurt 3' },
+      { id: 2, name: 'Kurt 4' },
+      { id: 3, name: 'Kurt 5' },
+    ],
+  );
 
   const parsedUrl = new URL(requested.url);
   assert.equal(parsedUrl.pathname, '/rest/v1/courts');
