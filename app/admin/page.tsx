@@ -153,8 +153,12 @@ export default function AdminPage() {
         ]);
         if (!active) return;
 
-        if (pendingResult.status === 'rejected' || recentResult.status === 'rejected') {
-          throw pendingResult.status === 'rejected' ? pendingResult.reason : recentResult.reason;
+        if (pendingResult.status === 'rejected') {
+          throw pendingResult.reason;
+        }
+
+        if (recentResult.status === 'rejected') {
+          throw recentResult.reason;
         }
 
         setReservations(pendingResult.value);
