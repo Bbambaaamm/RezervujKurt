@@ -1,7 +1,13 @@
+import { existsSync } from 'node:fs';
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const MEMBER_STATE_PATH = 'e2e/.auth/member.json';
+const ADMIN_STATE_PATH = 'e2e/.auth/admin.json';
+const hasLifecycleEnvironment = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && existsSync(MEMBER_STATE_PATH) && existsSync(ADMIN_STATE_PATH));
+
+test.skip(!hasLifecycleEnvironment, 'Chybí Supabase env nebo e2e/.auth storageState soubory pro lifecycle smoke. Spusťte s PLAYWRIGHT_ENABLE_AUTH_SETUP=1 a SUPABASE_SERVICE_ROLE_KEY.');
 
 const COURT_ID = 1;
 const TIME_FROM = '10:00:00';
@@ -62,7 +68,7 @@ test('reservation lifecycle smoke: pending -> approved -> cancelled uvolní slot
   await cleanupReservationSlot(page, reservationDate);
 
   try {
-    memberContext = await browser.newContext({ storageState: 'e2e/.auth/member.json' });
+    memberContext = await browser.newContext({ storageState: MEMBER_STATE_PATH });
     const memberPage = await memberContext.newPage();
 
     await memberPage.goto('/rezervace');
@@ -84,7 +90,7 @@ test('reservation lifecycle smoke: pending -> approved -> cancelled uvolní slot
       }),
     ).toBeVisible();
 
-    adminContext = await browser.newContext({ storageState: 'e2e/.auth/admin.json' });
+    adminContext = await browser.newContext({ storageState: ADMIN_STATE_PATH });
     const adminPage = await adminContext.newPage();
 
     await adminPage.goto('/admin');

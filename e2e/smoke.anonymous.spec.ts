@@ -12,8 +12,8 @@ test('anonymous smoke: grid je viditelný a rezervace je blokovaná', async ({ p
   const slotButton = page.getByRole('button', { name: /stav (volno|obsazeno|čeká na schválení)/ }).first();
   await expect(slotButton).toBeVisible();
 
-  await expect(page.getByText('Pro vytvoření rezervace se musíte přihlásit.')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Přejít na přihlášení' })).toBeVisible();
+  await expect(page.getByText('Pro dokončení rezervace se nejdřív přihlaste. Vybraný termín uvidíte dál v souhrnu.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Přihlásit se a rezervovat' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Rezervovat' })).toHaveCount(0);
 });
 
