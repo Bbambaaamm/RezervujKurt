@@ -27,17 +27,14 @@ function getTodayLocalDate() {
   return new Date(now.getTime() - timezoneOffsetMs).toISOString().slice(0, 10);
 }
 
-function getInitialSelectedDate() {
-  if (typeof window === 'undefined') return getTodayLocalDate();
+function getDateFromSearchParams(search: string) {
+  const dateFromUrl = new URLSearchParams(search).get('datum');
 
-  const dateFromUrl = new URLSearchParams(window.location.search).get('datum');
-  if (dateFromUrl && /^\d{4}-\d{2}-\d{2}$/.test(dateFromUrl)) return dateFromUrl;
-
-  return getTodayLocalDate();
+  return dateFromUrl && /^\d{4}-\d{2}-\d{2}$/.test(dateFromUrl) ? dateFromUrl : null;
 }
 
 export default function ReservationPage() {
-  const [selectedDate, setSelectedDate] = useState(getInitialSelectedDate);
+  const [selectedDate, setSelectedDate] = useState(getTodayLocalDate);
   const [courts, setCourts] = useState<Court[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [courtsSourceMode, setCourtsSourceMode] = useState<DataSourceMode>('supabase');
@@ -71,6 +68,11 @@ export default function ReservationPage() {
   const showDevFallbackWarning =
     process.env.NODE_ENV === 'development' &&
     (courtsSourceMode === 'mock fallback' || reservationsSourceMode === 'mock fallback');
+
+  useEffect(() => {
+    const dateFromUrl = getDateFromSearchParams(window.location.search);
+    if (dateFromUrl) setSelectedDate(dateFromUrl);
+  }, []);
 
   useEffect(() => {
     supabaseAuthClient.auth.getSession().then(({ data }) => {
