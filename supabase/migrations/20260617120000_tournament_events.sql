@@ -43,3 +43,7 @@ create policy "tournaments_delete_admin"
   on public.tournaments
   for delete
   using (public.is_admin());
+
+-- PostgREST potřebuje explicitní oprávnění nad novou tabulkou.
+grant select on table public.tournaments to anon;
+grant select, insert, update, delete on table public.tournaments to authenticated;

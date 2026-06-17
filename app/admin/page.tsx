@@ -146,18 +146,31 @@ export default function AdminPage() {
           throw new ReservationUnauthorizedError('Pro zobrazení administrace je potřeba přihlášení.');
         }
 
-        const [loadedReservations, loadedRecentReservations, loadedTournaments] = await Promise.all([
+        const [pendingResult, recentResult, tournamentsResult] = await Promise.allSettled([
           getPendingReservationsReadOnlyWithSession(accessToken),
           getRecentReservationsReadOnlyWithSession(accessToken, 20),
           getAdminTournaments(accessToken),
         ]);
         if (!active) return;
-        setReservations(loadedReservations);
-        setRecentReservations(loadedRecentReservations);
-        setTournaments(loadedTournaments);
+
+        if (pendingResult.status === 'rejected' || recentResult.status === 'rejected') {
+          throw pendingResult.status === 'rejected' ? pendingResult.reason : recentResult.reason;
+        }
+
+        setReservations(pendingResult.value);
+        setRecentReservations(recentResult.value);
+
+        if (tournamentsResult.status === 'fulfilled') {
+          setTournaments(tournamentsResult.value);
+          setTournamentMessage(null);
+        } else {
+          setTournaments([]);
+          setTournamentMessage('Turnaje se nepodařilo načíst. Rezervace v administraci zůstávají dostupné.');
+          console.warn('Admin tournaments load failed.', tournamentsResult.reason);
+        }
 
         if (process.env.NODE_ENV === 'development') {
-          console.info('admin reservations loaded', { count: loadedReservations.length });
+          console.info('admin reservations loaded', { count: pendingResult.value.length });
         }
       } catch (loadError) {
         if (!active) return;
