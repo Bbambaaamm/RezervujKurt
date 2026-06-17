@@ -12,11 +12,12 @@
     "test:unit": "node scripts/run-unit-tests.mjs",
     "test": "npm run test:unit",
     "test:e2e:smoke": "playwright test e2e/smoke.anonymous.spec.ts",
-    "test:e2e:auth": "PLAYWRIGHT_ENABLE_AUTH_SETUP=1 playwright test e2e/smoke.auth-bootstrap.spec.ts",
+    "test:e2e:auth": "npm run test:e2e:auth:bootstrap",
     "test:e2e:lifecycle": "playwright test e2e/smoke.reservation-lifecycle.spec.ts",
-    "test:e2e:auth:bootstrap": "PLAYWRIGHT_ENABLE_AUTH_SETUP=1 playwright test e2e/smoke.auth-bootstrap.spec.ts",
+    "test:e2e:auth:bootstrap": "node scripts/bootstrap-e2e-auth.mjs",
     "test:e2e:lifecycle:with-auth-bootstrap": "npm run test:e2e:auth:bootstrap && npm run test:e2e:lifecycle",
-    "supabase:start:codespaces": "node scripts/start-supabase-codespaces.mjs"
+    "supabase:start:codespaces": "node scripts/start-supabase-codespaces.mjs",
+    "test:e2e:local": "node scripts/run-local-e2e.mjs"
   },
   "dependencies": {
     "next": "16.2.9",

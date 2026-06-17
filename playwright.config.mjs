@@ -1,4 +1,7 @@
 import { defineConfig, devices } from 'playwright/test';
+import { loadE2eLocalEnv } from './scripts/e2e-local-env.mjs';
+
+loadE2eLocalEnv();
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:3000';
 const supabaseURL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://responsive-test.supabase.co';

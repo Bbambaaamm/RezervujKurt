@@ -5,9 +5,23 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const MEMBER_STATE_PATH = 'e2e/.auth/member.json';
 const ADMIN_STATE_PATH = 'e2e/.auth/admin.json';
-const hasLifecycleEnvironment = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && existsSync(MEMBER_STATE_PATH) && existsSync(ADMIN_STATE_PATH));
+function isLocalSupabaseUrl(value: string | undefined): boolean {
+  if (!value) {
+    return false;
+  }
 
-test.skip(!hasLifecycleEnvironment, 'Chybí Supabase env nebo e2e/.auth storageState soubory pro lifecycle smoke. Spusťte s PLAYWRIGHT_ENABLE_AUTH_SETUP=1 a SUPABASE_SERVICE_ROLE_KEY.');
+  try {
+    const url = new URL(value);
+    return ['127.0.0.1', 'localhost'].includes(url.hostname) && url.port === '54321';
+  } catch {
+    return false;
+  }
+}
+
+const usesLocalSupabase = isLocalSupabaseUrl(SUPABASE_URL);
+const hasLifecycleEnvironment = Boolean(usesLocalSupabase && SUPABASE_SERVICE_ROLE_KEY && existsSync(MEMBER_STATE_PATH) && existsSync(ADMIN_STATE_PATH));
+
+test.skip(!hasLifecycleEnvironment, 'Chybí lokální Supabase env nebo e2e/.auth storageState soubory pro lifecycle smoke. Použijte .env.test.local, npm run test:e2e:auth:bootstrap a lokální Supabase URL na portu 54321.');
 
 const COURT_ID = 1;
 const TIME_FROM = '10:00:00';
@@ -29,8 +43,8 @@ function formatCzechDate(date: string): string {
 }
 
 async function cleanupReservationSlot(page: Page, reservationDate: string) {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error('Pro cleanup E2E slotu chybí NEXT_PUBLIC_SUPABASE_URL nebo SUPABASE_SERVICE_ROLE_KEY.');
+  if (!usesLocalSupabase || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error('Lifecycle E2E cleanup smí běžet pouze proti lokální Supabase na portu 54321 a vyžaduje SUPABASE_SERVICE_ROLE_KEY.');
   }
 
   const response = await page.request.delete(`${SUPABASE_URL}/rest/v1/reservations`, {
