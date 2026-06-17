@@ -10,6 +10,7 @@ import { getCourtsReadOnly, getReservationsReadOnly } from '@/lib/services/read-
 import { supabaseAuthClient } from '@/lib/supabase/auth-client';
 import { SupabaseRequestError } from '@/lib/supabase/client';
 import { isSlotOccupiedByPublicReservations } from '@/lib/services/reservation-submit-guard';
+import { getTournamentBlocksForCourts, getTournamentForDate, isTournamentDateBlocked } from '@/lib/tournaments';
 import type { Court, Reservation } from '@/lib/types/domain';
 
 type DataSourceMode = 'supabase' | 'mock fallback';
@@ -43,6 +44,11 @@ export default function ReservationPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [availabilityWarning, setAvailabilityWarning] = useState<string | null>(null);
   const formattedSelectedDate = useMemo(() => formatCzechDate(selectedDate), [selectedDate]);
+  const selectedTournament = useMemo(() => getTournamentForDate(selectedDate), [selectedDate]);
+  const displayedReservations = useMemo(
+    () => [...reservations, ...getTournamentBlocksForCourts(selectedTournament, courts)],
+    [courts, reservations, selectedTournament],
+  );
   const isAuthenticated = Boolean(sessionToken && sessionUserId);
 
   const selectedCourtName = useMemo(
@@ -165,6 +171,12 @@ export default function ReservationPage() {
       }
 
       try {
+        if (isTournamentDateBlocked(selectedDate)) {
+          if (!active) return;
+          setAvailabilityWarning('Vybraný den je vyhrazený pro turnaj a běžné rezervace jsou blokované.');
+          return;
+        }
+
         const isAvailable = await checkReservationSlotAvailability({
           courtId: Number(courtId),
           reservationDate: selectedDate,
@@ -211,13 +223,18 @@ export default function ReservationPage() {
       return;
     }
 
+    if (isTournamentDateBlocked(selectedDate)) {
+      setSubmitError('Vybraný den je vyhrazený pro turnaj a běžné rezervace jsou blokované.');
+      return;
+    }
+
     if (!sessionToken || !sessionUserId) {
       setSubmitError('Uživatel není přihlášen. Pro vytvoření rezervace se prosím přihlaste.');
       return;
     }
 
     if (isSlotOccupiedByPublicReservations({
-      reservations,
+      reservations: displayedReservations,
       courtId: Number(courtId),
       date: selectedDate,
       timeFrom,
@@ -255,7 +272,12 @@ export default function ReservationPage() {
         DEV upozornění: čtení ze Supabase selhalo a stránka používá mock fallback data.
       </p>
     )}
-    <ReservationGrid selectedDate={selectedDate} courts={courts} reservations={reservations} selection={gridSelection} onSelectionChange={(selection: { courtId: number; timeFrom: string; timeTo: string } | null) => {
+    {selectedTournament && (
+      <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">
+        {selectedTournament.title}: tento den jsou všechny kurty v aplikaci zablokované pro turnaj. Běžnou rezervaci prosím vyberte v jiném termínu.
+      </p>
+    )}
+    <ReservationGrid selectedDate={selectedDate} courts={courts} reservations={displayedReservations} selection={gridSelection} onSelectionChange={(selection: { courtId: number; timeFrom: string; timeTo: string } | null) => {
       if (!selection) {
         setSelectionReady(false);
         return;

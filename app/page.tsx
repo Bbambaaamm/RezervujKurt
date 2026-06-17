@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
 import { getCourtsReadOnly, getReservationsReadOnly } from '@/lib/services/read-only';
+import { upcomingTournaments } from '@/lib/tournaments';
 import { supabaseAuthClient, type AuthSession } from '@/lib/supabase/auth-client';
 import type { Court, Reservation } from '@/lib/types/domain';
 
@@ -14,19 +15,6 @@ type DayReservationSummary = {
 };
 
 const QUICK_STATUS_DAYS = 3;
-
-const upcomingTournaments = [
-  {
-    id: 'letni-open-2026',
-    title: 'Letní open turnaj ve čtyřhře',
-    date: '2026-07-18',
-    time: '8:30–18:00',
-    courts: 'Všechny 3 kurty',
-    registration: 'Registrace u správce areálu do 12. 7. 2026',
-    description: 'Přátelský turnaj pro členy i veřejnost. Během turnaje nebude možné vytvářet běžné hodinové rezervace.',
-    accent: 'from-emerald-600 via-court to-lime-500',
-  },
-];
 
 function getTodayLocalDate() {
   const now = new Date();
