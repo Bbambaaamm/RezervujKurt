@@ -70,7 +70,7 @@ function getStatusTone(summary: DayReservationSummary) {
 
 export default function HomePage() {
   const [session, setSession] = useState<AuthSession | null>(null);
-  const [quickStatus, setQuickStatus] = useState<DayReservationSummary[]>(createEmptySummaries);
+  const [quickStatus, setQuickStatus] = useState<DayReservationSummary[]>([]);
   const [isQuickStatusLoading, setIsQuickStatusLoading] = useState(true);
   const [quickStatusError, setQuickStatusError] = useState<string | null>(null);
   const isAuthenticated = Boolean(session);
@@ -173,6 +173,11 @@ export default function HomePage() {
           </div>
           {quickStatusError && <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">{quickStatusError}</p>}
           <div className="space-y-2">
+            {quickStatus.length === 0 && isQuickStatusLoading && (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">
+                Aktuální stav rezervací se načítá.
+              </div>
+            )}
             {quickStatus.map((summary) => (
               <div key={summary.date} className={`rounded-xl border px-3 py-3 ${getStatusTone(summary)}`}>
                 <div className="flex items-center justify-between gap-3">
