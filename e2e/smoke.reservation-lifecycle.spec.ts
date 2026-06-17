@@ -188,7 +188,9 @@ test('reservation lifecycle smoke: pending -> approved -> cancelled uvolní slot
     await expect(approvedRow.getByText('Schváleno', { exact: true })).toBeVisible();
     await approvedRow.getByRole('button', { name: 'Zrušit' }).click();
     await expect(memberPage.getByText('Rezervace byla zrušena.')).toBeVisible();
-    await expect(approvedRow.getByText('Zrušeno', { exact: true })).toBeVisible();
+
+    const cancelledRow = await waitForReservationRow(memberPage, { date: formattedReservationDate, courtName, statusLabel: 'Zrušeno' });
+    await expect(cancelledRow.getByText('Zrušeno', { exact: true })).toBeVisible();
 
     await publicPage.reload();
     await expect(
