@@ -146,7 +146,7 @@ test('reservation lifecycle smoke: pending -> approved -> cancelled uvolní slot
 
     await expect(slotButton).toBeVisible();
     await slotButton.click();
-    await memberPage.getByLabel('Poznámka').fill(E2E_RESERVATION_NOTE);
+    await memberPage.getByRole('textbox', { name: 'Poznámka' }).fill(E2E_RESERVATION_NOTE);
 
     await memberPage.getByRole('button', { name: /Rezervovat/i }).click();
     await expect(memberPage.getByText('Rezervace vytvořena.')).toBeVisible();
