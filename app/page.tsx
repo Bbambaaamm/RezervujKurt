@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
 import { getCourtsReadOnly, getReservationsReadOnly } from '@/lib/services/read-only';
-import { upcomingTournaments } from '@/lib/tournaments';
+import { getUpcomingTournaments, type Tournament } from '@/lib/tournaments';
 import { supabaseAuthClient, type AuthSession } from '@/lib/supabase/auth-client';
 import type { Court, Reservation } from '@/lib/types/domain';
 
@@ -85,6 +85,8 @@ export default function HomePage() {
   const [quickStatus, setQuickStatus] = useState<DayReservationSummary[]>([]);
   const [isQuickStatusLoading, setIsQuickStatusLoading] = useState(true);
   const [quickStatusError, setQuickStatusError] = useState<string | null>(null);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [tournamentsError, setTournamentsError] = useState<string | null>(null);
   const isAuthenticated = Boolean(session);
 
   const quickStatusDescription = useMemo(
@@ -150,6 +152,31 @@ export default function HomePage() {
     };
   }, []);
 
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadTournaments() {
+      try {
+        const loadedTournaments = await getUpcomingTournaments();
+        if (!active) return;
+        setTournaments(loadedTournaments);
+        setTournamentsError(null);
+      } catch (error) {
+        if (!active) return;
+        console.warn('homepage tournaments unavailable', error);
+        setTournaments([]);
+        setTournamentsError('Turnaje se teď nepodařilo načíst. Zkuste to prosím později.');
+      }
+    }
+
+    void loadTournaments();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <div className="space-y-10">
       <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
@@ -205,6 +232,7 @@ export default function HomePage() {
         </aside>
       </section>
 
+      {(tournaments.length > 0 || tournamentsError) ? (
       <section className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-lime-50 p-6 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
@@ -218,9 +246,14 @@ export default function HomePage() {
         </div>
 
         <div className="mt-5 grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
-          {upcomingTournaments.map((tournament) => (
+          {tournamentsError ? (
+            <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 lg:col-span-2">{tournamentsError}</p>
+          ) : null}
+          {tournaments.map((tournament) => (
             <article key={tournament.id} className="grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:grid-cols-[220px_1fr] lg:col-span-2">
               <div className={`relative min-h-64 overflow-hidden bg-gradient-to-br ${tournament.accent} p-5 text-white sm:min-h-full`}>
+                {tournament.posterUrl ? <div aria-label={`Plakát turnaje ${tournament.title}`} role="img" className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${tournament.posterUrl})` }} /> : null}
+                {tournament.posterUrl ? <div className="absolute inset-0 bg-emerald-950/45" /> : null}
                 <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full border border-white/30" />
                 <div className="absolute -bottom-12 left-8 h-40 w-40 rounded-full bg-white/10" />
                 <div className="relative flex h-full min-h-56 flex-col justify-between rounded-xl border border-white/25 bg-white/10 p-4 shadow-inner backdrop-blur-sm">
@@ -257,6 +290,7 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+      ) : null}
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6">
         <h2 className="text-xl font-semibold text-slate-950">Profesionální postup blokace dne pro turnaj</h2>
