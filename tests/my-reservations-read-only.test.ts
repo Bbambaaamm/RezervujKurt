@@ -54,7 +54,7 @@ test('getMyReservationsReadOnly: endpoint obsahuje filter user_id a ordering', a
 
   const requestUrl = new URL(requestedUrls[0]);
   assert.equal(requestUrl.searchParams.get('user_id'), 'eq.user-123');
-  assert.equal(requestUrl.searchParams.get('order'), 'reservation_date.asc,time_from.asc');
+  assert.equal(requestUrl.searchParams.get('order'), 'reservation_date.desc,time_from.desc');
 });
 
 test('getMyReservationsReadOnly: anonymous session vrací unauthorized guard', async () => {

@@ -131,6 +131,26 @@ test('getPendingReservationsReadOnlyWithSession: mapper nezahodí rezervaci bez 
   assert.equal(getReservationUserLabel(result[0]), 'Uživatel');
 });
 
+
+test('getMyReservationsReadOnly: endpoint řadí moje rezervace od nejnovějšího termínu', async () => {
+  ensureTestAliasBridge();
+
+  const requestedUrls: string[] = [];
+  globalThis.fetch = async (input: RequestInfo | URL) => {
+    requestedUrls.push(String(input));
+    return createJsonResponse('[]');
+  };
+
+  const { getMyReservationsReadOnly } = await import('../lib/services/read-only');
+  const result = await getMyReservationsReadOnly({ access_token: 'access-token', user: { id: 'user-1' } });
+
+  assert.deepEqual(result, []);
+  assert.equal(requestedUrls.length, 1);
+
+  const requestUrl = new URL(requestedUrls[0]);
+  assert.equal(requestUrl.searchParams.get('order'), 'reservation_date.desc,time_from.desc');
+});
+
 test('getMyReservationsReadOnly: doplní název kurtu z public.courts.name podle court_id', async () => {
   ensureTestAliasBridge();
 

@@ -286,7 +286,7 @@ export async function getMyReservationsReadOnly(session: AuthSession | null) {
     throw new ReservationUnauthorizedError('Pro zobrazení rezervací je potřeba přihlášení.');
   }
 
-  const endpoint = `reservations?select=id,reservation_date,time_from,time_to,created_at,status,note,court_id,user_id&user_id=eq.${session.user.id}&order=reservation_date.asc,time_from.asc`;
+  const endpoint = `reservations?select=id,reservation_date,time_from,time_to,created_at,status,note,court_id,user_id&user_id=eq.${session.user.id}&order=reservation_date.desc,time_from.desc`;
   const rows = await supabaseSelectWithAccessToken<ReservationOverviewRow>(endpoint, session.access_token);
   const courtIds = [...new Set(rows.map((row) => row.court_id))];
   let courtsById = new Map<number, string>();
