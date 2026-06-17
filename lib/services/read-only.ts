@@ -36,6 +36,11 @@ type PendingCourtRow = {
   name: string;
 };
 
+type CourtNameRow = {
+  id: number;
+  name: string;
+};
+
 type PendingProfileRow = {
   id: string;
   full_name: string | null;
@@ -255,6 +260,20 @@ async function getReservationsOverviewByEndpoint(endpoint: string, accessToken: 
   }
 }
 
+async function getCourtNamesByIdsWithSession(courtIds: number[], accessToken: string) {
+  if (!courtIds.length) return new Map<number, string>();
+
+  const endpoint = `courts?select=id,name&id=in.(${courtIds.join(',')})`;
+
+  if (process.env.NODE_ENV === 'development') {
+    console.info('my reservations courts lookup request', { endpoint });
+  }
+
+  const rows = await supabaseSelectWithAccessToken<CourtNameRow>(endpoint, accessToken);
+
+  return new Map(rows.map((row) => [row.id, row.name]));
+}
+
 export async function getMyReservationsReadOnly(session: AuthSession | null) {
   if (process.env.NODE_ENV === 'development') {
     console.info('my reservations loading');
@@ -274,8 +293,7 @@ export async function getMyReservationsReadOnly(session: AuthSession | null) {
 
   if (courtIds.length) {
     try {
-      const courts = await getCourtsReadOnly();
-      courtsById = new Map(courts.filter((court) => courtIds.includes(court.id)).map((court) => [court.id, court.name]));
+      courtsById = await getCourtNamesByIdsWithSession(courtIds, session.access_token);
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         console.warn('my reservations courts lookup unavailable, rendering fallback court names', { error });
