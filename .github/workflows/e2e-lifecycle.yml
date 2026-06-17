@@ -33,7 +33,7 @@ jobs:
           github-token: ${{ github.token }}
 
       - name: Start local Supabase
-        run: supabase start
+        run: supabase start --exclude edge-runtime
 
       - name: Export local Supabase environment
         shell: bash
