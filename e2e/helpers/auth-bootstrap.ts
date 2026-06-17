@@ -182,6 +182,81 @@ function normalizeCandidateUrl(value: string): string {
   return stripTrailingUrlNoise(decodeCommonHtmlEntities(value).replace(/\s+/g, ''));
 }
 
+function isLocalE2eSupabaseOrigin(url: URL): boolean {
+  return url.protocol === 'http:'
+    && (url.hostname === '127.0.0.1' || url.hostname === 'localhost')
+    && url.port === '54321';
+}
+
+function isCodespacesSupabaseTunnelUrl(url: URL): boolean {
+  return url.protocol === 'https:'
+    && url.hostname.endsWith('.app.github.dev')
+    && /(?:^|-)54321(?:\.|-|$)/.test(url.hostname);
+}
+
+function decodeCodespacesTunnelRedirect(url: URL): string | undefined {
+  if (url.pathname !== '/auth/postback/tunnel') {
+    return undefined;
+  }
+
+  const redirectTarget = url.searchParams.get('rd');
+  if (!redirectTarget) {
+    return undefined;
+  }
+
+  try {
+    return new URL(redirectTarget).toString();
+  } catch {
+    return undefined;
+  }
+}
+
+export function normalizeMagicLinkForLocalE2e(value: string, supabaseUrl = SUPABASE_URL): string {
+  if (!supabaseUrl) {
+    return value;
+  }
+
+  let localSupabaseUrl: URL;
+  try {
+    localSupabaseUrl = new URL(supabaseUrl);
+  } catch {
+    return value;
+  }
+
+  if (!isLocalE2eSupabaseOrigin(localSupabaseUrl)) {
+    return value;
+  }
+
+  let magicLinkUrl: URL;
+  try {
+    magicLinkUrl = new URL(value);
+  } catch {
+    return value;
+  }
+
+  if (!isCodespacesSupabaseTunnelUrl(magicLinkUrl)) {
+    return value;
+  }
+
+  const decodedRedirect = decodeCodespacesTunnelRedirect(magicLinkUrl);
+  if (decodedRedirect) {
+    try {
+      const decodedRedirectUrl = new URL(decodedRedirect);
+      if (decodedRedirectUrl.pathname === '/auth/v1/verify') {
+        decodedRedirectUrl.protocol = localSupabaseUrl.protocol;
+        decodedRedirectUrl.host = localSupabaseUrl.host;
+        return decodedRedirectUrl.toString();
+      }
+    } catch {
+      // Neplatné rd ignorujeme a níže bezpečně přepíšeme pouze origin původního odkazu.
+    }
+  }
+
+  magicLinkUrl.protocol = localSupabaseUrl.protocol;
+  magicLinkUrl.host = localSupabaseUrl.host;
+  return magicLinkUrl.toString();
+}
+
 function validateSupabaseVerifyMagicLink(value: string): MagicLinkValidation {
   try {
     const url = new URL(value);
@@ -214,17 +289,20 @@ function collectMagicLinkCandidates(source: string, sourceLabel: string): MagicL
   const candidates: MagicLinkCandidate[] = [];
   const attributeRegex = /\b(?:href|action)\s*=\s*(["'])([\s\S]*?)\1/gi;
   const bareUrlRegex = /https?:\/\/[^\s"'<>()[\]{}]+/gi;
+  const canContainMagicLink = (value: string) => value.includes('/auth/v1/verify')
+    || value.includes('/auth/postback/tunnel')
+    || value.includes(encodeURIComponent('/auth/v1/verify'));
 
   for (const match of source.matchAll(attributeRegex)) {
     const value = match[2];
-    if (value.includes('/auth/v1/verify')) {
+    if (canContainMagicLink(value)) {
       candidates.push({ value, source: `${sourceLabel}:atribut` });
     }
   }
 
   for (const match of source.matchAll(bareUrlRegex)) {
     const value = match[0];
-    if (value.includes('/auth/v1/verify')) {
+    if (canContainMagicLink(value)) {
       candidates.push({ value, source: `${sourceLabel}:url` });
     }
   }
@@ -245,7 +323,7 @@ function inspectMagicLinkCandidates(messageBody: MailpitMessageDetail): Array<Ma
 
   for (const source of buildMagicLinkSources(messageBody)) {
     for (const candidate of collectMagicLinkCandidates(source.value, source.label)) {
-      const normalizedCandidate = normalizeCandidateUrl(candidate.value);
+      const normalizedCandidate = normalizeMagicLinkForLocalE2e(normalizeCandidateUrl(candidate.value));
       if (seenCandidates.has(normalizedCandidate)) {
         continue;
       }
@@ -477,12 +555,13 @@ export async function loginViaMagicLink(params: {
     otpRequestAlreadyConfirmed: createUser,
   });
 
+  const normalizedMagicLink = normalizeMagicLinkForLocalE2e(magicLink);
   const verifyLink = new RegExp(`auth\/v1\/verify.*${escapeForRegex(email)}`, 'i');
-  if (!verifyLink.test(magicLink) && !magicLink.includes('auth/v1/verify')) {
+  if (!verifyLink.test(normalizedMagicLink) && !normalizedMagicLink.includes('auth/v1/verify')) {
     throw new Error('Nalezený odkaz z Mailpit nevypadá jako Supabase verify link.');
   }
 
-  await page.goto(magicLink);
+  await page.goto(normalizedMagicLink);
   await page.waitForURL(/\/rezervace|\/$/, { timeout: 15_000 });
   const verifiedRedirectUrl = page.url();
   await waitForStoredAuthSession(page, email);
