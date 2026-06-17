@@ -10,7 +10,7 @@ import { getCourtsReadOnly, getReservationsReadOnly } from '@/lib/services/read-
 import { supabaseAuthClient } from '@/lib/supabase/auth-client';
 import { SupabaseRequestError } from '@/lib/supabase/client';
 import { isSlotOccupiedByPublicReservations } from '@/lib/services/reservation-submit-guard';
-import { getTournamentBlocksForCourts, getTournamentForDate, isTournamentDateBlocked } from '@/lib/tournaments';
+import { getTournamentBlocksForCourtsFromList, getTournamentsForDate, isTournamentDateBlocked, type Tournament } from '@/lib/tournaments';
 import type { Court, Reservation } from '@/lib/types/domain';
 
 type DataSourceMode = 'supabase' | 'mock fallback';
@@ -43,11 +43,12 @@ export default function ReservationPage() {
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [availabilityWarning, setAvailabilityWarning] = useState<string | null>(null);
+  const [selectedTournaments, setSelectedTournaments] = useState<Tournament[]>([]);
   const formattedSelectedDate = useMemo(() => formatCzechDate(selectedDate), [selectedDate]);
-  const selectedTournament = useMemo(() => getTournamentForDate(selectedDate), [selectedDate]);
+  const selectedTournament = selectedTournaments[0] ?? null;
   const displayedReservations = useMemo(
-    () => [...reservations, ...getTournamentBlocksForCourts(selectedTournament, courts)],
-    [courts, reservations, selectedTournament],
+    () => [...reservations, ...getTournamentBlocksForCourtsFromList(selectedTournaments, courts)],
+    [courts, reservations, selectedTournaments],
   );
   const isAuthenticated = Boolean(sessionToken && sessionUserId);
 
@@ -125,6 +126,29 @@ export default function ReservationPage() {
     void reloadReservations(selectedDate, sessionToken);
   }, [reloadReservations, selectedDate, sessionToken]);
 
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadSelectedTournaments() {
+      try {
+        const loadedTournaments = await getTournamentsForDate(selectedDate);
+        if (!active) return;
+        setSelectedTournaments(loadedTournaments);
+      } catch (error) {
+        if (!active) return;
+        console.warn('selected date tournaments unavailable', { selectedDate, error });
+        setSelectedTournaments([]);
+      }
+    }
+
+    void loadSelectedTournaments();
+
+    return () => {
+      active = false;
+    };
+  }, [selectedDate]);
+
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       console.info('reservation page passing reservations to grid', { count: reservations.length, sample: reservations.slice(0, 3) });
@@ -171,7 +195,7 @@ export default function ReservationPage() {
       }
 
       try {
-        if (isTournamentDateBlocked(selectedDate)) {
+        if (isTournamentDateBlocked(selectedDate, selectedTournaments)) {
           if (!active) return;
           setAvailabilityWarning('Vybraný den je vyhrazený pro turnaj a běžné rezervace jsou blokované.');
           return;
@@ -212,7 +236,7 @@ export default function ReservationPage() {
     return () => {
       active = false;
     };
-  }, [courtId, selectedDate, selectionReady, timeFrom, timeTo]);
+  }, [courtId, selectedDate, selectedTournaments, selectionReady, timeFrom, timeTo]);
   async function handleCreateReservation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitMessage(null);
@@ -223,7 +247,7 @@ export default function ReservationPage() {
       return;
     }
 
-    if (isTournamentDateBlocked(selectedDate)) {
+    if (isTournamentDateBlocked(selectedDate, selectedTournaments)) {
       setSubmitError('Vybraný den je vyhrazený pro turnaj a běžné rezervace jsou blokované.');
       return;
     }
