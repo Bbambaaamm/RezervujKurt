@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import {
   getAriaBusy,
   getAriaDisabled,
+  getQuickReservationCourtHoursLabel,
+  getQuickReservationSummaryLabel,
   getReservationStatusLabel,
   getReservationUserLabel,
   shouldRenderEmptyState,
@@ -50,4 +52,26 @@ test('a11y helpery: aria-disabled a aria-busy', () => {
   assert.equal(getAriaDisabled(false), false);
   assert.equal(getAriaBusy(true), 'true');
   assert.equal(getAriaBusy(false), undefined);
+});
+
+test('quick status helpers: zobrazí počet, délku a obsazenost podle kurtů', () => {
+  const courtNamesById = new Map([
+    [4, 'Kurt 4'],
+    [5, 'Kurt 5'],
+  ]);
+
+  assert.equal(getQuickReservationSummaryLabel(3, 4), '3 rezervace · 4 h');
+  assert.equal(
+    getQuickReservationCourtHoursLabel([
+      { courtId: 5, fromHour: 12, toHour: 13 },
+      { courtId: 4, fromHour: 17, toHour: 18 },
+      { courtId: 4, fromHour: 8, toHour: 10 },
+    ], courtNamesById),
+    'Kurt 4: 3 h · Kurt 5: 1 h',
+  );
+});
+
+test('quick status helpers: prázdný den zůstává krátký', () => {
+  assert.equal(getQuickReservationSummaryLabel(0, 0), 'Zatím volno');
+  assert.equal(getQuickReservationCourtHoursLabel([], new Map()), null);
 });

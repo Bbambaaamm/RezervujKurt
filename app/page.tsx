@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
+import { getQuickReservationCourtHoursLabel, getQuickReservationSummaryLabel } from '@/lib/services/reservation-overview-ui';
 import { getCourtsReadOnly, getReservationsReadOnly } from '@/lib/services/read-only';
 import { getUpcomingTournaments, type Tournament } from '@/lib/tournaments';
 import { supabaseAuthClient, type AuthSession } from '@/lib/supabase/auth-client';
@@ -12,6 +13,8 @@ type DayReservationSummary = {
   date: string;
   reservationsCount: number;
   courtNames: string[];
+  reservationCourtHoursLabel: string | null;
+  totalReservedHours: number;
 };
 
 const QUICK_STATUS_DAYS = 3;
@@ -58,11 +61,16 @@ function createEmptySummaries() {
     date: addDays(today, index),
     reservationsCount: 0,
     courtNames: [],
+    reservationCourtHoursLabel: null,
+    totalReservedHours: 0,
   }));
 }
 
-function getReservedCourtNames(reservations: Reservation[], courts: Court[]) {
-  const courtNamesById = new Map(courts.map((court) => [court.id, court.name]));
+function getCourtNamesById(courts: Court[]) {
+  return new Map(courts.map((court) => [court.id, court.name]));
+}
+
+function getReservedCourtNames(reservations: Reservation[], courtNamesById: Map<number, string>) {
   const reservedCourtNames = reservations.map((reservation) => courtNamesById.get(reservation.courtId) ?? `Kurt #${reservation.courtId}`);
 
   return [...new Set(reservedCourtNames)].sort((left, right) => left.localeCompare(right, 'cs'));
@@ -90,7 +98,7 @@ export default function HomePage() {
   const isAuthenticated = Boolean(session);
 
   const quickStatusDescription = useMemo(
-    () => `Nejbližší ${QUICK_STATUS_DAYS} dny ukazují rychlou orientaci, jestli už jsou v systému rezervace. Detailní volné časy najdete v přehledu rezervací.`,
+    () => `Nejbližší ${QUICK_STATUS_DAYS} dny ukazují počet rezervací, celkový čas a obsazenost podle kurtů. Detailní volné časy najdete v přehledu rezervací.`,
     [],
   );
 
@@ -127,11 +135,19 @@ export default function HomePage() {
 
         if (!active) return;
 
-        setQuickStatus(emptySummaries.map((summary, index) => ({
-          ...summary,
-          reservationsCount: reservationsByDay[index].length,
-          courtNames: getReservedCourtNames(reservationsByDay[index], courts),
-        })));
+        const courtNamesById = getCourtNamesById(courts);
+
+        setQuickStatus(emptySummaries.map((summary, index) => {
+          const reservations = reservationsByDay[index];
+
+          return {
+            ...summary,
+            reservationsCount: reservations.length,
+            courtNames: getReservedCourtNames(reservations, courtNamesById),
+            reservationCourtHoursLabel: getQuickReservationCourtHoursLabel(reservations, courtNamesById),
+            totalReservedHours: reservations.reduce((sum, reservation) => sum + Math.max(0, reservation.toHour - reservation.fromHour), 0),
+          };
+        }));
       } catch (error) {
         if (!active) return;
 
@@ -221,10 +237,10 @@ export default function HomePage() {
               <div key={summary.date} className={`rounded-xl border px-3 py-3 ${getStatusTone(summary)}`}>
                 <div className="flex items-center justify-between gap-3">
                   <p className="font-semibold capitalize">{formatCzechDayLabel(summary.date)}</p>
-                  <p className="text-sm font-medium">{summary.reservationsCount === 0 ? 'Zatím volno' : `${summary.reservationsCount} rezervací`}</p>
+                  <p className="text-sm font-medium">{getQuickReservationSummaryLabel(summary.reservationsCount, summary.totalReservedHours)}</p>
                 </div>
                 <p className="mt-1 text-sm opacity-85">
-                  {summary.courtNames.length > 0 ? `Rezervace: ${summary.courtNames.join(', ')}` : 'V systému zatím nejsou žádné rezervace pro tento den.'}
+                  {summary.reservationCourtHoursLabel ?? 'V systému zatím nejsou žádné rezervace pro tento den.'}
                 </p>
               </div>
             ))}
