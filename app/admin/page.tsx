@@ -65,6 +65,7 @@ const emptyTournamentForm: TournamentFormInput = {
   timeFrom: '08:00',
   timeTo: '18:00',
   posterUrl: '',
+  posterFile: null,
   note: '',
 };
 
@@ -222,6 +223,7 @@ export default function AdminPage() {
       timeFrom: `${String(Math.floor(tournament.blockFromHour)).padStart(2, '0')}:${tournament.blockFromHour % 1 === 0 ? '00' : '30'}`,
       timeTo: `${String(Math.floor(tournament.blockToHour)).padStart(2, '0')}:${tournament.blockToHour % 1 === 0 ? '00' : '30'}`,
       posterUrl: tournament.posterUrl ?? '',
+      posterFile: null,
       note: tournament.note ?? '',
     });
   }
@@ -253,7 +255,7 @@ export default function AdminPage() {
       setTournamentMessage(editedTournamentId ? 'Turnaj byl upraven.' : 'Turnaj byl vytvořen.');
     } catch (tournamentError) {
       console.error('tournament save failed', tournamentError);
-      setTournamentMessage('Uložení turnaje se nepodařilo.');
+      setTournamentMessage(tournamentError instanceof Error ? tournamentError.message : 'Uložení turnaje se nepodařilo.');
     } finally {
       setIsTournamentSaving(false);
     }
@@ -395,8 +397,15 @@ export default function AdminPage() {
           <label className="text-sm font-medium text-slate-700">Do
             <input type="time" value={tournamentForm.timeTo} onChange={(event) => setTournamentForm((prev) => ({ ...prev, timeTo: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
           </label>
-          <label className="text-sm font-medium text-slate-700 md:col-span-2">URL plakátu
-            <input value={tournamentForm.posterUrl} onChange={(event) => setTournamentForm((prev) => ({ ...prev, posterUrl: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" placeholder="https://…" />
+          <label className="text-sm font-medium text-slate-700 md:col-span-2">Plakát turnaje
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(event) => setTournamentForm((prev) => ({ ...prev, posterFile: event.target.files?.[0] ?? null }))}
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 file:mr-3 file:rounded-md file:border-0 file:bg-court file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-white"
+            />
+            <span className="mt-1 block text-xs font-normal text-slate-500">Vyberte obrázek z počítače nebo mobilu. Podporované formáty: JPG, PNG, WebP, max. 5 MB.</span>
+            {editedTournamentId && tournamentForm.posterUrl && !tournamentForm.posterFile ? <span className="mt-1 block text-xs font-normal text-slate-500">Pokud nevyberete nový obrázek, zůstane zachovaný stávající plakát.</span> : null}
           </label>
           <label className="text-sm font-medium text-slate-700 md:col-span-2">Poznámka
             <input value={tournamentForm.note} onChange={(event) => setTournamentForm((prev) => ({ ...prev, note: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
