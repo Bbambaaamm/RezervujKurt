@@ -24,8 +24,13 @@ export type TournamentFormInput = {
   timeFrom: string;
   timeTo: string;
   posterUrl?: string;
+  posterFile?: File | null;
   note?: string;
 };
+
+const tournamentPosterBucket = 'tournament-posters';
+const maxTournamentPosterSizeBytes = 5 * 1024 * 1024;
+const allowedTournamentPosterTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 type TournamentRow = {
   id: string;
@@ -75,6 +80,48 @@ function requireSupabaseConfig() {
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error('Chybí konfigurace Supabase proměnných prostředí.');
   }
+}
+
+function getPublicTournamentPosterUrl(path: string) {
+  requireSupabaseConfig();
+  return `${supabaseUrl}/storage/v1/object/public/${tournamentPosterBucket}/${path}`;
+}
+
+function getSafePosterFileName(file: File) {
+  const extension = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+  const randomPart = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `${randomPart}.${extension}`;
+}
+
+async function uploadTournamentPoster(accessToken: string, file: File): Promise<string> {
+  requireSupabaseConfig();
+
+  if (!allowedTournamentPosterTypes.has(file.type)) {
+    throw new Error('Plakát musí být obrázek ve formátu JPG, PNG nebo WebP.');
+  }
+
+  if (file.size > maxTournamentPosterSizeBytes) {
+    throw new Error('Plakát může mít maximálně 5 MB.');
+  }
+
+  const path = getSafePosterFileName(file);
+  const response = await fetch(`${supabaseUrl}/storage/v1/object/${tournamentPosterBucket}/${path}`, {
+    method: 'POST',
+    headers: {
+      apikey: supabaseAnonKey!,
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': file.type,
+      'Cache-Control': '31536000',
+      'x-upsert': 'false',
+    },
+    body: file,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Nahrání plakátu selhalo: ${response.status} ${await response.text()}`);
+  }
+
+  return getPublicTournamentPosterUrl(path);
 }
 
 async function tournamentRequest<T>(path: string, init: RequestInit = {}, accessToken?: string): Promise<T> {
@@ -137,13 +184,15 @@ export async function getAdminTournaments(accessToken: string): Promise<Tourname
   return rows.map(mapTournament);
 }
 
-function normalizeTournamentPayload(input: TournamentFormInput) {
+async function normalizeTournamentPayload(input: TournamentFormInput, accessToken?: string) {
+  const posterUrl = input.posterFile && accessToken ? await uploadTournamentPoster(accessToken, input.posterFile) : input.posterUrl?.trim() || null;
+
   return {
     title: input.title.trim(),
     event_date: input.date,
     time_from: input.timeFrom,
     time_to: input.timeTo,
-    poster_url: input.posterUrl?.trim() || null,
+    poster_url: posterUrl,
     note: input.note?.trim() || null,
   };
 }
@@ -152,7 +201,7 @@ export async function createTournament(accessToken: string, input: TournamentFor
   await tournamentRequest('tournaments', {
     method: 'POST',
     headers: { Prefer: 'return=minimal' },
-    body: JSON.stringify(normalizeTournamentPayload(input)),
+    body: JSON.stringify(await normalizeTournamentPayload(input, accessToken)),
   }, accessToken);
 }
 
@@ -160,7 +209,7 @@ export async function updateTournament(accessToken: string, id: string, input: T
   await tournamentRequest(`tournaments?id=eq.${id}`, {
     method: 'PATCH',
     headers: { Prefer: 'return=minimal' },
-    body: JSON.stringify(normalizeTournamentPayload(input)),
+    body: JSON.stringify(await normalizeTournamentPayload(input, accessToken)),
   }, accessToken);
 }
 
