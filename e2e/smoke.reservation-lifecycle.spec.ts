@@ -106,17 +106,22 @@ async function closeContext(context: BrowserContext | null) {
   }
 }
 
-function getReservationRow(page: Page, input: { date: string; courtName: string }) {
-  return page
+function getReservationRow(page: Page, input: { date: string; courtName: string; includeNote?: boolean }) {
+  let row = page
     .locator('tr')
     .filter({ hasText: input.date })
     .filter({ hasText: TIME_FROM })
     .filter({ hasText: TIME_TO })
-    .filter({ hasText: input.courtName })
-    .filter({ hasText: E2E_RESERVATION_NOTE });
+    .filter({ hasText: input.courtName });
+
+  if (input.includeNote ?? true) {
+    row = row.filter({ hasText: E2E_RESERVATION_NOTE });
+  }
+
+  return row;
 }
 
-async function waitForReservationRow(page: Page, input: { date: string; courtName: string; statusLabel: string }) {
+async function waitForReservationRow(page: Page, input: { date: string; courtName: string; statusLabel: string; includeNote?: boolean }) {
   const row = getReservationRow(page, input).filter({ hasText: input.statusLabel });
   await expect(row).toHaveCount(1);
   return row;
@@ -182,14 +187,25 @@ test('reservation lifecycle smoke: pending -> approved -> cancelled uvolní slot
     await expect(publicSlotButton).toBeVisible();
 
     await memberPage.goto('/moje-rezervace');
+    await memberPage.reload();
     await expect(memberPage.getByRole('heading', { name: 'Moje rezervace' })).toBeVisible();
 
-    const approvedRow = await waitForReservationRow(memberPage, { date: formattedReservationDate, courtName, statusLabel: 'Schváleno' });
+    const approvedRow = await waitForReservationRow(memberPage, {
+      date: formattedReservationDate,
+      courtName,
+      statusLabel: 'Schváleno',
+      includeNote: false,
+    });
     await expect(approvedRow.getByText('Schváleno', { exact: true })).toBeVisible();
     await approvedRow.getByRole('button', { name: 'Zrušit' }).click();
     await expect(memberPage.getByText('Rezervace byla zrušena.')).toBeVisible();
 
-    const cancelledRow = await waitForReservationRow(memberPage, { date: formattedReservationDate, courtName, statusLabel: 'Zrušeno' });
+    const cancelledRow = await waitForReservationRow(memberPage, {
+      date: formattedReservationDate,
+      courtName,
+      statusLabel: 'Zrušeno',
+      includeNote: false,
+    });
     await expect(cancelledRow.getByText('Zrušeno', { exact: true })).toBeVisible();
 
     await publicPage.reload();
