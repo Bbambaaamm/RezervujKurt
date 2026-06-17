@@ -44,6 +44,14 @@ export default function ReservationPage() {
   const [availabilityWarning, setAvailabilityWarning] = useState<string | null>(null);
   const formattedSelectedDate = useMemo(() => formatCzechDate(selectedDate), [selectedDate]);
   const isAuthenticated = Boolean(sessionToken && sessionUserId);
+
+  const selectedCourtName = useMemo(
+    () => courts.find((court) => String(court.id) === courtId)?.name ?? `Kurt #${courtId}`,
+    [courtId, courts],
+  );
+  const reservationSummary = selectionReady
+    ? `${selectedCourtName}, ${timeFrom}–${timeTo}, ${formattedSelectedDate}`
+    : 'Vyberte volný termín v přehledu kurtů';
   const showDevFallbackWarning =
     process.env.NODE_ENV === 'development' &&
     (courtsSourceMode === 'mock fallback' || reservationsSourceMode === 'mock fallback');
@@ -258,37 +266,55 @@ export default function ReservationPage() {
       setTimeTo(selection.timeTo);
       setSelectionReady(true);
     }} />
-    {isAuthenticated ? (
-      <form onSubmit={handleCreateReservation} className="sticky bottom-2 z-20 mx-auto grid w-full max-w-6xl gap-3 rounded-2xl border border-slate-200 bg-white/95 p-2.5 text-sm shadow-md backdrop-blur md:grid-cols-[minmax(220px,1fr)_minmax(320px,1.4fr)_auto] md:items-end">
-        <div className="min-w-0">
-          <p className="mb-1 text-xs font-semibold tracking-wide text-slate-500">Vybraný termín</p>
-          <div className="flex h-10 items-center rounded-xl border border-slate-200 bg-white px-3">
-          {selectionReady ? (
-            <p className="truncate text-sm font-semibold text-slate-900">
-              {(courts.find((court) => String(court.id) === courtId)?.name ?? `Kurt #${courtId}`)} · {timeFrom}–{timeTo}
-            </p>
-          ) : (
-            <p className="truncate text-sm text-slate-600">Nejdřív vyberte volná okna v přehledu kurtů.</p>
-          )}
-          </div>
-        </div>
-        <label className="flex min-w-0 flex-col text-xs font-semibold tracking-wide text-slate-500"><span className="mb-1">Poznámka</span><input value={note} onChange={(event) => setNote(event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-300"/></label>
-        <button type="submit" disabled={!selectionReady || Boolean(availabilityWarning)} className="h-10 self-end rounded-xl bg-blue-600 px-5 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">Rezervovat</button>
-        {submitMessage && <p className="md:col-span-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-800">{submitMessage}</p>}
-        {availabilityWarning && (
-          <p role="status" aria-live="polite" className="md:col-span-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
-            {availabilityWarning}
+    <form onSubmit={handleCreateReservation} className="sticky bottom-2 z-20 mx-auto grid w-full max-w-6xl gap-3 rounded-2xl border border-slate-200 bg-white/95 p-2.5 text-sm shadow-lg shadow-slate-900/10 backdrop-blur md:grid-cols-[minmax(240px,1fr)_minmax(320px,1.4fr)_auto] md:items-end">
+      <div className="min-w-0">
+        <p className="mb-1 text-xs font-semibold tracking-wide text-slate-500">Souhrn výběru</p>
+        <div className={`flex min-h-10 items-center rounded-xl border px-3 ${selectionReady ? 'border-blue-200 bg-blue-50/70' : 'border-slate-200 bg-white'}`}>
+          <p className={`truncate text-sm ${selectionReady ? 'font-semibold text-slate-950' : 'text-slate-600'}`}>
+            {reservationSummary}
           </p>
-        )}
-        {submitError && <p className="md:col-span-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-rose-800">{submitError}</p>}
-      </form>
-    ) : (
-      <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        <p className="font-medium">Pro vytvoření rezervace se musíte přihlásit.</p>
-        <a href="/prihlaseni" className="inline-flex rounded-md border border-amber-300 bg-white px-3 py-2 text-amber-900 transition hover:bg-amber-100">
-          Přejít na přihlášení
-        </a>
+        </div>
       </div>
-    )}
+
+      {isAuthenticated ? (
+        <label className="flex min-w-0 flex-col text-xs font-semibold tracking-wide text-slate-500">
+          <span className="mb-1">Poznámka</span>
+          <input
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-300"
+          />
+        </label>
+      ) : (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          Pro dokončení rezervace se nejdřív přihlaste. Vybraný termín uvidíte dál v souhrnu.
+        </p>
+      )}
+
+      {isAuthenticated ? (
+        <button
+          type="submit"
+          disabled={!selectionReady || Boolean(availabilityWarning)}
+          className="h-10 self-end rounded-xl bg-blue-600 px-5 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+        >
+          Rezervovat vybraný termín
+        </button>
+      ) : (
+        <a
+          href="/prihlaseni"
+          className="inline-flex h-10 items-center justify-center self-end rounded-xl bg-blue-600 px-5 font-semibold text-white transition hover:bg-blue-700"
+        >
+          Přihlásit se a rezervovat
+        </a>
+      )}
+
+      {submitMessage && <p className="md:col-span-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-800">{submitMessage}</p>}
+      {availabilityWarning && (
+        <p role="status" aria-live="polite" className="md:col-span-3 rounded-xl border border-amber-300 bg-amber-100 px-3 py-2 font-medium text-amber-950 shadow-sm">
+          {availabilityWarning} Vyberte prosím jiný volný termín.
+        </p>
+      )}
+      {submitError && <p className="md:col-span-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-rose-800">{submitError}</p>}
+    </form>
   </div>;
 }
