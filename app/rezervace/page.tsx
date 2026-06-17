@@ -27,8 +27,17 @@ function getTodayLocalDate() {
   return new Date(now.getTime() - timezoneOffsetMs).toISOString().slice(0, 10);
 }
 
+function getInitialSelectedDate() {
+  if (typeof window === 'undefined') return getTodayLocalDate();
+
+  const dateFromUrl = new URLSearchParams(window.location.search).get('datum');
+  if (dateFromUrl && /^\d{4}-\d{2}-\d{2}$/.test(dateFromUrl)) return dateFromUrl;
+
+  return getTodayLocalDate();
+}
+
 export default function ReservationPage() {
-  const [selectedDate, setSelectedDate] = useState(getTodayLocalDate);
+  const [selectedDate, setSelectedDate] = useState(getInitialSelectedDate);
   const [courts, setCourts] = useState<Court[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [courtsSourceMode, setCourtsSourceMode] = useState<DataSourceMode>('supabase');
