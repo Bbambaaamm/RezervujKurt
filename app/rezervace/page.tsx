@@ -269,7 +269,10 @@ export default function ReservationPage() {
       return;
     }
 
-    if (selectedStartIsPast) {
+    const submitTime = new Date();
+    setCurrentTime(submitTime);
+
+    if (isReservationStartInPast(selectedDate, timeFrom, submitTime)) {
       setSubmitError('Vybraný termín už začal nebo proběhl. Vyberte prosím budoucí čas.');
       return;
     }
