@@ -3,6 +3,15 @@ import { expect, test, type Page } from '@playwright/test';
 const AUTH_SESSION_STORAGE_KEY = 'rezervujkurt.auth.session';
 const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://responsive-test.supabase.co').replace(/\/$/, '');
 
+const expectedCourtNames = ['Kurt 3', 'Kurt 4', 'Kurt 5'];
+const expectedCourtNamePattern = new RegExp(expectedCourtNames.join('|'));
+
+const courts = [
+  { id: 1, name: 'Kurt 3', surface: 'antuka', is_active: true },
+  { id: 2, name: 'Kurt 4', surface: 'antuka', is_active: true },
+  { id: 3, name: 'Kurt 5', surface: 'antuka', is_active: true },
+];
+
 const reservations = [
   {
     id: 'reservation-1',
@@ -50,12 +59,15 @@ async function openMyReservations(page: Page, width: number) {
     { storageKey: AUTH_SESSION_STORAGE_KEY, accessToken: createAccessToken() },
   );
   await page.route(`${SUPABASE_URL}/rest/v1/**`, async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(reservations) });
+    const url = new URL(route.request().url());
+    const body = url.pathname.endsWith('/courts') ? courts : reservations;
+
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
   });
 
   await page.goto('/moje-rezervace');
   await expect(page.getByRole('heading', { name: 'Moje rezervace' })).toBeVisible();
-  await expect(page.getByText('Kurt 1', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(expectedCourtNamePattern).first()).toBeVisible();
 }
 
 async function expectNoHorizontalOverflow(page: Page) {
