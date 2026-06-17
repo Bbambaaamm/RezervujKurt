@@ -1,4 +1,5 @@
 import type { AuthSession } from '../supabase/auth-client';
+import { getPragueReservationStartMs } from './reservation-time';
 import { mapReservationWriteError, ReservationNoLongerPendingError, ReservationUnauthorizedError } from './supabase-error-mapping';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -19,75 +20,6 @@ type MyReservationsFeedbackState = {
   errorMessage: string | null;
   successMessage: string | null;
 };
-
-const PRAGUE_TZ = 'Europe/Prague';
-
-function getZonedDateParts(date: Date, timeZone: string) {
-  const formatter = new Intl.DateTimeFormat('en-CA', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  });
-
-  const parts = formatter.formatToParts(date);
-  const value = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((part) => part.type === type)?.value ?? NaN);
-
-  return {
-    year: value('year'),
-    month: value('month'),
-    day: value('day'),
-    hour: value('hour'),
-    minute: value('minute'),
-    second: value('second'),
-  };
-}
-
-function getTimeZoneOffsetMs(date: Date, timeZone: string) {
-  const zoned = getZonedDateParts(date, timeZone);
-  const utcFromZonedParts = Date.UTC(zoned.year, zoned.month - 1, zoned.day, zoned.hour, zoned.minute, zoned.second);
-  return utcFromZonedParts - date.getTime();
-}
-
-function parseTimeParts(timeFrom: string) {
-  const match = /^(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(timeFrom);
-  if (!match) return null;
-
-  const hour = Number(match[1]);
-  const minute = Number(match[2]);
-  const second = Number(match[3] ?? '0');
-
-  if (hour > 23 || minute > 59 || second > 59) return null;
-  return { hour, minute, second };
-}
-
-function parseDateParts(reservationDate: string) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(reservationDate);
-  if (!match) return null;
-
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
-
-  return { year, month, day };
-}
-
-// reservation_date + time_from jsou business-lokální čas kurtu (Europe/Prague), ne timezone zařízení.
-function getPragueReservationStartMs(reservationDate: string, timeFrom: string) {
-  const dateParts = parseDateParts(reservationDate);
-  const timeParts = parseTimeParts(timeFrom);
-  if (!dateParts || !timeParts) return Number.NaN;
-
-  const baseUtcMs = Date.UTC(dateParts.year, dateParts.month - 1, dateParts.day, timeParts.hour, timeParts.minute, timeParts.second);
-  const probeDate = new Date(baseUtcMs);
-  const offsetMs = getTimeZoneOffsetMs(probeDate, PRAGUE_TZ);
-  return baseUtcMs - offsetMs;
-}
 
 type GetMyReservationsFeedbackOnReloadInput = {
   currentSuccessMessage: string | null;
