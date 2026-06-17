@@ -100,13 +100,16 @@ for (const viewport of [
   test(`${viewport.name}: přehled nepřesahuje viewport`, async ({ page }) => {
     await openMyReservations(page, viewport.width);
 
-    const mobileCards = page.locator('article');
-    const desktopTable = page.getByRole('table');
+    const upcomingSection = page.locator('section').filter({
+      has: page.getByRole('heading', { name: 'Nadcházející rezervace' }),
+    });
+    const mobileCards = upcomingSection.locator('article');
+    const desktopTable = upcomingSection.getByRole('table');
 
     if (viewport.cardsVisible) {
       await expect(mobileCards.first()).toBeVisible();
       await expect(desktopTable).toBeHidden();
-      await expect(page.getByRole('button', { name: 'Zrušit rezervaci' })).toHaveCSS('min-height', '44px');
+      await expect(mobileCards.first().getByRole('button', { name: 'Zrušit rezervaci' })).toHaveCSS('min-height', '44px');
     } else {
       await expect(mobileCards.first()).toBeHidden();
       await expect(desktopTable).toBeVisible();

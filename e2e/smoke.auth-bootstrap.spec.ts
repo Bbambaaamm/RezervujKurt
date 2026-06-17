@@ -1,8 +1,14 @@
+import { existsSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 
+const memberStatePath = 'e2e/.auth/member.json';
+const adminStatePath = 'e2e/.auth/admin.json';
+const hasBootstrappedAuth = existsSync(memberStatePath) && existsSync(adminStatePath);
+
 test.describe('auth bootstrap smoke', () => {
+  test.skip(!hasBootstrappedAuth, 'Chybí e2e/.auth storageState soubory. Spusťte auth smoke s PLAYWRIGHT_ENABLE_AUTH_SETUP=1.');
   test('member storageState: přístup na /ucet je autentizovaný', async ({ browser }) => {
-    const context = await browser.newContext({ storageState: 'e2e/.auth/member.json' });
+    const context = await browser.newContext({ storageState: memberStatePath });
     const page = await context.newPage();
 
     await page.goto('/ucet');
@@ -14,7 +20,7 @@ test.describe('auth bootstrap smoke', () => {
 
   test('member storageState: mobilní navigace nepřetéká a obsahuje členské odkazy', async ({ browser }) => {
     const context = await browser.newContext({
-      storageState: 'e2e/.auth/member.json',
+      storageState: memberStatePath,
       viewport: { width: 390, height: 844 },
     });
     const page = await context.newPage();
@@ -42,7 +48,7 @@ test.describe('auth bootstrap smoke', () => {
   });
 
   test('admin storageState: přístup na /admin projde guardem', async ({ browser }) => {
-    const context = await browser.newContext({ storageState: 'e2e/.auth/admin.json' });
+    const context = await browser.newContext({ storageState: adminStatePath });
     const page = await context.newPage();
 
     await page.goto('/admin');
