@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
 import { getCourtsReadOnly, getReservationsReadOnly } from '@/lib/services/read-only';
+import { upcomingTournaments } from '@/lib/tournaments';
 import { supabaseAuthClient, type AuthSession } from '@/lib/supabase/auth-client';
 import type { Court, Reservation } from '@/lib/types/domain';
 
@@ -26,6 +27,17 @@ function addDays(date: string, days: number) {
   parsedDate.setDate(parsedDate.getDate() + days);
   const timezoneOffsetMs = parsedDate.getTimezoneOffset() * 60_000;
   return new Date(parsedDate.getTime() - timezoneOffsetMs).toISOString().slice(0, 10);
+}
+
+function formatCzechDateLabel(date: string) {
+  const parsedDate = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(parsedDate.getTime())) return date;
+
+  return new Intl.DateTimeFormat('cs-CZ', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(parsedDate);
 }
 
 function formatCzechDayLabel(date: string) {
@@ -191,6 +203,79 @@ export default function HomePage() {
             ))}
           </div>
         </aside>
+      </section>
+
+      <section className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-lime-50 p-6 shadow-sm">
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-court">Turnaje a uzavírky kurtů</p>
+            <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-950">Blížící se turnaje</h2>
+            <p className="mt-2 max-w-2xl text-sm text-slate-700">V den turnaje jsou kurty blokované centrálně pořadatelem. Běžné rezervace pro hráče proto zůstávají dostupné jen mimo vyhlášený termín.</p>
+          </div>
+          <Link href="/rezervace" className="inline-flex items-center justify-center rounded-md border border-court bg-white px-4 py-2 text-sm font-semibold text-court transition hover:bg-emerald-50">
+            Zkontrolovat volné termíny
+          </Link>
+        </div>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
+          {upcomingTournaments.map((tournament) => (
+            <article key={tournament.id} className="grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:grid-cols-[220px_1fr] lg:col-span-2">
+              <div className={`relative min-h-64 overflow-hidden bg-gradient-to-br ${tournament.accent} p-5 text-white sm:min-h-full`}>
+                <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full border border-white/30" />
+                <div className="absolute -bottom-12 left-8 h-40 w-40 rounded-full bg-white/10" />
+                <div className="relative flex h-full min-h-56 flex-col justify-between rounded-xl border border-white/25 bg-white/10 p-4 shadow-inner backdrop-blur-sm">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/80">Náhled plakátu</p>
+                    <h3 className="mt-4 text-2xl font-black uppercase leading-tight tracking-tight">{tournament.title}</h3>
+                  </div>
+                  <div>
+                    <p className="text-4xl font-black leading-none">{new Date(`${tournament.date}T00:00:00`).getDate()}.</p>
+                    <p className="text-lg font-bold uppercase">{formatCzechDateLabel(tournament.date).replace(/^\d+\.\s*/, '')}</p>
+                    <p className="mt-3 rounded-full bg-white px-3 py-1 text-center text-sm font-bold text-emerald-700">TJ Baník Stříbro</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4 p-5">
+                <div>
+                  <p className="text-sm font-semibold text-court">{formatCzechDateLabel(tournament.date)} · {tournament.time}</p>
+                  <h3 className="mt-1 text-xl font-bold text-slate-950">{tournament.title}</h3>
+                  <p className="mt-2 text-sm text-slate-700">{tournament.description}</p>
+                </div>
+                <dl className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Obsazenost</dt>
+                    <dd className="mt-1 font-semibold text-slate-950">{tournament.courts}</dd>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Přihlášky</dt>
+                    <dd className="mt-1 text-sm font-medium text-slate-800">{tournament.registration}</dd>
+                  </div>
+                </dl>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-6">
+        <h2 className="text-xl font-semibold text-slate-950">Profesionální postup blokace dne pro turnaj</h2>
+        <div className="mt-5 grid gap-4 md:grid-cols-3">
+          {[
+            ['1', 'Vytvořit centrální turnaj', 'Správce nejdřív založí turnaj s datem, časem, plakátem a jasným rozsahem blokace.'],
+            ['2', 'Zablokovat všechny kurty', 'Systém pro každý aktivní kurt vytvoří administrační blokaci na celý turnajový interval a tím zabrání kolizním rezervacím.'],
+            ['3', 'Zveřejnit a komunikovat', 'Úvodní stránka ukáže plakát i informaci o uzavírce; hráči v přehledu rezervací uvidí obsazeno s poznámkou turnaje.'],
+          ].map(([step, title, description]) => (
+            <article key={step} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-court text-sm font-bold text-white">{step}</div>
+              <h3 className="font-semibold text-slate-950">{title}</h3>
+              <p className="mt-2 text-sm text-slate-600">{description}</p>
+            </article>
+          ))}
+        </div>
+        <p className="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950">
+          Doporučení: nedělat turnaj jako běžné uživatelské rezervace. Produkčně čistší je samostatný administrační režim „turnaj/blokace“, který zapíše jednu řízenou událost a z ní odvodí blokace kurtů. Díky tomu jde turnaj snadno upravit nebo zrušit bez ručního hledání jednotlivých rezervací.
+        </p>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6">
