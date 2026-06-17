@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { expect, test, type APIRequestContext, type BrowserContext, type Page } from '@playwright/test';
+import { expect, test, type APIRequestContext, type BrowserContext, type Locator, type Page } from '@playwright/test';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -161,22 +161,26 @@ async function closeContext(context: BrowserContext | null) {
   }
 }
 
-function getReservationRow(page: Page, input: { date: string; courtName: string; includeNote?: boolean }) {
-  let row = page
-    .locator('tr')
+function getReservationRow(page: Page, input: { date: string; courtName: string; includeNote?: boolean; sectionName?: string }): Locator {
+  const container = input.sectionName
+    ? page.locator('section:visible').filter({ has: page.getByRole('heading', { name: input.sectionName }) })
+    : page;
+
+  let reservationItem = container
+    .locator('tr:visible, article:visible')
     .filter({ hasText: input.date })
     .filter({ hasText: TIME_FROM })
     .filter({ hasText: TIME_TO })
     .filter({ hasText: input.courtName });
 
   if (input.includeNote ?? true) {
-    row = row.filter({ hasText: E2E_RESERVATION_NOTE });
+    reservationItem = reservationItem.filter({ hasText: E2E_RESERVATION_NOTE });
   }
 
-  return row;
+  return reservationItem;
 }
 
-async function waitForReservationRow(page: Page, input: { date: string; courtName: string; statusLabel: string; includeNote?: boolean }) {
+async function waitForReservationRow(page: Page, input: { date: string; courtName: string; statusLabel: string; includeNote?: boolean; sectionName?: string }) {
   const row = getReservationRow(page, input).filter({ hasText: input.statusLabel });
   await expect(row).toHaveCount(1);
   return row;
@@ -255,6 +259,7 @@ test('reservation lifecycle smoke: pending -> approved -> cancelled uvolní slot
       courtName,
       statusLabel: RESERVATION_STATUS_LABELS.approved,
       includeNote: false,
+      sectionName: 'Nadcházející rezervace',
     });
     await expect(approvedRow.getByText(RESERVATION_STATUS_LABELS.approved, { exact: true })).toBeVisible();
     await approvedRow.getByRole('button', { name: 'Zrušit' }).click();
@@ -266,6 +271,7 @@ test('reservation lifecycle smoke: pending -> approved -> cancelled uvolní slot
       courtName,
       statusLabel: RESERVATION_STATUS_LABELS.cancelled,
       includeNote: false,
+      sectionName: 'Historie rezervací',
     });
     await expect(cancelledRow.getByText(RESERVATION_STATUS_LABELS.cancelled, { exact: true })).toBeVisible();
 
