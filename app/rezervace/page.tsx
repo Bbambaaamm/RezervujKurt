@@ -12,7 +12,7 @@ import { SupabaseRequestError } from '@/lib/supabase/client';
 import { isSlotOccupiedByPublicReservations } from '@/lib/services/reservation-submit-guard';
 import type { Court, Reservation } from '@/lib/types/domain';
 
-type DataSourceMode = 'supabase' | 'mock fallback';
+type DataSourceMode = 'supabase' | 'mock fallback' | 'unavailable';
 
 function formatCzechDate(date: string) { /* unchanged */
   const parsedDate = new Date(`${date}T00:00:00`);
@@ -88,9 +88,16 @@ export default function ReservationPage() {
         }
         setCourtsSourceMode('supabase');
       } catch (error) {
-        if (active && process.env.NODE_ENV === 'development') {
-          setCourts(fallbackCourts);
-          setCourtsSourceMode('mock fallback');
+        if (active) {
+          setSelectionReady(false);
+
+          if (process.env.NODE_ENV === 'development') {
+            setCourts(fallbackCourts);
+            setCourtsSourceMode('mock fallback');
+          } else {
+            setCourts([]);
+            setCourtsSourceMode('unavailable');
+          }
         }
 
         if (error instanceof SupabaseRequestError) {
@@ -151,6 +158,9 @@ export default function ReservationPage() {
     }
   }, [reservations]);
 
+  const isCourtLookupUnavailable = courtsSourceMode === 'unavailable';
+  const gridCourts = isCourtLookupUnavailable ? fallbackCourts : courts;
+  const canSelectReservationSlot = !isCourtLookupUnavailable && courts.length > 0;
   const gridSelection = selectionReady ? { courtId: Number(courtId), timeFrom, timeTo } : null;
 
   if (process.env.NODE_ENV === 'development') {
@@ -232,6 +242,11 @@ export default function ReservationPage() {
     setSubmitMessage(null);
     setSubmitError(null);
 
+    if (isCourtLookupUnavailable) {
+      setSubmitError('Rezervaci teď nelze vytvořit, protože se nepodařilo ověřit dostupné kurty.');
+      return;
+    }
+
     if (!selectionReady) {
       setSubmitError('Nejdřív vyberte volný termín v přehledu kurtů.');
       return;
@@ -281,7 +296,12 @@ export default function ReservationPage() {
         DEV upozornění: čtení ze Supabase selhalo a stránka používá mock fallback data.
       </p>
     )}
-    <ReservationGrid selectedDate={selectedDate} courts={courts} reservations={reservations} selection={gridSelection} onSelectionChange={(selection: { courtId: number; timeFrom: string; timeTo: string } | null) => {
+    {isCourtLookupUnavailable && (
+      <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        Názvy kurtů se nepodařilo načíst. Přehled je zobrazený v nouzovém režimu a rezervace teď nelze vytvořit.
+      </p>
+    )}
+    <ReservationGrid selectedDate={selectedDate} courts={gridCourts} reservations={reservations} selection={gridSelection} onSelectionChange={canSelectReservationSlot ? (selection: { courtId: number; timeFrom: string; timeTo: string } | null) => {
       if (!selection) {
         setSelectionReady(false);
         return;
@@ -291,7 +311,7 @@ export default function ReservationPage() {
       setTimeFrom(selection.timeFrom);
       setTimeTo(selection.timeTo);
       setSelectionReady(true);
-    }} />
+    } : undefined} />
     {isAuthenticated ? (
       <form onSubmit={handleCreateReservation} className="sticky bottom-2 z-20 mx-auto grid w-full max-w-6xl gap-3 rounded-2xl border border-slate-200 bg-white/95 p-2.5 text-sm shadow-md backdrop-blur md:grid-cols-[minmax(220px,1fr)_minmax(320px,1.4fr)_auto] md:items-end">
         <div className="min-w-0">
@@ -307,7 +327,7 @@ export default function ReservationPage() {
           </div>
         </div>
         <label className="flex min-w-0 flex-col text-xs font-semibold tracking-wide text-slate-500"><span className="mb-1">Poznámka</span><input value={note} onChange={(event) => setNote(event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-300"/></label>
-        <button type="submit" disabled={!selectionReady || Boolean(availabilityWarning)} className="h-10 self-end rounded-xl bg-blue-600 px-5 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">Rezervovat</button>
+        <button type="submit" disabled={!selectionReady || isCourtLookupUnavailable || Boolean(availabilityWarning)} className="h-10 self-end rounded-xl bg-blue-600 px-5 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">Rezervovat</button>
         {submitMessage && <p className="md:col-span-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-800">{submitMessage}</p>}
         {availabilityWarning && (
           <p role="status" aria-live="polite" className="md:col-span-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
