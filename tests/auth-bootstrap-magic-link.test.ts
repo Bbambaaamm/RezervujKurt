@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildMailpitDiagnostics, extractMagicLink } from '../e2e/helpers/auth-bootstrap';
+import { buildMailpitDiagnostics, extractMagicLink, normalizeMagicLinkForLocalE2e } from '../e2e/helpers/auth-bootstrap';
 
 const supabaseVerifyUrl = 'http://127.0.0.1:54321/auth/v1/verify?token=abc123&type=magiclink&redirect_to=http%3A%2F%2F127.0.0.1%3A3000%2Frezervace';
 
@@ -74,4 +74,33 @@ test('validní jediný kandidát bez odmítnutí se vrátí jako magic link a di
   assert.match(diagnostics, /candidateCount=1/);
   assert.match(diagnostics, /acceptedCandidateFound=true/);
   assert.match(diagnostics, /rejectedCandidates=\(žádné\)/);
+});
+
+test('normalizeMagicLinkForLocalE2e přepíše Codespaces Supabase tunnel na lokální Supabase origin', () => {
+  const codespacesUrl = 'https://example-name-54321.app.github.dev/auth/v1/verify?token=abc123&type=magiclink&redirect_to=http%3A%2F%2F127.0.0.1%3A3000%2Frezervace';
+  const normalized = normalizeMagicLinkForLocalE2e(codespacesUrl, 'http://127.0.0.1:54321');
+  const normalizedUrl = new URL(normalized);
+
+  assert.equal(normalizedUrl.origin, 'http://127.0.0.1:54321');
+  assert.equal(normalizedUrl.pathname, '/auth/v1/verify');
+  assert.equal(normalizedUrl.searchParams.get('token'), 'abc123');
+  assert.equal(normalizedUrl.searchParams.get('type'), 'magiclink');
+  assert.equal(normalizedUrl.searchParams.get('redirect_to'), 'http://127.0.0.1:3000/rezervace');
+  assert.ok(!normalized.startsWith('https://github.com/login'));
+  assert.ok(!normalizedUrl.hostname.endsWith('.app.github.dev'));
+});
+
+test('normalizeMagicLinkForLocalE2e dekóduje Codespaces postback tunnel rd na lokální verify URL', () => {
+  const verifyUrl = 'http://127.0.0.1:54321/auth/v1/verify?token=rd-token&type=magiclink&redirect_to=http%3A%2F%2F127.0.0.1%3A3000%2Frezervace';
+  const tunnelUrl = `https://example-name-54321.app.github.dev/auth/postback/tunnel?rd=${encodeURIComponent(verifyUrl)}`;
+  const normalized = normalizeMagicLinkForLocalE2e(tunnelUrl, 'http://127.0.0.1:54321');
+  const normalizedUrl = new URL(normalized);
+
+  assert.equal(normalizedUrl.origin, 'http://127.0.0.1:54321');
+  assert.equal(normalizedUrl.pathname, '/auth/v1/verify');
+  assert.equal(normalizedUrl.searchParams.get('token'), 'rd-token');
+  assert.equal(normalizedUrl.searchParams.get('type'), 'magiclink');
+  assert.equal(normalizedUrl.searchParams.get('redirect_to'), 'http://127.0.0.1:3000/rezervace');
+  assert.ok(!normalized.startsWith('https://github.com/login'));
+  assert.ok(!normalizedUrl.hostname.endsWith('.app.github.dev'));
 });
