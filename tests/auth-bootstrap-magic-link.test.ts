@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildMailpitDiagnostics, extractMagicLink, normalizeMagicLinkForLocalE2e } from '../e2e/helpers/auth-bootstrap';
+import { buildMailpitDiagnostics, extractMagicLink, normalizeMagicLinkForLocalE2e, selectFreshMailpitMessages } from '../e2e/helpers/auth-bootstrap';
 
 const supabaseVerifyUrl = 'http://127.0.0.1:54321/auth/v1/verify?token=abc123&type=magiclink&redirect_to=http%3A%2F%2F127.0.0.1%3A3000%2Frezervace';
 
@@ -103,4 +103,18 @@ test('normalizeMagicLinkForLocalE2e dekóduje Codespaces postback tunnel rd na l
   assert.equal(normalizedUrl.searchParams.get('redirect_to'), 'http://127.0.0.1:3000/rezervace');
   assert.ok(!normalized.startsWith('https://github.com/login'));
   assert.ok(!normalizedUrl.hostname.endsWith('.app.github.dev'));
+});
+
+test('selectFreshMailpitMessages vrací nejnovější čerstvý e-mail jako první', () => {
+  const startedAt = Date.parse('2026-06-22T10:00:10.000Z');
+  const messages = [
+    { ID: 'old-expired-link', CreatedAt: '2026-06-22T10:00:10.000Z' },
+    { ID: 'new-valid-link', CreatedAt: '2026-06-22T10:00:12.000Z' },
+    { ID: 'too-old-link', CreatedAt: '2026-06-22T10:00:00.000Z' },
+  ];
+
+  assert.deepEqual(
+    selectFreshMailpitMessages(messages, startedAt).map((message) => message.ID),
+    ['new-valid-link', 'old-expired-link'],
+  );
 });
