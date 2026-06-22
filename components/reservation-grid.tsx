@@ -68,6 +68,11 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
     [dragState, selection],
   );
 
+  const visibleMobileSlots = useMemo(
+    () => halfHourSlots.filter((time) => !isReservationStartInPast(selectedDate, formatTimeLabel(time), now)),
+    [halfHourSlots, now, selectedDate],
+  );
+
   const selectedSlots = useMemo(() => {
     if (!dragState) return new Set<SlotKey>();
 
@@ -286,14 +291,18 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
             <div className="grid grid-cols-[minmax(7.5rem,0.8fr)_minmax(0,1.2fr)]">
               <div className="border-b border-r border-slate-300 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900">Čas</div>
               <div className="border-b border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900">{mobileCourt.name}</div>
-              {halfHourSlots.map((time) => (
+              {visibleMobileSlots.length > 0 ? visibleMobileSlots.map((time) => (
                 <div key={`mobile-row-${time}`} className="contents">
                   <div className="border-b border-r border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-600">
                     {formatTimeLabel(time)} - {formatTimeLabel(time + 0.5)}
                   </div>
                   {renderSlot(mobileCourt, time, true)}
                 </div>
-              ))}
+              )) : (
+                <p className="col-span-2 px-3 py-4 text-sm text-slate-600">
+                  Dnešní rezervační časy už proběhly. Vyberte prosím jiný den.
+                </p>
+              )}
             </div>
           </div>
         )}

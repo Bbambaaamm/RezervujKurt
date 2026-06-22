@@ -158,6 +158,13 @@ type MailpitMessageDetail = {
   [key: string]: unknown;
 };
 
+type MailpitMessageSummary = {
+  ID?: string;
+  Created?: string;
+  CreatedAt?: string;
+  To?: Array<{ Address?: string }>;
+};
+
 type MagicLinkCandidate = {
   value: string;
   source: string;
@@ -356,6 +363,19 @@ export function extractMagicLink(messageBody: MailpitMessageDetail): string | un
   return inspectMagicLinkCandidates(messageBody).find((candidate) => candidate.ok)?.value;
 }
 
+function getMailpitMessageCreatedMs(message: Pick<MailpitMessageSummary, 'Created' | 'CreatedAt'>): number {
+  const createdRaw = message.CreatedAt ?? message.Created;
+  const createdMs = createdRaw ? Date.parse(createdRaw) : Number.NaN;
+
+  return Number.isFinite(createdMs) ? createdMs : Number.NEGATIVE_INFINITY;
+}
+
+export function selectFreshMailpitMessages(messages: MailpitMessageSummary[], startedAt: number): MailpitMessageSummary[] {
+  return messages
+    .filter((message) => getMailpitMessageCreatedMs(message) >= startedAt - MAILPIT_FRESH_MESSAGE_TOLERANCE_MS)
+    .sort((left, right) => getMailpitMessageCreatedMs(right) - getMailpitMessageCreatedMs(left));
+}
+
 export function buildMailpitDiagnostics(params: {
   matchingMessagesCount: number;
   latestMessage?: { ID?: string; To?: Array<{ Address?: string }> };
@@ -428,12 +448,7 @@ async function waitForOtpOutcomeOrMailpit(
     }
 
     const body = (await response.json()) as {
-      messages?: Array<{
-        ID?: string;
-        Created?: string;
-        CreatedAt?: string;
-        To?: Array<{ Address?: string }>;
-      }>;
+      messages?: MailpitMessageSummary[];
     };
 
     const allMessages = body.messages ?? [];
@@ -442,14 +457,8 @@ async function waitForOtpOutcomeOrMailpit(
       (message.To ?? []).some((recipient) => recipient.Address?.toLowerCase() === normalizedEmail),
     );
 
-    const freshMessages = matchingMessages.filter((message) => {
-      const createdRaw = message.CreatedAt ?? message.Created;
-      const createdMs = createdRaw ? Date.parse(createdRaw) : Number.NaN;
-
-      // Zachováme ochranu proti starým zprávám, ale Mailpit vrací čas bez milisekund.
-      return Number.isFinite(createdMs) && createdMs >= startedAt - MAILPIT_FRESH_MESSAGE_TOLERANCE_MS;
-    });
-
+    // Zachováme ochranu proti starým zprávám, ale u více čerstvých OTP e-mailů vždy použijeme nejnovější.
+    const freshMessages = selectFreshMailpitMessages(matchingMessages, startedAt);
     const latestMessage = freshMessages[0];
     if (latestMessage?.ID) {
       const messageResponse = await page.request.get(`${MAILPIT_BASE_URL}/api/v1/message/${latestMessage.ID}`);
@@ -484,13 +493,13 @@ async function waitForOtpOutcomeOrMailpit(
   let diagnostics = 'Mailpit diagnostika nedostupná';
   if (diagnosticsResponse.ok()) {
     const diagnosticsBody = (await diagnosticsResponse.json()) as {
-      messages?: Array<{ ID?: string; To?: Array<{ Address?: string }> }>;
+      messages?: MailpitMessageSummary[];
     };
     const diagnosticsMessages = diagnosticsBody.messages ?? [];
     const matchingMessages = diagnosticsMessages.filter((message) =>
       (message.To ?? []).some((recipient) => recipient.Address?.toLowerCase() === email.toLowerCase()),
     );
-    const latestMessage = matchingMessages[0];
+    const latestMessage = selectFreshMailpitMessages(matchingMessages, 0)[0] ?? matchingMessages[0];
     let detailBody: MailpitMessageDetail | undefined;
     let detailError: string | undefined;
     if (latestMessage?.ID) {
