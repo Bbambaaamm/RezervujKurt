@@ -7,14 +7,14 @@ test('buildE2eProfileUpsertData doplní povinné full_name z e-mailu', () => {
   const profile = buildE2eProfileUpsertData({
     id: 'user-id',
     email: 'e2e.member@example.com',
-    role: 'user',
+    role: 'member',
   });
 
   assert.deepEqual(profile, {
     id: 'user-id',
     email: 'e2e.member@example.com',
     full_name: 'e2e.member',
-    role: 'user',
+    role: 'member',
   });
 });
 

@@ -118,7 +118,7 @@ set
 -- Testovací profily navázané na auth.users.
 insert into public.profiles (id, full_name, phone, role)
 values
-  ('11111111-1111-1111-1111-111111111111', 'Jan Novák', '777123456', 'user'),
+  ('11111111-1111-1111-1111-111111111111', 'Jan Novák', '777123456', 'member'),
   ('22222222-2222-2222-2222-222222222222', 'Petr Svoboda', '777654321', 'user'),
   ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Správce areálu', null, 'admin')
 on conflict (id) do update

@@ -11,6 +11,10 @@ test('admin guard decision: authenticated non-admin -> forbidden', () => {
   assert.equal(resolveAdminGuardState('user'), 'forbidden');
 });
 
+test('admin guard decision: member -> forbidden', () => {
+  assert.equal(resolveAdminGuardState('member'), 'forbidden');
+});
+
 test('admin guard decision: admin -> allowed', () => {
   assert.equal(resolveAdminGuardState('admin'), 'allowed');
 });

@@ -8,6 +8,7 @@ import {
   getQuickReservationSummaryLabel,
   getReservationStatusLabel,
   getReservationUserLabel,
+  getReservationUserRoleLabel,
   shouldRenderEmptyState,
   shouldRenderLoadingState,
 } from '../lib/services/reservation-overview-ui';
@@ -29,6 +30,13 @@ test('getReservationUserLabel: display_name má prioritu před e-mailem', () => 
     getReservationUserLabel({ userDisplayName: '  Petra Svobodová  ', userEmail: 'petra@example.com' }),
     'Petra Svobodová',
   );
+});
+
+test('getReservationUserRoleLabel: odlišuje člena od nečlena a administrátora', () => {
+  assert.equal(getReservationUserRoleLabel({ userRole: 'user' }), 'Nečlen');
+  assert.equal(getReservationUserRoleLabel({ userRole: 'member' }), 'Člen');
+  assert.equal(getReservationUserRoleLabel({ userRole: 'admin' }), 'Administrátor');
+  assert.equal(getReservationUserRoleLabel({ userRole: null }), 'Nečlen');
 });
 
 test('getReservationStatusLabel: mapuje statusy na sjednocené texty', () => {

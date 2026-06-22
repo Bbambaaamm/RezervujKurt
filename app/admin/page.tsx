@@ -20,6 +20,7 @@ import {
   getAriaDisabled,
   getReservationStatusLabel,
   getReservationUserLabel,
+  getReservationUserRoleLabel,
   shouldRenderEmptyState,
   shouldRenderLoadingState,
 } from '@/lib/services/reservation-overview-ui';
@@ -106,6 +107,8 @@ export default function AdminPage() {
           console.info('admin guard: anonymous');
         } else if (nextRole === 'admin') {
           console.info('admin guard: admin');
+        } else if (nextRole === 'member') {
+          console.info('admin guard: member');
         } else {
           console.info('admin guard: user');
         }
@@ -414,7 +417,7 @@ export default function AdminPage() {
                 </div>
                 <div className="col-span-2 min-w-0">
                   <dt className="text-slate-500">Uživatel</dt>
-                  <dd className="mt-0.5 break-words text-slate-900">{getReservationUserLabel(reservation)}</dd>
+                  <dd className="mt-0.5 break-words text-slate-900">{getReservationUserLabel(reservation)} · {getReservationUserRoleLabel(reservation)}</dd>
                 </div>
                 <div className="col-span-2 min-w-0">
                   <dt className="text-slate-500">Poznámka</dt>
@@ -474,7 +477,7 @@ export default function AdminPage() {
                   <td className="px-4 py-3">{reservation.timeTo}</td>
                   <td className="px-4 py-3">{formatCreatedAt(reservation.createdAt)}</td>
                   <td className="px-4 py-3">{reservation.courtName}</td>
-                  <td className="px-4 py-3">{getReservationUserLabel(reservation)}</td>
+                  <td className="px-4 py-3">{getReservationUserLabel(reservation)} · {getReservationUserRoleLabel(reservation)}</td>
                   <td className="max-w-[18rem] px-4 py-3"><span className="block truncate" title={formatReservationNote(reservation.note)}>{formatReservationNote(reservation.note)}</span></td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-medium ${getStatusBadgeClass(reservation.status)}`}>
@@ -595,7 +598,7 @@ export default function AdminPage() {
                     </div>
                     <div className="col-span-2 min-w-0">
                       <dt className="text-slate-500">Uživatel</dt>
-                      <dd className="mt-0.5 break-words text-slate-900">{getReservationUserLabel(reservation)}</dd>
+                      <dd className="mt-0.5 break-words text-slate-900">{getReservationUserLabel(reservation)} · {getReservationUserRoleLabel(reservation)}</dd>
                     </div>
                     <div className="col-span-2 min-w-0">
                       <dt className="text-slate-500">Poznámka</dt>
@@ -633,7 +636,7 @@ export default function AdminPage() {
                         <td className="px-4 py-3">{reservation.timeTo}</td>
                         <td className="px-4 py-3">{formatCreatedAt(reservation.createdAt)}</td>
                         <td className="px-4 py-3">{reservation.courtName}</td>
-                        <td className="px-4 py-3">{getReservationUserLabel(reservation)}</td>
+                        <td className="px-4 py-3">{getReservationUserLabel(reservation)} · {getReservationUserRoleLabel(reservation)}</td>
                         <td className="max-w-[18rem] px-4 py-3"><span className="block truncate" title={formatReservationNote(reservation.note)}>{formatReservationNote(reservation.note)}</span></td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-medium ${getStatusBadgeClass(reservation.status)}`}>

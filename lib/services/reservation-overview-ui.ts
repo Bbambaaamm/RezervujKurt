@@ -3,6 +3,7 @@ import type { ReservationOverview } from '@/lib/services/read-only';
 type ReservationIdentity = {
   userDisplayName: string | null;
   userEmail?: string | null;
+  userRole?: 'user' | 'member' | 'admin' | null;
 };
 
 function isUuidValue(value: string) {
@@ -25,6 +26,12 @@ export function getReservationUserLabel(reservation: ReservationIdentity) {
   if (userEmail) return userEmail;
 
   return 'Uživatel';
+}
+
+export function getReservationUserRoleLabel(reservation: Pick<ReservationIdentity, 'userRole'>) {
+  if (reservation.userRole === 'member') return 'Člen';
+  if (reservation.userRole === 'admin') return 'Administrátor';
+  return 'Nečlen';
 }
 
 type QuickReservation = {

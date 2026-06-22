@@ -34,6 +34,18 @@ test('getCurrentUserRoleFromSession: běžný uživatel vrací user', async () =
   assert.equal(role, 'user');
 });
 
+test('getCurrentUserRoleFromSession: člen vrací member', async () => {
+  const { getCurrentUserRoleFromSession } = await loadProfileService();
+  globalThis.fetch = async () => new Response(JSON.stringify([{ id: 'member-1', role: 'member' }]), { status: 200 });
+
+  const role = await getCurrentUserRoleFromSession({
+    access_token: 'token-member',
+    user: { id: 'member-1' },
+  } as never);
+
+  assert.equal(role, 'member');
+});
+
 test('getCurrentUserRoleFromSession: admin uživatel vrací admin', async () => {
   const { getCurrentUserRoleFromSession } = await loadProfileService();
   globalThis.fetch = async () => new Response(JSON.stringify([{ id: 'admin-1', role: 'admin' }]), { status: 200 });

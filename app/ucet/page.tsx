@@ -8,11 +8,19 @@ import { resolveProfileSaveErrorMessage } from '@/lib/services/profile-save-erro
 
 type ProfileRow = {
   full_name: string | null;
+  role: 'user' | 'member' | 'admin' | null;
 };
+
+function getProfileRoleLabel(role: ProfileRow['role']) {
+  if (role === 'member') return 'Člen';
+  if (role === 'admin') return 'Administrátor';
+  return 'Nečlen';
+}
 
 export default function AccountPage() {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [displayName, setDisplayName] = useState('');
+  const [profileRole, setProfileRole] = useState<ProfileRow['role']>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -25,12 +33,14 @@ export default function AccountPage() {
 
       if (nextSession?.access_token && nextSession.user.id) {
         const profileRows = await supabaseSelectWithAccessToken<ProfileRow>(
-          `profiles?select=full_name&id=eq.${nextSession.user.id}&limit=1`,
+          `profiles?select=full_name,role&id=eq.${nextSession.user.id}&limit=1`,
           nextSession.access_token,
         );
         setDisplayName(profileRows[0]?.full_name ?? '');
+        setProfileRole(profileRows[0]?.role ?? null);
       } else {
         setDisplayName('');
+        setProfileRole(null);
       }
     });
 
@@ -38,6 +48,7 @@ export default function AccountPage() {
       data: { subscription },
     } = supabaseAuthClient.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession ?? null);
+      if (!nextSession) setProfileRole(null);
     });
 
     return () => {
@@ -116,6 +127,9 @@ export default function AccountPage() {
         <>
           <p className="text-sm text-slate-700">
             <span className="font-medium">E-mail:</span> {session.user.email ?? 'Není dostupný'}
+          </p>
+          <p className="text-sm text-slate-700">
+            <span className="font-medium">Typ účtu:</span> {getProfileRoleLabel(profileRole)}
           </p>
           <label className="block text-sm text-slate-700">
             <span className="mb-1 block font-medium">Jméno pro rezervace</span>

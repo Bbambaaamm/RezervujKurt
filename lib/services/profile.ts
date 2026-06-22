@@ -3,10 +3,10 @@ import type { AuthSession } from '../supabase/auth-client';
 
 type ProfileRow = {
   id: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'member' | 'admin';
 };
 
-export type CurrentUserRole = 'anonymous' | 'user' | 'admin';
+export type CurrentUserRole = 'anonymous' | 'user' | 'member' | 'admin';
 
 let cachedRoleUserId: string | null = null;
 let cachedRole: CurrentUserRole | null = null;
@@ -39,7 +39,7 @@ export async function getCurrentUserRoleFromSession(session: AuthSession | null)
     );
 
     const role = profileRows[0]?.role;
-    const resolvedRole: CurrentUserRole = role === 'admin' ? 'admin' : 'user';
+    const resolvedRole: CurrentUserRole = role === 'admin' || role === 'member' ? role : 'user';
 
     cachedRoleUserId = session.user.id;
     cachedRole = resolvedRole;
