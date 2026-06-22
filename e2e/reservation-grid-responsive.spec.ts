@@ -3,6 +3,12 @@ import { expect, test } from '@playwright/test';
 const courtNamesByOrder = ['Kurt 3', 'Kurt 4', 'Kurt 5'] as const;
 const [firstCourtName, secondCourtName, thirdCourtName] = courtNamesByOrder;
 
+function getFutureReservationDate() {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + 7);
+  return date.toISOString().slice(0, 10);
+}
+
 test.describe('rezervační tabulka na desktopu', () => {
   test('zobrazuje všechny kurty vedle sebe', async ({ page }) => {
     await page.goto('/rezervace');
@@ -19,7 +25,7 @@ test.describe('rezervační tabulka na mobilu', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
   test('přepne kurt před výběrem i po tapnutí jednoho slotu', async ({ page }) => {
-    await page.goto('/rezervace');
+    await page.goto(`/rezervace?datum=${getFutureReservationDate()}`);
 
     const courtTabs = page.getByRole('tablist', { name: 'Výběr kurtu' });
     await expect(courtTabs).toBeVisible();
@@ -48,7 +54,7 @@ test.describe('rezervační tabulka na mobilu', () => {
   });
 
   test('po tažení přepne kurt a neposune stránku', async ({ page }) => {
-    await page.goto('/rezervace');
+    await page.goto(`/rezervace?datum=${getFutureReservationDate()}`);
 
     const mobilePanel = page.getByRole('tabpanel', { name: firstCourtName });
     const firstSlot = mobilePanel.locator('[data-slot-time="19"]');
