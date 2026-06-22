@@ -1,10 +1,23 @@
+function isVercelPreviewOrigin(origin?: string): boolean {
+  if (!origin) return false;
+
+  try {
+    return new URL(origin).hostname.endsWith('.vercel.app');
+  } catch {
+    return false;
+  }
+}
+
 export function buildEmailRedirectTo(options: {
   envRedirectUrl?: string;
   envAuthRedirectUrl?: string;
   windowOrigin?: string;
 }): string {
-  const redirectBase = options.envRedirectUrl?.trim() || options.envAuthRedirectUrl?.trim();
-  const baseUrl = redirectBase || options.windowOrigin?.trim() || '';
+  const windowOrigin = options.windowOrigin?.trim();
+  const redirectBase = isVercelPreviewOrigin(windowOrigin)
+    ? windowOrigin
+    : options.envRedirectUrl?.trim() || options.envAuthRedirectUrl?.trim() || windowOrigin;
+  const baseUrl = redirectBase || '';
 
   if (!baseUrl) return '/rezervace';
 
