@@ -584,7 +584,7 @@ export async function loginViaMagicLink(params: {
 export function buildE2eProfileUpsertData(params: {
   id: string;
   email: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'member' | 'admin';
 }) {
   const { id, email, role } = params;
   const fullName = email.split('@')[0]?.trim() || 'E2E uživatel';
@@ -600,7 +600,7 @@ export function buildE2eProfileUpsertData(params: {
 export async function upsertE2eProfileRole(params: {
   page: Page;
   email: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'member' | 'admin';
 }): Promise<void> {
   const { page, email, role } = params;
 

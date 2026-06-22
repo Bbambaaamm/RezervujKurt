@@ -18,7 +18,7 @@ export default async function globalSetup(config: FullConfig) {
   const memberContext = await browser.newContext({ baseURL: String(baseURL) });
   const memberPage = await memberContext.newPage();
   await loginViaMagicLink({ page: memberPage, email: 'e2e.member@example.com', createUser: true });
-  await upsertE2eProfileRole({ page: memberPage, email: 'e2e.member@example.com', role: 'user' });
+  await upsertE2eProfileRole({ page: memberPage, email: 'e2e.member@example.com', role: 'member' });
   await memberContext.storageState({ path: memberStatePath });
   await memberContext.close();
 

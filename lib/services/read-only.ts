@@ -45,6 +45,7 @@ type PendingProfileRow = {
   id: string;
   full_name: string | null;
   email?: string | null;
+  role?: 'user' | 'member' | 'admin' | null;
 };
 
 export type ReservationOverview = {
@@ -57,6 +58,7 @@ export type ReservationOverview = {
   userId: string;
   userDisplayName: string | null;
   userEmail?: string | null;
+  userRole?: 'user' | 'member' | 'admin' | null;
   status: 'pending' | 'approved' | 'cancelled';
   note: string | null;
 };
@@ -142,6 +144,7 @@ function mapReservationOverview(row: ReservationOverviewRow): ReservationOvervie
     userId: row.user_id,
     userDisplayName: null,
     userEmail: null,
+    userRole: null,
     status: row.status,
     note: row.note?.trim() || null,
   };
@@ -231,7 +234,7 @@ async function getReservationsOverviewByEndpoint(endpoint: string, accessToken: 
     const profileRows = userIds.length
       ? await (async () => {
           const quotedUserIds = userIds.map((id) => `"${id}"`).join(',');
-          const profilesEndpoint = `profiles?select=id,full_name,email&id=in.(${quotedUserIds})`;
+          const profilesEndpoint = `profiles?select=id,full_name,email,role&id=in.(${quotedUserIds})`;
           console.info('Admin profiles lookup request.', { endpoint: profilesEndpoint });
           return supabaseSelectWithAccessToken<PendingProfileRow>(profilesEndpoint, accessToken);
         })()
@@ -246,12 +249,14 @@ async function getReservationsOverviewByEndpoint(endpoint: string, accessToken: 
       const profileRow = profilesById.get(row.user_id);
       const fullName = profileRow?.full_name ?? null;
       const email = profileRow?.email ?? null;
+      const role = profileRow?.role ?? null;
 
       return {
         ...baseReservation,
         courtName,
         userDisplayName: fullName,
         userEmail: email,
+        userRole: role,
       };
     });
   } catch (error) {
