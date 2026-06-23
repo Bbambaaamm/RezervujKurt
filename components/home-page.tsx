@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
-import { getQuickReservationCourtHoursLabel, getQuickReservationSummaryLabel } from '@/lib/services/reservation-overview-ui';
+import { getQuickReservationCourtHoursLabel, getQuickReservationSummaryLabel, shouldRenderQuickStatusCards } from '@/lib/services/reservation-overview-ui';
 import { getCourtsReadOnly, getReservationsReadOnly } from '@/lib/services/read-only';
 import { getUpcomingTournaments, type Tournament } from '@/lib/tournaments';
 import { supabaseAuthClient, type AuthSession } from '@/lib/supabase/auth-client';
@@ -152,7 +152,7 @@ export function HomePage() {
         if (!active) return;
 
         console.warn('homepage quick reservation status unavailable', error);
-        setQuickStatus(emptySummaries);
+        setQuickStatus([]);
         setQuickStatusError('Rychlý stav se teď nepodařilo načíst. Rezervace samotné jsou dostupné v detailním přehledu.');
       } finally {
         if (active) {
@@ -233,7 +233,7 @@ export function HomePage() {
                 Aktuální stav rezervací se načítá.
               </div>
             )}
-            {quickStatus.map((summary) => (
+            {shouldRenderQuickStatusCards({ isLoading: isQuickStatusLoading, hasError: Boolean(quickStatusError), count: quickStatus.length }) && quickStatus.map((summary) => (
               <div key={summary.date} className={`rounded-xl border px-3 py-3 ${getStatusTone(summary)}`}>
                 <div className="flex items-center justify-between gap-3">
                   <p className="font-semibold capitalize">{formatCzechDayLabel(summary.date)}</p>

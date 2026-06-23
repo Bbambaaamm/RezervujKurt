@@ -11,6 +11,7 @@ import { supabaseAuthClient } from '@/lib/supabase/auth-client';
 import { SupabaseRequestError } from '@/lib/supabase/client';
 import { isReservationStartInPast, getPragueTodayDate } from '@/lib/services/reservation-time';
 import { isSlotOccupiedByPublicReservations } from '@/lib/services/reservation-submit-guard';
+import { canUseReservationMockFallback, getReservationAvailabilityLoadErrorMessage, getReservationAvailabilityPrecheckErrorMessage, shouldBlockReservationSubmit, shouldRenderReservationAvailabilityGrid } from '@/lib/services/reservation-availability-safety';
 import { getTournamentBlocksForCourtsFromList, getTournamentsForDate, isTournamentDateBlocked, type Tournament } from '@/lib/tournaments';
 import type { Court, Reservation } from '@/lib/types/domain';
 
@@ -48,6 +49,7 @@ export default function ReservationPage() {
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [availabilityWarning, setAvailabilityWarning] = useState<string | null>(null);
+  const [reservationsLoadError, setReservationsLoadError] = useState<string | null>(null);
   const [selectedTournaments, setSelectedTournaments] = useState<Tournament[]>([]);
   const [currentTime, setCurrentTime] = useState(() => new Date());
   const formattedSelectedDate = useMemo(() => formatCzechDate(selectedDate), [selectedDate]);
@@ -120,6 +122,7 @@ export default function ReservationPage() {
 
       setReservations(loadedReservations);
       setReservationsSourceMode('supabase');
+      setReservationsLoadError(null);
 
       if (process.env.NODE_ENV === 'development') {
         console.info('reservation grid loaded public occupancy', { date, requestId, count: loadedReservations.length });
@@ -129,12 +132,19 @@ export default function ReservationPage() {
         return;
       }
 
-      setReservations(fallbackReservations.filter((reservation) => reservation.date === date));
-      setReservationsSourceMode('mock fallback');
-
-      if (process.env.NODE_ENV === 'development') {
+      if (canUseReservationMockFallback(process.env.NODE_ENV)) {
+        setReservations(fallbackReservations.filter((reservation) => reservation.date === date));
+        setReservationsSourceMode('mock fallback');
+        setReservationsLoadError(null);
         console.warn('[DEV fallback] public occupancy request failed, používám fallback data', { date, requestId, error });
+        return;
       }
+
+      setReservations([]);
+      setReservationsSourceMode('supabase');
+      setReservationsLoadError(getReservationAvailabilityLoadErrorMessage());
+      setSelectionReady(false);
+      console.error('public occupancy request failed, rezervace jsou zablokované do ověření dostupnosti', { date, requestId, error });
     }
   }, []);
 
@@ -249,7 +259,7 @@ export default function ReservationPage() {
         if (process.env.NODE_ENV === 'development') {
           console.error('availability check failed', error);
         }
-        setAvailabilityWarning(null);
+        setAvailabilityWarning(getReservationAvailabilityPrecheckErrorMessage());
       }
     }
 
@@ -282,8 +292,33 @@ export default function ReservationPage() {
       return;
     }
 
+    if (reservationsLoadError) {
+      setSubmitError(reservationsLoadError);
+      return;
+    }
+
     if (!sessionToken || !sessionUserId) {
       setSubmitError('Uživatel není přihlášen. Pro vytvoření rezervace se prosím přihlaste.');
+      return;
+    }
+
+    try {
+      const isAvailable = await checkReservationSlotAvailability({
+        courtId: Number(courtId),
+        reservationDate: selectedDate,
+        timeFrom,
+        timeTo,
+      });
+
+      if (!isAvailable) {
+        setSubmitError('Kolize rezervace. Vybraný termín je už obsazen.');
+        return;
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('availability precheck before submit failed', error);
+      }
+      setSubmitError(getReservationAvailabilityPrecheckErrorMessage());
       return;
     }
 
@@ -326,22 +361,33 @@ export default function ReservationPage() {
         DEV upozornění: čtení ze Supabase selhalo a stránka používá mock fallback data.
       </p>
     )}
+    {reservationsLoadError && (
+      <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-900">
+        {reservationsLoadError} Rezervace je do ověření dostupnosti zablokovaná.
+      </p>
+    )}
     {selectedTournament && (
       <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">
         {selectedTournament.title}: tento den jsou všechny kurty v aplikaci zablokované pro turnaj. Běžnou rezervaci prosím vyberte v jiném termínu.
       </p>
     )}
-    <ReservationGrid selectedDate={selectedDate} courts={courts} reservations={displayedReservations} selection={gridSelection} now={currentTime} onSelectionChange={(selection: { courtId: number; timeFrom: string; timeTo: string } | null) => {
-      if (!selection) {
-        setSelectionReady(false);
-        return;
-      }
+    {shouldRenderReservationAvailabilityGrid(reservationsLoadError) ? (
+      <ReservationGrid selectedDate={selectedDate} courts={courts} reservations={displayedReservations} selection={gridSelection} now={currentTime} onSelectionChange={(selection: { courtId: number; timeFrom: string; timeTo: string } | null) => {
+        if (!selection) {
+          setSelectionReady(false);
+          return;
+        }
 
-      setCourtId(String(selection.courtId));
-      setTimeFrom(selection.timeFrom);
-      setTimeTo(selection.timeTo);
-      setSelectionReady(true);
-    }} />
+        setCourtId(String(selection.courtId));
+        setTimeFrom(selection.timeFrom);
+        setTimeTo(selection.timeTo);
+        setSelectionReady(true);
+      }} />
+    ) : (
+      <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-8 text-center text-sm font-medium text-rose-900">
+        Přehled dostupnosti není možné bezpečně zobrazit, protože aktuální rezervace nebyly ověřeny.
+      </div>
+    )}
     <form onSubmit={handleCreateReservation} className="sticky bottom-2 z-20 mx-auto grid w-full max-w-6xl gap-3 rounded-2xl border border-slate-200 bg-white/95 p-2.5 text-sm shadow-lg shadow-slate-900/10 backdrop-blur md:grid-cols-[minmax(240px,1fr)_minmax(320px,1.4fr)_auto] md:items-end">
       <div className="min-w-0">
         <p className="mb-1 text-xs font-semibold tracking-wide text-slate-500">Souhrn výběru</p>
@@ -370,7 +416,7 @@ export default function ReservationPage() {
       {isAuthenticated ? (
         <button
           type="submit"
-          disabled={!selectionReady || selectedStartIsPast || Boolean(availabilityWarning)}
+          disabled={!selectionReady || selectedStartIsPast || shouldBlockReservationSubmit({ reservationsLoadError, availabilityWarning })}
           className="h-10 self-end rounded-xl bg-blue-600 px-5 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
         >
           Rezervovat vybraný termín
