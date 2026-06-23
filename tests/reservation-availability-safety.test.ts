@@ -8,6 +8,7 @@ import {
   getReservationAvailabilityLoadErrorMessage,
   getReservationAvailabilityPrecheckErrorMessage,
   shouldBlockReservationSubmit,
+  shouldRenderReservationAvailabilityGrid,
 } from '../lib/services/reservation-availability-safety';
 
 test('produkční režim nepovolí mock fallback při selhání načtení rezervací', () => {
@@ -58,4 +59,13 @@ test('běžný průchod po úspěšném ověření dostupnosti není blokovaný'
     }),
     false,
   );
+});
+
+
+test('grid dostupnosti se při chybě načtení rezervací nesmí vykreslit jako prázdný volný den', () => {
+  assert.equal(shouldRenderReservationAvailabilityGrid(RESERVATION_AVAILABILITY_LOAD_ERROR), false);
+});
+
+test('grid dostupnosti se po ověřeném načtení může vykreslit', () => {
+  assert.equal(shouldRenderReservationAvailabilityGrid(null), true);
 });

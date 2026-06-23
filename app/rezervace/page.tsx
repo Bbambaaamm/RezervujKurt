@@ -11,7 +11,7 @@ import { supabaseAuthClient } from '@/lib/supabase/auth-client';
 import { SupabaseRequestError } from '@/lib/supabase/client';
 import { isReservationStartInPast, getPragueTodayDate } from '@/lib/services/reservation-time';
 import { isSlotOccupiedByPublicReservations } from '@/lib/services/reservation-submit-guard';
-import { canUseReservationMockFallback, getReservationAvailabilityLoadErrorMessage, getReservationAvailabilityPrecheckErrorMessage, shouldBlockReservationSubmit } from '@/lib/services/reservation-availability-safety';
+import { canUseReservationMockFallback, getReservationAvailabilityLoadErrorMessage, getReservationAvailabilityPrecheckErrorMessage, shouldBlockReservationSubmit, shouldRenderReservationAvailabilityGrid } from '@/lib/services/reservation-availability-safety';
 import { getTournamentBlocksForCourtsFromList, getTournamentsForDate, isTournamentDateBlocked, type Tournament } from '@/lib/tournaments';
 import type { Court, Reservation } from '@/lib/types/domain';
 
@@ -371,23 +371,23 @@ export default function ReservationPage() {
         {selectedTournament.title}: tento den jsou všechny kurty v aplikaci zablokované pro turnaj. Běžnou rezervaci prosím vyberte v jiném termínu.
       </p>
     )}
-    <ReservationGrid selectedDate={selectedDate} courts={courts} reservations={displayedReservations} selection={gridSelection} now={currentTime} onSelectionChange={(selection: { courtId: number; timeFrom: string; timeTo: string } | null) => {
-      if (reservationsLoadError) {
-        setSelectionReady(false);
-        setSubmitError(reservationsLoadError);
-        return;
-      }
+    {shouldRenderReservationAvailabilityGrid(reservationsLoadError) ? (
+      <ReservationGrid selectedDate={selectedDate} courts={courts} reservations={displayedReservations} selection={gridSelection} now={currentTime} onSelectionChange={(selection: { courtId: number; timeFrom: string; timeTo: string } | null) => {
+        if (!selection) {
+          setSelectionReady(false);
+          return;
+        }
 
-      if (!selection) {
-        setSelectionReady(false);
-        return;
-      }
-
-      setCourtId(String(selection.courtId));
-      setTimeFrom(selection.timeFrom);
-      setTimeTo(selection.timeTo);
-      setSelectionReady(true);
-    }} />
+        setCourtId(String(selection.courtId));
+        setTimeFrom(selection.timeFrom);
+        setTimeTo(selection.timeTo);
+        setSelectionReady(true);
+      }} />
+    ) : (
+      <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-8 text-center text-sm font-medium text-rose-900">
+        Přehled dostupnosti není možné bezpečně zobrazit, protože aktuální rezervace nebyly ověřeny.
+      </div>
+    )}
     <form onSubmit={handleCreateReservation} className="sticky bottom-2 z-20 mx-auto grid w-full max-w-6xl gap-3 rounded-2xl border border-slate-200 bg-white/95 p-2.5 text-sm shadow-lg shadow-slate-900/10 backdrop-blur md:grid-cols-[minmax(240px,1fr)_minmax(320px,1.4fr)_auto] md:items-end">
       <div className="min-w-0">
         <p className="mb-1 text-xs font-semibold tracking-wide text-slate-500">Souhrn výběru</p>

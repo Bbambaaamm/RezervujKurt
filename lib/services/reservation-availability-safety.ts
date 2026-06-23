@@ -14,6 +14,10 @@ export function shouldBlockReservationSubmit(params: {
   return Boolean(params.reservationsLoadError || params.availabilityWarning);
 }
 
+export function shouldRenderReservationAvailabilityGrid(reservationsLoadError: string | null): boolean {
+  return !reservationsLoadError;
+}
+
 export function getReservationAvailabilityLoadErrorMessage(): string {
   return RESERVATION_AVAILABILITY_LOAD_ERROR;
 }
