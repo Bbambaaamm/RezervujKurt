@@ -11,6 +11,7 @@ import {
   getReservationUserRoleLabel,
   shouldRenderEmptyState,
   shouldRenderLoadingState,
+  shouldRenderQuickStatusCards,
 } from '../lib/services/reservation-overview-ui';
 
 test('getReservationUserLabel: fallback chain displayName -> email -> Uživatel', () => {
@@ -82,4 +83,13 @@ test('quick status helpers: zobrazí počet, délku a obsazenost podle kurtů', 
 test('quick status helpers: prázdný den zůstává krátký', () => {
   assert.equal(getQuickReservationSummaryLabel(0, 0), 'Zatím volno');
   assert.equal(getQuickReservationCourtHoursLabel([], new Map()), null);
+});
+
+
+test('quick status cards: při chybě načtení nezobrazí prázdné dny jako volné', () => {
+  assert.equal(shouldRenderQuickStatusCards({ isLoading: false, hasError: true, count: 3 }), false);
+});
+
+test('quick status cards: po úspěšném načtení zobrazí souhrny', () => {
+  assert.equal(shouldRenderQuickStatusCards({ isLoading: false, hasError: false, count: 3 }), true);
 });

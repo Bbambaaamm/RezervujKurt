@@ -88,6 +88,14 @@ export function shouldRenderLoadingState(isLoading: boolean) {
   return isLoading;
 }
 
+export function shouldRenderQuickStatusCards(params: {
+  isLoading: boolean;
+  hasError: boolean;
+  count: number;
+}) {
+  return !params.isLoading && !params.hasError && params.count > 0;
+}
+
 export function getAriaDisabled(isDisabled: boolean) {
   return isDisabled;
 }
