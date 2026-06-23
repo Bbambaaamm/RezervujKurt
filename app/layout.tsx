@@ -19,13 +19,9 @@ export const metadata: Metadata = {
     'TJ Baník Stříbro tenis',
     'online rezervace kurtu',
   ],
-  alternates: {
-    canonical: '/',
-  },
   openGraph: {
     type: 'website',
     locale: 'cs_CZ',
-    url: '/',
     siteName: 'Rezervace kurtů Stříbro',
     title: 'Rezervace kurtů Stříbro | TJ Baník Stříbro',
     description: 'Online rezervace tenisových kurtů TJ Baník Stříbro s přehledem volných termínů.',
