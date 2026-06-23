@@ -79,7 +79,7 @@ function getReservationReadKey(row: Pick<ReservationRow, 'court_id' | 'reservati
 }
 
 async function getPrivateReservationNotes(date: string, accessToken: string) {
-  const endpoint = `reservations?select=court_id,reservation_date,time_from,time_to,status,note&reservation_date=eq.${date}&status=in.(pending,approved)&order=time_from.asc`;
+  const endpoint = `reservation_member_occupancy_notes?select=court_id,reservation_date,time_from,time_to,status,note&reservation_date=eq.${date}&status=in.(pending,approved)&order=time_from.asc`;
 
   if (process.env.NODE_ENV === 'development') {
     console.info('getPrivateReservationNotes request', { date, endpoint });
