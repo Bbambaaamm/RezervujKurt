@@ -85,7 +85,7 @@ test('getReservationsReadOnly: poznámku načte jen přes autorizovaný privátn
 
   assert.equal(result[0]?.note, 'Soukromá poznámka');
   assert.equal(new URL(requestedUrls[0]).pathname, '/rest/v1/reservation_public_occupancy');
-  assert.equal(new URL(requestedUrls[1]).pathname, '/rest/v1/reservations');
+  assert.equal(new URL(requestedUrls[1]).pathname, '/rest/v1/reservation_member_occupancy_notes');
   assert.equal(new URL(requestedUrls[1]).searchParams.get('select'), 'court_id,reservation_date,time_from,time_to,status,note');
   assert.deepEqual(requestedAuth, ['Bearer anon-key', 'Bearer user-token']);
 });
