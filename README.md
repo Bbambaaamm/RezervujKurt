@@ -130,6 +130,8 @@ NEXT_PUBLIC_SUPABASE_AUTH_REDIRECT_URL=http://localhost:3000/rezervace
 
 Soubor `.env.local` se necommituje.
 
+Repozitář má navíc GitHub Actions kontrolu `Kontrola secrets`, která při pull requestu i pushi do `main` skenuje historii přes Gitleaks. Tato kontrola má zachytit omylem commitnuté privátní API klíče, service-role tokeny a další secrets ještě před sloučením změn. Veřejné hodnoty s prefixem `NEXT_PUBLIC_` nejsou samy o sobě tajemství, ale musí vždy patřit ke správnému prostředí a být chráněné databázovými RLS pravidly.
+
 | Proměnná | Povinnost | Účel |
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | ano | URL Supabase API používaná aplikací. |
