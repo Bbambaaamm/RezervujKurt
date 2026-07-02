@@ -118,3 +118,46 @@ test('updateReservationStatus: prázdná unauthorized odpověď mapuje na Reserv
     (error: unknown) => error instanceof ReservationUnauthorizedError,
   );
 });
+
+test('updateReservationStatus: výchozí admin akce zůstává omezená na pending', async () => {
+  const { updateReservationStatus } = await import('../lib/services/reservations');
+
+  let requestedUrl = '';
+  globalThis.fetch = async (input: RequestInfo | URL) => {
+    requestedUrl = String(input);
+    return createResponse({
+      status: 200,
+      body: '[{"id":"res-1","status":"approved"}]',
+      contentRange: '0-0/1',
+    });
+  };
+
+  await updateReservationStatus({ accessToken: 'token', reservationId: 'res-1', status: 'approved' });
+
+  const url = new URL(requestedUrl);
+  assert.equal(url.searchParams.get('status'), 'eq.pending');
+});
+
+test('updateReservationStatus: admin může cíleně rušit pending i approved rezervace', async () => {
+  const { updateReservationStatus } = await import('../lib/services/reservations');
+
+  let requestedUrl = '';
+  globalThis.fetch = async (input: RequestInfo | URL) => {
+    requestedUrl = String(input);
+    return createResponse({
+      status: 200,
+      body: '[{"id":"res-1","status":"cancelled"}]',
+      contentRange: '0-0/1',
+    });
+  };
+
+  await updateReservationStatus({
+    accessToken: 'token',
+    reservationId: 'res-1',
+    status: 'cancelled',
+    fromStatuses: ['pending', 'approved'],
+  });
+
+  const url = new URL(requestedUrl);
+  assert.equal(url.searchParams.get('status'), 'in.(pending,approved)');
+});

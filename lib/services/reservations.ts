@@ -17,6 +17,7 @@ type UpdateReservationStatusInput = {
   accessToken: string;
   reservationId: string;
   status: 'approved' | 'cancelled';
+  fromStatuses?: Array<'pending' | 'approved'>;
 };
 
 type ReservationAvailabilityCheckInput = {
@@ -106,12 +107,19 @@ export async function createReservation(input: CreateReservationInput): Promise<
   });
 }
 
+function getReservationStatusFilter(statuses: Array<'pending' | 'approved'> | undefined) {
+  const uniqueStatuses = [...new Set(statuses?.length ? statuses : ['pending'])];
+  if (uniqueStatuses.length === 1) return `eq.${uniqueStatuses[0]}`;
+  return `in.(${uniqueStatuses.join(',')})`;
+}
+
 export async function updateReservationStatus(input: UpdateReservationStatusInput): Promise<void> {
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error('Chybí konfigurace Supabase proměnných prostředí.');
   }
 
-  const response = await fetch(`${supabaseUrl}/rest/v1/reservations?id=eq.${input.reservationId}&status=eq.pending`, {
+  const fromStatusFilter = getReservationStatusFilter(input.fromStatuses);
+  const response = await fetch(`${supabaseUrl}/rest/v1/reservations?id=eq.${input.reservationId}&status=${fromStatusFilter}`, {
     method: 'PATCH',
     headers: {
       apikey: supabaseAnonKey,
@@ -131,7 +139,7 @@ export async function updateReservationStatus(input: UpdateReservationStatusInpu
 
     if (!responseBody) {
       if (isZeroAffectedByRange) {
-        throw new ReservationNoLongerPendingError('Rezervace už není ve stavu pending.');
+        throw new ReservationNoLongerPendingError('Rezervace už není ve stavu, který lze změnit.');
       }
       return;
     }
@@ -139,7 +147,7 @@ export async function updateReservationStatus(input: UpdateReservationStatusInpu
     try {
       const parsed = JSON.parse(responseBody) as unknown;
       if (Array.isArray(parsed) && parsed.length === 0) {
-        throw new ReservationNoLongerPendingError('Rezervace už není ve stavu pending.');
+        throw new ReservationNoLongerPendingError('Rezervace už není ve stavu, který lze změnit.');
       }
     } catch (parseError) {
       if (parseError instanceof ReservationNoLongerPendingError) {
@@ -149,7 +157,7 @@ export async function updateReservationStatus(input: UpdateReservationStatusInpu
     }
 
     if (isZeroAffectedByRange) {
-      throw new ReservationNoLongerPendingError('Rezervace už není ve stavu pending.');
+      throw new ReservationNoLongerPendingError('Rezervace už není ve stavu, který lze změnit.');
     }
 
     return;
