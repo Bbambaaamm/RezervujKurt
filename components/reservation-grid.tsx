@@ -280,12 +280,6 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
           })}
         </div>
 
-        <div className="grid grid-cols-3 gap-2 text-xs font-medium text-slate-600" aria-label="Legenda stavů rezervací">
-          <span className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-center">Volno</span>
-          <span className="rounded-lg border border-rose-100 bg-rose-50 px-2 py-1 text-center text-rose-800">Obsazeno</span>
-          <span className="rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-center text-slate-500">Již proběhlo</span>
-        </div>
-
         {mobileCourt && (
           <div
             id={`mobile-court-${mobileCourt.id}`}
