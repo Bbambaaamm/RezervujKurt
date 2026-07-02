@@ -102,9 +102,9 @@ export function Header() {
           <p className="text-xs text-slate-600">TJ Baník Stříbro</p>
           {session && <p className="hidden max-w-80 truncate text-xs text-emerald-700 md:block">{getAuthStatusText(session, currentUserRole)}</p>}
         </div>
-        <nav aria-label="Hlavní navigace" className="hidden items-center gap-4 text-sm font-medium md:flex">
+        <nav aria-label="Hlavní navigace" className="hidden items-center gap-1.5 text-sm font-medium md:flex">
           {baseLinks.map((link) => (
-            <Link key={link.href} href={link.href} className="rounded-full px-3 py-2 text-slate-700 transition hover:bg-emerald-50 hover:text-court">
+            <Link key={link.href} href={link.href} className="rounded-full px-2.5 py-1.5 text-slate-700 transition hover:bg-emerald-50 hover:text-court">
               {link.label}
             </Link>
           ))}
@@ -112,22 +112,22 @@ export function Header() {
           {session ? (
             <>
               {currentUserRole === 'admin' && (
-                <Link href="/admin" className="rounded-full px-3 py-2 text-slate-700 transition hover:bg-emerald-50 hover:text-court">
+                <Link href="/admin" className="rounded-full px-2.5 py-1.5 text-slate-700 transition hover:bg-emerald-50 hover:text-court">
                   Admin
                 </Link>
               )}
-              <Link href="/moje-rezervace" className="rounded-full px-3 py-2 text-slate-700 transition hover:bg-emerald-50 hover:text-court">
+              <Link href="/moje-rezervace" className="rounded-full px-2.5 py-1.5 text-slate-700 transition hover:bg-emerald-50 hover:text-court">
                 Moje rezervace
               </Link>
-              <Link href="/ucet" className="rounded-full px-3 py-2 text-slate-700 transition hover:bg-emerald-50 hover:text-court">
+              <Link href="/ucet" className="rounded-full px-2.5 py-1.5 text-slate-700 transition hover:bg-emerald-50 hover:text-court">
                 Účet
               </Link>
-              <button onClick={handleMenuLogout} disabled={isLoggingOut} className="text-slate-700 transition hover:text-court disabled:opacity-60">
+              <button onClick={handleMenuLogout} disabled={isLoggingOut} className="rounded-full px-2.5 py-1.5 text-slate-700 transition hover:bg-emerald-50 hover:text-court disabled:opacity-60">
                 {isLoggingOut ? 'Odhlašuji…' : 'Odhlášení'}
               </button>
             </>
           ) : (
-            <Link href="/prihlaseni" className="rounded-full px-3 py-2 text-slate-700 transition hover:bg-emerald-50 hover:text-court">
+            <Link href="/prihlaseni" className="rounded-full px-2.5 py-1.5 text-slate-700 transition hover:bg-emerald-50 hover:text-court">
               Přihlášení
             </Link>
           )}
