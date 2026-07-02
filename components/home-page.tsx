@@ -202,15 +202,15 @@ export function HomePage() {
 
   return (
     <div className="space-y-12">
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-white/75 p-6 shadow-xl shadow-slate-900/5 backdrop-blur md:p-10">
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-white/75 p-5 shadow-xl shadow-slate-900/5 backdrop-blur md:p-10">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-emerald-200/45 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-28 left-1/3 h-64 w-64 rounded-full bg-lime-200/35 blur-3xl" />
         <div className="relative grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
           <div className="space-y-5">
             <div className="space-y-4">
               <p className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-bold uppercase tracking-wide text-court ring-1 ring-emerald-100">Online rezervace kurtů</p>
-              <h1 className="max-w-3xl text-4xl font-black tracking-tight text-slate-950 md:text-6xl">Tenisové kurty TJ Baník Stříbro</h1>
-              <p className="max-w-2xl text-lg leading-8 text-slate-700">Moderní a přehledný rezervační systém pro 3 venkovní antukové kurty. Vyberte den, volný kurt a odešlete rezervaci ke schválení.</p>
+              <h1 className="max-w-3xl text-3xl font-black tracking-tight text-slate-950 md:text-6xl">Tenisové kurty TJ Baník Stříbro</h1>
+              <p className="max-w-2xl text-base leading-7 text-slate-700 md:text-lg md:leading-8">Moderní a přehledný rezervační systém pro 3 venkovní antukové kurty. Vyberte den, volný kurt a odešlete rezervaci ke schválení.</p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Link href="/rezervace" className="inline-flex items-center justify-center rounded-xl bg-court px-6 py-3 font-semibold text-white shadow-lg shadow-emerald-900/15 transition hover:bg-green-700">
