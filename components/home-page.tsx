@@ -194,31 +194,34 @@ export function HomePage() {
   }, []);
 
   return (
-    <div className="space-y-10">
-      <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+    <div className="space-y-12">
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-white/75 p-6 shadow-xl shadow-slate-900/5 backdrop-blur md:p-10">
+        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-emerald-200/45 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-28 left-1/3 h-64 w-64 rounded-full bg-lime-200/35 blur-3xl" />
+        <div className="relative grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
         <div className="space-y-5">
-          <div className="space-y-3">
-            <p className="text-sm font-semibold uppercase tracking-wide text-court">Online rezervace kurtů</p>
-            <h1 className="max-w-3xl text-3xl font-bold tracking-tight text-slate-950 md:text-4xl">Tenisové kurty TJ Baník Stříbro</h1>
-            <p className="max-w-2xl text-slate-700">Moderní a přehledný rezervační systém pro 3 venkovní antukové kurty. Vyberte den, volný kurt a odešlete rezervaci ke schválení.</p>
+          <div className="space-y-4">
+            <p className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-bold uppercase tracking-wide text-court ring-1 ring-emerald-100">Online rezervace kurtů</p>
+            <h1 className="max-w-3xl text-4xl font-black tracking-tight text-slate-950 md:text-6xl">Tenisové kurty TJ Baník Stříbro</h1>
+            <p className="max-w-2xl text-lg leading-8 text-slate-700">Moderní a přehledný rezervační systém pro 3 venkovní antukové kurty. Vyberte den, volný kurt a odešlete rezervaci ke schválení.</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Link href="/rezervace" className="inline-flex items-center justify-center rounded-md bg-court px-5 py-2.5 font-semibold text-white transition hover:bg-green-700">
+            <Link href="/rezervace" className="inline-flex items-center justify-center rounded-xl bg-court px-6 py-3 shadow-lg shadow-emerald-900/15 font-semibold text-white transition hover:bg-green-700">
               Rezervovat kurt
             </Link>
             {isAuthenticated ? (
-              <Link href="/moje-rezervace" className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-5 py-2.5 font-semibold text-slate-800 transition hover:border-court hover:text-court">
+              <Link href="/moje-rezervace" className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white/90 px-6 py-3 font-semibold text-slate-800 transition hover:border-court hover:text-court">
                 Moje rezervace
               </Link>
             ) : (
-              <Link href="/prihlaseni" className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-5 py-2.5 font-semibold text-slate-800 transition hover:border-court hover:text-court">
+              <Link href="/prihlaseni" className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white/90 px-6 py-3 font-semibold text-slate-800 transition hover:border-court hover:text-court">
                 Přihlásit se
               </Link>
             )}
           </div>
         </div>
 
-        <aside className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <aside className="rounded-3xl border border-white bg-white/90 p-5 shadow-xl shadow-slate-900/10">
           <div className="mb-4 flex items-start justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-slate-950">Rychlý stav rezervací</h2>
@@ -246,10 +249,11 @@ export function HomePage() {
             ))}
           </div>
         </aside>
+        </div>
       </section>
 
       {tournaments.length > 0 ? (
-      <section className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-lime-50 p-6 shadow-sm">
+      <section className="rounded-[2rem] border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-lime-50 p-6 shadow-lg shadow-emerald-900/5 md:p-8">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-court">Turnaje a uzavírky kurtů</p>
@@ -316,7 +320,7 @@ export function HomePage() {
       </section>
       ) : null}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6">
+      <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm md:p-8">
         <h2 className="text-xl font-semibold text-slate-950">Jak rezervace funguje</h2>
         <div className="mt-5 grid gap-4 md:grid-cols-3">
           {[
@@ -324,7 +328,7 @@ export function HomePage() {
             ['2', 'Vyberte kurt a čas', 'Klikněte na volný blok v denním přehledu všech kurtů.'],
             ['3', 'Přihlaste se a potvrďte', 'Po přihlášení odešlete rezervaci a vyčkejte na schválení.'],
           ].map(([step, title, description]) => (
-            <article key={step} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <article key={step} className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5 transition hover:-translate-y-0.5 hover:shadow-md">
               <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-court text-sm font-bold text-white">{step}</div>
               <h3 className="font-semibold text-slate-950">{title}</h3>
               <p className="mt-2 text-sm text-slate-600">{description}</p>
@@ -334,9 +338,9 @@ export function HomePage() {
       </section>
 
       <section className="grid gap-6 md:grid-cols-3">
-        <article className="rounded-xl border border-slate-200 bg-white p-5"><h2 className="font-semibold">Informace o kurtech</h2><p className="mt-2 text-sm text-slate-600">3 antukové venkovní kurty, adresa Palackého 1269, Stříbro.</p></article>
-        <article className="rounded-xl border border-slate-200 bg-white p-5"><h2 className="font-semibold">Rezervace pod kontrolou</h2><p className="mt-2 text-sm text-slate-600">Přihlášení uživatelé najdou své termíny v sekci Moje rezervace.</p></article>
-        <article className="rounded-xl border border-slate-200 bg-white p-5"><h2 className="font-semibold">Přehled pro každý den</h2><p className="mt-2 text-sm text-slate-600">Denní rozvrh ukazuje obsazenost všech kurtů a pomáhá rychle najít vhodný čas.</p></article>
+        <article className="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm"><h2 className="font-semibold">Informace o kurtech</h2><p className="mt-2 text-sm text-slate-600">3 antukové venkovní kurty, adresa Palackého 1269, Stříbro.</p></article>
+        <article className="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm"><h2 className="font-semibold">Rezervace pod kontrolou</h2><p className="mt-2 text-sm text-slate-600">Přihlášení uživatelé najdou své termíny v sekci Moje rezervace.</p></article>
+        <article className="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm"><h2 className="font-semibold">Přehled pro každý den</h2><p className="mt-2 text-sm text-slate-600">Denní rozvrh ukazuje obsazenost všech kurtů a pomáhá rychle najít vhodný čas.</p></article>
       </section>
     </div>
   );
