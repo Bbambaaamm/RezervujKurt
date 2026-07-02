@@ -15,6 +15,7 @@ import { updateReservationStatus } from '@/lib/services/reservations';
 import { createTournament, deleteTournament, getAdminTournaments, updateTournament, type Tournament, type TournamentFormInput } from '@/lib/tournaments';
 import { supabaseAuthClient } from '@/lib/supabase/auth-client';
 import { SupabaseRequestError } from '@/lib/supabase/client';
+import { isMyReservationCancelable } from '@/lib/services/my-reservations';
 import {
   getAriaBusy,
   getAriaDisabled,
@@ -77,6 +78,10 @@ function getStatusBadgeClass(status: ReservationOverview['status']) {
   if (status === 'approved') return 'border-emerald-200 bg-emerald-50 text-emerald-800';
   if (status === 'cancelled') return 'border-rose-200 bg-rose-50 text-rose-800';
   return 'border-amber-200 bg-amber-50 text-amber-800';
+}
+
+function canAdminCancelReservation(reservation: ReservationOverview) {
+  return isMyReservationCancelable(reservation);
 }
 
 
@@ -288,6 +293,17 @@ export default function AdminPage() {
     const successMessage = action === 'approve' ? 'admin approve success' : 'admin cancel success';
 
     console.info(startedMessage, { reservationId });
+
+    if (action === 'cancel') {
+      const currentReservation = [...reservations, ...recentReservations].find((reservation) => reservation.id === reservationId);
+
+      if (currentReservation && !canAdminCancelReservation(currentReservation)) {
+        setError('Proběhlou rezervaci už není potřeba rušit.');
+        console.info('admin cancel skipped for past reservation', { reservationId });
+        return;
+      }
+    }
+
     setIsActionLoadingById((prev) => ({ ...prev, [reservationId]: true }));
     setError(null);
 
@@ -609,7 +625,7 @@ export default function AdminPage() {
                       <dd className="mt-0.5 break-words text-slate-900">{formatReservationNote(reservation.note)}</dd>
                     </div>
                   </dl>
-                  {reservation.status === 'pending' || reservation.status === 'approved' ? (
+                  {canAdminCancelReservation(reservation) ? (
                     <button
                       type="button"
                       onClick={() => void handleReservationAction(reservation.id, 'cancel', { fromStatuses: ['pending', 'approved'] })}
@@ -660,7 +676,7 @@ export default function AdminPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          {reservation.status === 'pending' || reservation.status === 'approved' ? (
+                          {canAdminCancelReservation(reservation) ? (
                             <button
                               type="button"
                               onClick={() => void handleReservationAction(reservation.id, 'cancel', { fromStatuses: ['pending', 'approved'] })}
