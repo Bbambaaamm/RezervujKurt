@@ -355,7 +355,19 @@ export default function ReservationPage() {
   }
 
   return <div className="space-y-3 pb-32">{/* ... */}
-    <div className="mb-1 flex flex-col justify-between gap-3 md:flex-row md:items-end"><div><h1 className="text-2xl font-bold tracking-tight">Rezervace kurtů</h1><p className="text-slate-600">Denní přehled všech 3 kurtů na jednom místě.</p></div><div className="flex items-end gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"><div>Datum: <span className="font-semibold">{formattedSelectedDate}</span></div><label className="flex flex-col gap-1 text-xs font-medium text-slate-600" htmlFor="reservation-day">Vyberte den<input id="reservation-day" type="date" lang="cs-CZ" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></label></div></div>
+    <div className="mb-1 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Rezervace kurtů</h1>
+        <p className="text-slate-600">Denní přehled všech 3 kurtů na jednom místě.</p>
+      </div>
+      <div className="sticky top-[72px] z-30 flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white/95 px-3 py-2 text-sm shadow-sm backdrop-blur md:static md:items-end md:shadow-none">
+        <div>Datum: <span className="font-semibold">{formattedSelectedDate}</span></div>
+        <label className="flex min-w-[9rem] flex-col gap-1 text-xs font-medium text-slate-600" htmlFor="reservation-day">
+          Vyberte den
+          <input id="reservation-day" type="date" lang="cs-CZ" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200" />
+        </label>
+      </div>
+    </div>
     {showDevFallbackWarning && (
       <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
         DEV upozornění: čtení ze Supabase selhalo a stránka používá mock fallback data.
@@ -399,14 +411,24 @@ export default function ReservationPage() {
       </div>
 
       {isAuthenticated ? (
-        <label className="flex min-w-0 flex-col text-xs font-semibold tracking-wide text-slate-500">
-          <span className="mb-1">Poznámka</span>
-          <input
-            value={note}
-            onChange={(event) => setNote(event.target.value)}
-            className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-300"
-          />
-        </label>
+        <>
+          <details className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold tracking-wide text-slate-500 md:hidden">
+            <summary className="cursor-pointer list-none">Poznámka k rezervaci</summary>
+            <input
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              className="mt-2 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-normal tracking-normal text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-300"
+            />
+          </details>
+          <label className="hidden min-w-0 flex-col text-xs font-semibold tracking-wide text-slate-500 md:flex">
+            <span className="mb-1">Poznámka</span>
+            <input
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-300"
+            />
+          </label>
+        </>
       ) : (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
           Pro dokončení rezervace se nejdřív přihlaste. Vybraný termín uvidíte dál v souhrnu.

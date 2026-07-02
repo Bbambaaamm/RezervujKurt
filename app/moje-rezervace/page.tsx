@@ -31,6 +31,8 @@ function formatReservationNote(note: string | null) {
   return note?.trim() || '—';
 }
 
+const reservationListScrollClassName = 'max-h-[34rem] space-y-3 overflow-y-auto pr-1';
+
 function getStatusBadgeClass(status: ReservationOverview['status']) {
   if (status === 'approved') return 'border-emerald-200 bg-emerald-50 text-emerald-800';
   if (status === 'cancelled') return 'border-rose-200 bg-rose-50 text-rose-800';
@@ -149,7 +151,8 @@ export default function MyReservationsPage() {
             <h2 className="text-xl font-semibold text-slate-900">Nadcházející rezervace</h2>
             <p className="text-sm text-slate-600">Schválené a čekající rezervace, které vás teprve čekají.</p>
           </div>
-          {upcomingReservations.map((reservation) => (
+          <div className={reservationListScrollClassName}>
+            {upcomingReservations.map((reservation) => (
           <article key={`mobile-${reservation.id}`} className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -189,7 +192,8 @@ export default function MyReservationsPage() {
               </button>
             ) : null}
           </article>
-        ))}
+            ))}
+          </div>
           {upcomingReservations.length === 0 && (
             <p className="rounded-xl border border-slate-200 bg-white px-4 py-5 text-center text-sm text-slate-500">
               Nemáte žádné nadcházející rezervace.
@@ -202,7 +206,8 @@ export default function MyReservationsPage() {
             <h2 className="text-xl font-semibold text-slate-900">Historie rezervací</h2>
             <p className="text-sm text-slate-600">Uplynulé nebo zrušené rezervace pro rychlou kontrolu zpětně.</p>
           </div>
-          {reservationHistory.map((reservation) => (
+          <div className={reservationListScrollClassName}>
+            {reservationHistory.map((reservation) => (
           <article key={`mobile-history-${reservation.id}`} className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -230,7 +235,8 @@ export default function MyReservationsPage() {
               </div>
             </dl>
           </article>
-          ))}
+            ))}
+          </div>
           {reservationHistory.length === 0 && (
             <p className="rounded-xl border border-slate-200 bg-white px-4 py-5 text-center text-sm text-slate-500">
               Historie rezervací je zatím prázdná.
@@ -245,9 +251,9 @@ export default function MyReservationsPage() {
             <h2 className="text-xl font-semibold text-slate-900">Nadcházející rezervace</h2>
             <p className="text-sm text-slate-600">Schválené a čekající rezervace, které vás teprve čekají.</p>
           </div>
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <div className="max-h-[32rem] overflow-auto rounded-xl border border-slate-200 bg-white">
             <table className="min-w-full text-sm">
-              <thead className="bg-slate-100 text-left text-slate-700">
+              <thead className="sticky top-0 z-10 bg-slate-100 text-left text-slate-700">
                 <tr>
                   <th className="px-3 py-2">Datum</th>
                   <th className="px-3 py-2">Čas od</th>
@@ -301,9 +307,9 @@ export default function MyReservationsPage() {
             <h2 className="text-xl font-semibold text-slate-900">Historie rezervací</h2>
             <p className="text-sm text-slate-600">Uplynulé nebo zrušené rezervace pro rychlou kontrolu zpětně.</p>
           </div>
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <div className="max-h-[32rem] overflow-auto rounded-xl border border-slate-200 bg-white">
             <table className="min-w-full text-sm">
-              <thead className="bg-slate-100 text-left text-slate-700">
+              <thead className="sticky top-0 z-10 bg-slate-100 text-left text-slate-700">
                 <tr>
                   <th className="px-3 py-2">Datum</th>
                   <th className="px-3 py-2">Čas od</th>

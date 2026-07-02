@@ -60,6 +60,9 @@ function formatReservationNote(note: string | null) {
   return note?.trim() || '—';
 }
 
+const recentReservationsLimit = 50;
+const adminListScrollClassName = 'max-h-[34rem] overflow-y-auto pr-1';
+
 const emptyTournamentForm: TournamentFormInput = {
   title: '',
   date: '',
@@ -152,7 +155,7 @@ export default function AdminPage() {
 
         const [pendingResult, recentResult, tournamentsResult] = await Promise.allSettled([
           getPendingReservationsReadOnlyWithSession(accessToken),
-          getRecentReservationsReadOnlyWithSession(accessToken, 20),
+          getRecentReservationsReadOnlyWithSession(accessToken, recentReservationsLimit),
           getAdminTournaments(accessToken),
         ]);
         if (!active) return;
@@ -304,7 +307,7 @@ export default function AdminPage() {
 
       const [loadedReservations, loadedRecentReservations] = await Promise.all([
         getPendingReservationsReadOnlyWithSession(accessToken),
-        getRecentReservationsReadOnlyWithSession(accessToken, 20),
+        getRecentReservationsReadOnlyWithSession(accessToken, recentReservationsLimit),
       ]);
       setReservations(loadedReservations);
       setRecentReservations(loadedRecentReservations);
@@ -333,7 +336,7 @@ export default function AdminPage() {
 
         const [loadedReservations, loadedRecentReservations] = await Promise.all([
           getPendingReservationsReadOnlyWithSession(staleRecovery.token),
-          getRecentReservationsReadOnlyWithSession(staleRecovery.token, 20),
+          getRecentReservationsReadOnlyWithSession(staleRecovery.token, recentReservationsLimit),
         ]);
         setReservations(loadedReservations);
         setRecentReservations(loadedRecentReservations);
@@ -392,7 +395,7 @@ export default function AdminPage() {
 
       {!isLoading && !error && reservations.length > 0 ? (
         <>
-        <div className="space-y-3 lg:hidden">
+        <div className={`${adminListScrollClassName} space-y-3 lg:hidden`}>
           {reservations.map((reservation) => (
             <article key={`mobile-pending-${reservation.id}`} className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
               <div className="flex items-start justify-between gap-3">
@@ -449,9 +452,9 @@ export default function AdminPage() {
           ))}
         </div>
 
-        <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white lg:block">
+        <div className="hidden max-h-[32rem] overflow-auto rounded-xl border border-slate-200 bg-white lg:block">
           <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-left text-slate-600">
+            <thead className="sticky top-0 z-10 bg-slate-50 text-left text-slate-600">
               <tr>
                 <th className="px-4 py-3 font-medium">Datum</th>
                 <th className="px-4 py-3 font-medium">Čas od</th>
@@ -575,7 +578,7 @@ export default function AdminPage() {
             <p className="text-sm text-slate-600">Historie rezervací je prázdná.</p>
           ) : (
             <>
-            <div className="divide-y divide-slate-100 lg:hidden">
+            <div className={`${adminListScrollClassName} divide-y divide-slate-100 lg:hidden`}>
               {recentReservations.map((reservation) => (
                 <article key={`mobile-recent-${reservation.id}`} className="space-y-3 py-4 first:pt-1 last:pb-1">
                   <div className="flex items-start justify-between gap-3">
@@ -609,9 +612,9 @@ export default function AdminPage() {
               ))}
             </div>
 
-            <div className="hidden overflow-x-auto lg:block">
+            <div className="hidden max-h-[32rem] overflow-auto lg:block">
               <table className="min-w-full text-sm">
-                <thead className="bg-slate-50 text-left text-slate-600">
+                <thead className="sticky top-0 z-10 bg-slate-50 text-left text-slate-600">
                   <tr>
                     <th className="px-4 py-3 font-medium">Datum</th>
                     <th className="px-4 py-3 font-medium">Čas od</th>
