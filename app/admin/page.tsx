@@ -282,7 +282,7 @@ export default function AdminPage() {
     }
   }
 
-  async function handleReservationAction(reservationId: string, action: 'approve' | 'cancel') {
+  async function handleReservationAction(reservationId: string, action: 'approve' | 'cancel', options?: { fromStatuses?: Array<'pending' | 'approved'> }) {
     const status = action === 'approve' ? 'approved' : 'cancelled';
     const startedMessage = action === 'approve' ? 'admin approve started' : 'admin cancel started';
     const successMessage = action === 'approve' ? 'admin approve success' : 'admin cancel success';
@@ -303,6 +303,7 @@ export default function AdminPage() {
         accessToken,
         reservationId,
         status,
+        fromStatuses: options?.fromStatuses,
       });
 
       const [loadedReservations, loadedRecentReservations] = await Promise.all([
@@ -323,7 +324,7 @@ export default function AdminPage() {
       if (actionError instanceof ReservationUnauthorizedError) {
         setError('Nemáte oprávnění provést tuto admin akci.');
       } else if (actionError instanceof ReservationNoLongerPendingError) {
-        setError('Rezervace už není ve stavu pending.');
+        setError('Rezervace už není ve stavu, který lze změnit.');
         console.info('admin stale pending detected', { reservationId, action });
         const { data } = await supabaseAuthClient.auth.getSession();
         const refreshedAccessToken = data.session?.access_token;
@@ -383,7 +384,7 @@ export default function AdminPage() {
   return (
     <div className="space-y-5">
       <h1 className="text-3xl font-bold">Administrace rezervací</h1>
-      <p className="text-sm text-slate-600">Read-only přehled rezervací čekajících na schválení.</p>
+      <p className="text-sm text-slate-600">Přehled čekajících rezervací, historie a možnost zrušit aktivní rezervace uživatelů.</p>
 
       {shouldRenderLoadingState(isLoading) ? <div aria-busy={getAriaBusy(isLoading)} className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">Načítání rezervací...</div> : null}
 
@@ -608,6 +609,17 @@ export default function AdminPage() {
                       <dd className="mt-0.5 break-words text-slate-900">{formatReservationNote(reservation.note)}</dd>
                     </div>
                   </dl>
+                  {reservation.status === 'pending' || reservation.status === 'approved' ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleReservationAction(reservation.id, 'cancel', { fromStatuses: ['pending', 'approved'] })}
+                      disabled={isActionLoadingById[reservation.id]}
+                      aria-disabled={getAriaDisabled(Boolean(isActionLoadingById[reservation.id]))}
+                      className="min-h-11 w-full rounded-md border border-rose-300 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-800 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isActionLoadingById[reservation.id] ? 'Ruším…' : 'Zrušit rezervaci'}
+                    </button>
+                  ) : null}
                 </article>
               ))}
             </div>
@@ -624,6 +636,7 @@ export default function AdminPage() {
                     <th className="px-4 py-3 font-medium">Uživatel</th>
                     <th className="px-4 py-3 font-medium">Poznámka</th>
                     <th className="px-4 py-3 font-medium">Stav</th>
+                    <th className="px-4 py-3 font-medium">Akce</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -645,6 +658,19 @@ export default function AdminPage() {
                           <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-medium ${getStatusBadgeClass(reservation.status)}`}>
                             {getReservationStatusLabel(reservation.status)}
                           </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {reservation.status === 'pending' || reservation.status === 'approved' ? (
+                            <button
+                              type="button"
+                              onClick={() => void handleReservationAction(reservation.id, 'cancel', { fromStatuses: ['pending', 'approved'] })}
+                              disabled={isActionLoadingById[reservation.id]}
+                              aria-disabled={getAriaDisabled(Boolean(isActionLoadingById[reservation.id]))}
+                              className="rounded-md border border-rose-300 bg-rose-50 px-3 py-1 text-rose-800 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {isActionLoadingById[reservation.id] ? 'Ruším…' : 'Zrušit'}
+                            </button>
+                          ) : null}
                         </td>
                       </tr>
                     );
