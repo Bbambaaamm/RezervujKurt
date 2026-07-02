@@ -202,10 +202,8 @@ export function HomePage() {
 
   return (
     <div className="space-y-12">
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-white/75 p-5 shadow-xl shadow-slate-900/5 backdrop-blur md:p-10">
-        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-emerald-200/45 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-28 left-1/3 h-64 w-64 rounded-full bg-lime-200/35 blur-3xl" />
-        <div className="relative grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+      <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+        <div className="contents lg:contents">
           <div className="space-y-5">
             <div className="space-y-4">
               <p className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-bold uppercase tracking-wide text-court ring-1 ring-emerald-100">Online rezervace kurtů</p>
@@ -228,7 +226,7 @@ export function HomePage() {
             </div>
           </div>
 
-          <aside className="rounded-3xl border border-white bg-white/90 p-5 shadow-xl shadow-slate-900/10">
+          <aside className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-lg font-semibold text-slate-950">Rychlý stav rezervací</h2>
@@ -260,7 +258,7 @@ export function HomePage() {
       </section>
 
       {(isTournamentsLoading || tournamentsError || tournaments.length > 0) ? (
-      <section className="rounded-[2rem] border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-lime-50 p-6 shadow-lg shadow-emerald-900/5 md:p-8">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-court">Turnaje a uzavírky kurtů</p>
@@ -284,7 +282,7 @@ export function HomePage() {
               key={tournament.id}
               href={`/rezervace?datum=${encodeURIComponent(tournament.date)}`}
               aria-label={`Zobrazit turnaj ${tournament.title} v rezervacích`}
-              className="group grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-court hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-court focus-visible:ring-offset-2 sm:grid-cols-[minmax(240px,0.9fr)_1fr] lg:col-span-2"
+              className="group grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm hover:border-court focus:outline-none focus-visible:ring-2 focus-visible:ring-court focus-visible:ring-offset-2 sm:grid-cols-[minmax(240px,0.9fr)_1fr] lg:col-span-2"
             >
               <div className={`relative min-h-72 overflow-hidden bg-gradient-to-br ${tournament.accent} p-5 text-white sm:min-h-full`}>
                 {tournament.posterUrl ? <div aria-label={`Plakát turnaje ${tournament.title}`} role="img" className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${tournament.posterUrl})` }} /> : null}
@@ -320,7 +318,7 @@ export function HomePage() {
                     <dd className="mt-1 text-sm font-medium text-slate-800">{tournament.registration}</dd>
                   </div>
                 </dl>
-                <p className="inline-flex items-center text-sm font-semibold text-court transition group-hover:translate-x-1">
+                <p className="inline-flex items-center text-sm font-semibold text-court">
                   Otevřít termín v rezervacích →
                 </p>
               </div>

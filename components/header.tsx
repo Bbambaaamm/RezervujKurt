@@ -95,8 +95,8 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/70 bg-white/85 shadow-sm shadow-slate-900/5 backdrop-blur supports-[backdrop-filter]:bg-white/75">
-      <div className="relative mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+    <header className="border-b border-slate-200 bg-white">
+      <div className="relative mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5">
         <div className="min-w-0">
           <p className="text-base font-bold tracking-tight text-slate-950">RezervujKurt</p>
           <p className="text-xs text-slate-600">TJ Baník Stříbro</p>
