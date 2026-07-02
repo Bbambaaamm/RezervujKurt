@@ -4,22 +4,31 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabaseAuthClient, type AuthSession } from '@/lib/supabase/auth-client';
-import { clearCurrentUserRoleCache, getCurrentUserRoleFromSession } from '@/lib/services/profile';
+import { clearCurrentUserRoleCache, getCurrentUserRoleFromSession, type CurrentUserRole } from '@/lib/services/profile';
 
 const baseLinks = [
   { href: '/', label: 'Domů' },
   { href: '/rezervace', label: 'Rezervace' },
 ];
 
-function getAuthStatusText(session: AuthSession | null): string {
+function getRoleLabel(role: CurrentUserRole): string {
+  if (role === 'admin') return 'Administrátor';
+  if (role === 'member') return 'Člen';
+  if (role === 'user') return 'Nečlen';
+  return 'Nečlen';
+}
+
+function getAuthStatusText(session: AuthSession | null, role: CurrentUserRole): string {
   const email = session?.user?.email?.trim();
-  return email ? `Přihlášen jako ${email}` : 'Přihlášen';
+  const roleLabel = getRoleLabel(role);
+
+  return email ? `Přihlášen jako ${email} · ${roleLabel}` : `Přihlášen · ${roleLabel}`;
 }
 
 export function Header() {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [currentUserRole, setCurrentUserRole] = useState<CurrentUserRole>('anonymous');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -49,16 +58,15 @@ export function Header() {
           return;
         }
 
-        const shouldShowAdminLink = role === 'admin';
-        setIsAdmin(shouldShowAdminLink);
-        console.info(shouldShowAdminLink ? 'header admin link visible' : 'header admin link hidden');
+        setCurrentUserRole(role);
+        console.info(role === 'admin' ? 'header admin link visible' : 'header admin link hidden');
       })
       .catch(() => {
         if (!isMounted) {
           return;
         }
 
-        setIsAdmin(false);
+        setCurrentUserRole('anonymous');
         console.info('header admin link hidden');
       });
 
@@ -90,14 +98,9 @@ export function Header() {
     <header className="sticky top-0 z-40 border-b border-white/70 bg-white/85 shadow-sm shadow-slate-900/5 backdrop-blur supports-[backdrop-filter]:bg-white/75">
       <div className="relative mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-3">
-            <span aria-hidden="true" className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-court to-emerald-500 text-lg font-black text-white shadow-sm">R</span>
-            <div>
-              <p className="text-base font-bold tracking-tight text-slate-950">RezervujKurt</p>
-              <p className="text-xs text-slate-600">TJ Baník Stříbro</p>
-            </div>
-          </div>
-          {session && <p className="hidden max-w-72 truncate text-xs text-emerald-700 md:block">{getAuthStatusText(session)}</p>}
+          <p className="text-base font-bold tracking-tight text-slate-950">RezervujKurt</p>
+          <p className="text-xs text-slate-600">TJ Baník Stříbro</p>
+          {session && <p className="hidden max-w-80 truncate text-xs text-emerald-700 md:block">{getAuthStatusText(session, currentUserRole)}</p>}
         </div>
         <nav aria-label="Hlavní navigace" className="hidden items-center gap-4 text-sm font-medium md:flex">
           {baseLinks.map((link) => (
@@ -108,7 +111,7 @@ export function Header() {
 
           {session ? (
             <>
-              {isAdmin && (
+              {currentUserRole === 'admin' && (
                 <Link href="/admin" className="rounded-full px-3 py-2 text-slate-700 transition hover:bg-emerald-50 hover:text-court">
                   Admin
                 </Link>
@@ -154,7 +157,7 @@ export function Header() {
           >
             {session && (
               <p className="break-all border-b border-slate-100 px-3 py-2 text-xs font-normal text-emerald-700">
-                {getAuthStatusText(session)}
+                {getAuthStatusText(session, currentUserRole)}
               </p>
             )}
 
@@ -166,7 +169,7 @@ export function Header() {
 
             {session ? (
               <>
-                {isAdmin && (
+                {currentUserRole === 'admin' && (
                   <Link href="/admin" className="rounded-lg px-3 py-2.5 text-slate-700 transition hover:bg-slate-50 hover:text-court">
                     Admin
                   </Link>

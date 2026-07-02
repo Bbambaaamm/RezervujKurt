@@ -94,6 +94,7 @@ export function HomePage() {
   const [isQuickStatusLoading, setIsQuickStatusLoading] = useState(true);
   const [quickStatusError, setQuickStatusError] = useState<string | null>(null);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [isTournamentsLoading, setIsTournamentsLoading] = useState(true);
   const [tournamentsError, setTournamentsError] = useState<string | null>(null);
   const isAuthenticated = Boolean(session);
 
@@ -173,6 +174,8 @@ export function HomePage() {
     let active = true;
 
     async function loadTournaments() {
+      setIsTournamentsLoading(true);
+
       try {
         const loadedTournaments = await getUpcomingTournaments();
         if (!active) return;
@@ -183,6 +186,10 @@ export function HomePage() {
         console.warn('homepage tournaments unavailable', error);
         setTournaments([]);
         setTournamentsError('Turnaje se teď nepodařilo načíst. Zkuste to prosím později.');
+      } finally {
+        if (active) {
+          setIsTournamentsLoading(false);
+        }
       }
     }
 
@@ -199,60 +206,59 @@ export function HomePage() {
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-emerald-200/45 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-28 left-1/3 h-64 w-64 rounded-full bg-lime-200/35 blur-3xl" />
         <div className="relative grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
-        <div className="space-y-5">
-          <div className="space-y-4">
-            <p className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-bold uppercase tracking-wide text-court ring-1 ring-emerald-100">Online rezervace kurtů</p>
-            <h1 className="max-w-3xl text-4xl font-black tracking-tight text-slate-950 md:text-6xl">Tenisové kurty TJ Baník Stříbro</h1>
-            <p className="max-w-2xl text-lg leading-8 text-slate-700">Moderní a přehledný rezervační systém pro 3 venkovní antukové kurty. Vyberte den, volný kurt a odešlete rezervaci ke schválení.</p>
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Link href="/rezervace" className="inline-flex items-center justify-center rounded-xl bg-court px-6 py-3 shadow-lg shadow-emerald-900/15 font-semibold text-white transition hover:bg-green-700">
-              Rezervovat kurt
-            </Link>
-            {isAuthenticated ? (
-              <Link href="/moje-rezervace" className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white/90 px-6 py-3 font-semibold text-slate-800 transition hover:border-court hover:text-court">
-                Moje rezervace
-              </Link>
-            ) : (
-              <Link href="/prihlaseni" className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white/90 px-6 py-3 font-semibold text-slate-800 transition hover:border-court hover:text-court">
-                Přihlásit se
-              </Link>
-            )}
-          </div>
-        </div>
-
-        <aside className="rounded-3xl border border-white bg-white/90 p-5 shadow-xl shadow-slate-900/10">
-          <div className="mb-4 flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-950">Rychlý stav rezervací</h2>
-              <p className="mt-1 text-sm text-slate-600">{quickStatusDescription}</p>
+          <div className="space-y-5">
+            <div className="space-y-4">
+              <p className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-bold uppercase tracking-wide text-court ring-1 ring-emerald-100">Online rezervace kurtů</p>
+              <h1 className="max-w-3xl text-4xl font-black tracking-tight text-slate-950 md:text-6xl">Tenisové kurty TJ Baník Stříbro</h1>
+              <p className="max-w-2xl text-lg leading-8 text-slate-700">Moderní a přehledný rezervační systém pro 3 venkovní antukové kurty. Vyberte den, volný kurt a odešlete rezervaci ke schválení.</p>
             </div>
-            {isQuickStatusLoading && <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">Načítám…</span>}
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link href="/rezervace" className="inline-flex items-center justify-center rounded-xl bg-court px-6 py-3 font-semibold text-white shadow-lg shadow-emerald-900/15 transition hover:bg-green-700">
+                Rezervovat kurt
+              </Link>
+              {isAuthenticated ? (
+                <Link href="/moje-rezervace" className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white/90 px-6 py-3 font-semibold text-slate-800 transition hover:border-court hover:text-court">
+                  Moje rezervace
+                </Link>
+              ) : (
+                <Link href="/prihlaseni" className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white/90 px-6 py-3 font-semibold text-slate-800 transition hover:border-court hover:text-court">
+                  Přihlásit se
+                </Link>
+              )}
+            </div>
           </div>
-          {quickStatusError && <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">{quickStatusError}</p>}
-          <div className="space-y-2">
-            {quickStatus.length === 0 && isQuickStatusLoading && (
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">
-                Aktuální stav rezervací se načítá.
+
+          <aside className="rounded-3xl border border-white bg-white/90 p-5 shadow-xl shadow-slate-900/10">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-950">Rychlý stav rezervací</h2>
+                <p className="mt-1 text-sm text-slate-600">{quickStatusDescription}</p>
               </div>
-            )}
-            {shouldRenderQuickStatusCards({ isLoading: isQuickStatusLoading, hasError: Boolean(quickStatusError), count: quickStatus.length }) && quickStatus.map((summary) => (
-              <div key={summary.date} className={`rounded-xl border px-3 py-3 ${getStatusTone(summary)}`}>
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-semibold capitalize">{formatCzechDayLabel(summary.date)}</p>
-                  <p className="text-sm font-medium">{getQuickReservationSummaryLabel(summary.reservationsCount, summary.totalReservedHours)}</p>
+              {isQuickStatusLoading && <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">Načítám…</span>}
+            </div>
+            {quickStatusError && <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">{quickStatusError}</p>}
+            <div className="space-y-2">
+              {quickStatus.length === 0 && isQuickStatusLoading && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">
+                  Aktuální stav rezervací se načítá.
                 </div>
-                <p className="mt-1 text-sm opacity-85">
-                  {summary.reservationCourtHoursLabel ?? 'V systému zatím nejsou žádné rezervace pro tento den.'}
-                </p>
-              </div>
-            ))}
-          </div>
-        </aside>
+              )}
+              {shouldRenderQuickStatusCards({ isLoading: isQuickStatusLoading, hasError: Boolean(quickStatusError), count: quickStatus.length }) && quickStatus.map((summary) => (
+                <div key={summary.date} className={`rounded-xl border px-3 py-3 ${getStatusTone(summary)}`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-semibold capitalize">{formatCzechDayLabel(summary.date)}</p>
+                    <p className="text-sm font-medium">{getQuickReservationSummaryLabel(summary.reservationsCount, summary.totalReservedHours)}</p>
+                  </div>
+                  <p className="mt-1 text-sm opacity-85">
+                    {summary.reservationCourtHoursLabel ?? 'V systému zatím nejsou žádné rezervace pro tento den.'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </aside>
         </div>
       </section>
 
-      {tournaments.length > 0 ? (
       <section className="rounded-[2rem] border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-lime-50 p-6 shadow-lg shadow-emerald-900/5 md:p-8">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
@@ -269,7 +275,13 @@ export function HomePage() {
           {tournamentsError ? (
             <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 lg:col-span-2">{tournamentsError}</p>
           ) : null}
-          {tournaments.map((tournament) => (
+          {isTournamentsLoading ? (
+            <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 lg:col-span-2">Načítám turnaje…</p>
+          ) : null}
+          {!isTournamentsLoading && tournaments.length === 0 && !tournamentsError ? (
+            <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 lg:col-span-2">Momentálně nejsou vypsané žádné blížící se turnaje.</p>
+          ) : null}
+          {!isTournamentsLoading && tournaments.map((tournament) => (
             <Link
               key={tournament.id}
               href={`/rezervace?datum=${encodeURIComponent(tournament.date)}`}
@@ -317,30 +329,6 @@ export function HomePage() {
             </Link>
           ))}
         </div>
-      </section>
-      ) : null}
-
-      <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm md:p-8">
-        <h2 className="text-xl font-semibold text-slate-950">Jak rezervace funguje</h2>
-        <div className="mt-5 grid gap-4 md:grid-cols-3">
-          {[
-            ['1', 'Vyberte den', 'V přehledu rezervací zvolte datum, které vám vyhovuje.'],
-            ['2', 'Vyberte kurt a čas', 'Klikněte na volný blok v denním přehledu všech kurtů.'],
-            ['3', 'Přihlaste se a potvrďte', 'Po přihlášení odešlete rezervaci a vyčkejte na schválení.'],
-          ].map(([step, title, description]) => (
-            <article key={step} className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5 transition hover:-translate-y-0.5 hover:shadow-md">
-              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-court text-sm font-bold text-white">{step}</div>
-              <h3 className="font-semibold text-slate-950">{title}</h3>
-              <p className="mt-2 text-sm text-slate-600">{description}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="grid gap-6 md:grid-cols-3">
-        <article className="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm"><h2 className="font-semibold">Informace o kurtech</h2><p className="mt-2 text-sm text-slate-600">3 antukové venkovní kurty, adresa Palackého 1269, Stříbro.</p></article>
-        <article className="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm"><h2 className="font-semibold">Rezervace pod kontrolou</h2><p className="mt-2 text-sm text-slate-600">Přihlášení uživatelé najdou své termíny v sekci Moje rezervace.</p></article>
-        <article className="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm"><h2 className="font-semibold">Přehled pro každý den</h2><p className="mt-2 text-sm text-slate-600">Denní rozvrh ukazuje obsazenost všech kurtů a pomáhá rychle najít vhodný čas.</p></article>
       </section>
     </div>
   );
