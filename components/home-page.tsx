@@ -259,6 +259,7 @@ export function HomePage() {
         </div>
       </section>
 
+      {(isTournamentsLoading || tournamentsError || tournaments.length > 0) ? (
       <section className="rounded-[2rem] border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-lime-50 p-6 shadow-lg shadow-emerald-900/5 md:p-8">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
@@ -277,9 +278,6 @@ export function HomePage() {
           ) : null}
           {isTournamentsLoading ? (
             <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 lg:col-span-2">Načítám turnaje…</p>
-          ) : null}
-          {!isTournamentsLoading && tournaments.length === 0 && !tournamentsError ? (
-            <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 lg:col-span-2">Momentálně nejsou vypsané žádné blížící se turnaje.</p>
           ) : null}
           {!isTournamentsLoading && tournaments.map((tournament) => (
             <Link
@@ -330,6 +328,7 @@ export function HomePage() {
           ))}
         </div>
       </section>
+      ) : null}
     </div>
   );
 }

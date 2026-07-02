@@ -8,11 +8,4 @@
 
 body {
   @apply overflow-x-clip bg-slate-50 text-slate-900 antialiased;
-  background:
-    radial-gradient(circle at top left, rgba(29, 122, 67, 0.12), transparent 32rem),
-    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 44%, #f8fafc 100%);
-}
-
-::selection {
-  @apply bg-emerald-200 text-emerald-950;
 }
