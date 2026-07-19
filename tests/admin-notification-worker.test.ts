@@ -145,7 +145,7 @@ test('chyba providera neukládá API klíč', () => {
   assert.match(sanitized, /\[SKRYTO\]/);
 });
 
-test('approved e-mail míří pouze uživateli, má textovou variantu a escapuje HTML', () => {
+test('approved e-mail pro ručně schváleného nečlena obsahuje instrukce k zámku', () => {
   const message = buildReservationApprovedEmail({
     ...detail,
     courtName: 'Kurt <script>alert("x")</script>',
@@ -164,6 +164,19 @@ test('approved e-mail míří pouze uživateli, má textovou variantu a escapuje
   assert.match(message.html, /zadní vchod/);
   assert.match(message.html, /2275/);
   assert.match(message.idempotencyKey, /^reservation-approved-/);
+});
+
+test('approved e-mail při chybějící roli bere uživatele bezpečně jako nečlena', () => {
+  const message = buildReservationApprovedEmail({
+    ...detail,
+    userRole: null,
+  }, 'https://rezervuj-kurt.vercel.app');
+
+  assert.ok(message);
+  assert.match(message.text, /zadní vchod/);
+  assert.match(message.text, /2275/);
+  assert.match(message.html, /zadní vchod/);
+  assert.match(message.html, /2275/);
 });
 
 test('approved e-mail pro člena neobsahuje instrukce k zadnímu vchodu', () => {
