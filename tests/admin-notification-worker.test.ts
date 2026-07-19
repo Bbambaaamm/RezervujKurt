@@ -23,6 +23,7 @@ const detail: ReservationNotificationDetail = {
   userName: 'Jan Novák',
   userEmail: 'jan@example.com',
   userPhone: '+420 123 456 789',
+  userRole: 'user',
 };
 
 test('admin bez e-mailu nebo s vypnutými notifikacemi se přeskočí', () => {
@@ -158,7 +159,24 @@ test('approved e-mail míří pouze uživateli, má textovou variantu a escapuje
   assert.match(message.text, /Kurt <script>alert\("x"\)<\/script>/);
   assert.match(message.text, /Moje rezervace/);
   assert.match(message.html, /\/moje-rezervace/);
+  assert.match(message.text, /zadní vchod/);
+  assert.match(message.text, /2275/);
+  assert.match(message.html, /zadní vchod/);
+  assert.match(message.html, /2275/);
   assert.match(message.idempotencyKey, /^reservation-approved-/);
+});
+
+test('approved e-mail pro člena neobsahuje instrukce k zadnímu vchodu', () => {
+  const message = buildReservationApprovedEmail({
+    ...detail,
+    userRole: 'member',
+  }, 'https://rezervuj-kurt.vercel.app');
+
+  assert.ok(message);
+  assert.doesNotMatch(message.text, /zadní vchod/);
+  assert.doesNotMatch(message.text, /2275/);
+  assert.doesNotMatch(message.html, /zadní vchod/);
+  assert.doesNotMatch(message.html, /2275/);
 });
 
 test('approved e-mail se neposílá adminům a retry zachová idempotenci uživatele', async () => {

@@ -17,6 +17,7 @@ export type ReservationNotificationDetail = {
   userName: string;
   userEmail: string | null;
   userPhone: string | null;
+  userRole: 'user' | 'member' | 'admin' | null;
 };
 
 export type AdminRecipient = {
@@ -75,6 +76,8 @@ function formatDate(value: string): string {
 function safeSiteUrl(siteUrl: string): string {
   return siteUrl.replace(/\/+$/, '');
 }
+
+const NON_MEMBER_APPROVED_RESERVATION_ACCESS_TEXT = 'Pokud na kurtech není nikdo přítomný, použijte prosím zadní vchod. Na zadním vchodu je visací zámek na kód 2275.';
 
 function hashIdempotencyValue(value: string): string {
   let hash = 2166136261;
@@ -159,6 +162,7 @@ export function buildReservationApprovedEmail(
 
   const reservationsUrl = `${safeSiteUrl(siteUrl)}/moje-rezervace`;
   const subject = `Rezervace byla schválena – ${detail.courtName}`;
+  const includeNonMemberAccessInfo = detail.userRole === 'user';
   const text = [
     'Dobrý den,',
     '',
@@ -168,6 +172,7 @@ export function buildReservationApprovedEmail(
     `Datum: ${formatDate(detail.reservationDate)}`,
     `Čas: ${formatTime(detail.timeFrom)}–${formatTime(detail.timeTo)}`,
     '',
+    ...(includeNonMemberAccessInfo ? [NON_MEMBER_APPROVED_RESERVATION_ACCESS_TEXT, ''] : []),
     'Rezervaci najdete v přehledu „Moje rezervace“:',
     reservationsUrl,
     '',
@@ -184,6 +189,7 @@ export function buildReservationApprovedEmail(
         <tr><th align="left">Čas</th><td>${escapeHtml(formatTime(detail.timeFrom))}–${escapeHtml(formatTime(detail.timeTo))}</td></tr>
       </tbody>
     </table>
+    ${includeNonMemberAccessInfo ? `<p>${escapeHtml(NON_MEMBER_APPROVED_RESERVATION_ACCESS_TEXT)}</p>` : ''}
     <p>Rezervaci najdete v přehledu <a href="${escapeHtml(reservationsUrl)}">Moje rezervace</a>.</p>
     <p>S pozdravem<br>RezervujKurt</p>
   `.trim();

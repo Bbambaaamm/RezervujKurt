@@ -23,7 +23,7 @@ type ReservationRow = {
 };
 
 type CourtRow = { name: string };
-type ProfileRow = { full_name: string; email: string | null; phone: string | null };
+type ProfileRow = { full_name: string; email: string | null; phone: string | null; role: 'user' | 'member' | 'admin' | null };
 
 type Configuration = {
   supabaseUrl: string;
@@ -116,7 +116,7 @@ async function loadReservationDetail(
     ),
     loadSingle<ProfileRow>(
       configuration,
-      `profiles?select=full_name,email,phone&id=eq.${encodeURIComponent(reservation.user_id)}`,
+      `profiles?select=full_name,email,phone,role&id=eq.${encodeURIComponent(reservation.user_id)}`,
       'Profil uživatele rezervace nebyl nalezen.',
     ),
   ]);
@@ -131,6 +131,7 @@ async function loadReservationDetail(
     userName: profile.full_name,
     userEmail: profile.email,
     userPhone: profile.phone,
+    userRole: profile.role,
   };
 }
 
