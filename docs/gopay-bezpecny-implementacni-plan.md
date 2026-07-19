@@ -652,6 +652,11 @@ Migrace nesmí neomezeně čekat na zámek a tím blokovat nové rezervace. U ri
 - [ ] Rozšířit auditní check constraint pro nové statusy, pokud audit ukládá `old_status`/`new_status`.
 - [ ] Upravit exclusion constraint tak, aby blokoval `pending`, `approved` i `waiting_for_payment`.
 - [ ] Upravit public occupancy view tak, aby `waiting_for_payment` blokoval slot.
+- [ ] Upravit aplikační status filtr v `lib/services/read-only.ts` pro public grid/read endpoint z `status=in.(pending,approved)` na výčet zahrnující `waiting_for_payment`.
+- [ ] Upravit aplikační status filtr v `lib/services/read-only.ts` pro member/private occupancy notes endpoint, pokud má `waiting_for_payment` blokovat slot i v přihlášeném zobrazení.
+- [ ] Upravit aplikační status filtr v `lib/services/reservations.ts` v availability pre-checku z `status=in.(pending,approved)` na výčet zahrnující `waiting_for_payment`.
+- [ ] Upravit aplikační occupancy predikát v `lib/services/reservations.ts`, aby řádky se `status = 'waiting_for_payment'` nebyly ignorované při vyhodnocení kolize.
+- [ ] Upravit klientské/doménové mapování obsazenosti, aby `waiting_for_payment` nebyl zobrazen jako volný slot ani v gridu.
 - [ ] Upravit private/member occupancy notes view, pokud používá výčet stavů.
 - [ ] Upravit TypeScript typy pro stav rezervace.
 - [ ] Upravit mapování stavů v UI tak, aby neznámý stav nespadl do nesprávného významu.
@@ -679,6 +684,9 @@ Migrace nesmí neomezeně čekat na zámek a tím blokovat nové rezervace. U ri
 - [ ] DB test, že `waiting_for_payment` blokuje překryv.
 - [ ] DB test, že `cancelled` slot neblokuje.
 - [ ] Test public occupancy pro `waiting_for_payment`.
+- [ ] Test aplikačního grid/read endpointu, že filtr vrací i `waiting_for_payment`.
+- [ ] Test availability pre-checku, že `waiting_for_payment` vyhodnotí jako kolizi.
+- [ ] Test klientského occupancy predikátu, že `waiting_for_payment` není volný slot.
 - [ ] Test admin pending listu, že `waiting_for_payment` není běžná schvalovací položka.
 - [ ] Regresní test `pending -> approved` pro člena/admina.
 - [ ] Regresní test ručního admin schválení obyčejné `pending` rezervace.
@@ -945,7 +953,7 @@ Zajistit bezpečné zotavení situací, kdy webhook nepřijde, přijde pozdě, G
 - [ ] Přidat idempotentní RPC pro reconciliation.
 - [ ] Používat zámky nebo claim mechanismus, aby dva workery nezpracovaly stejný záznam konfliktně.
 - [ ] Nastavit limity počtu pokusů.
-- [ ] Po překročení limitů přejít do `manual_review`.
+- [ ] Po překročení limitů převést payment do `requires_manual_review`; u refundu použít refund stav `manual_review`.
 - [ ] Zapisovat platební audit.
 - [ ] Vytvářet alert pro stuck nebo neznámé stavy.
 
@@ -963,7 +971,7 @@ Zajistit bezpečné zotavení situací, kdy webhook nepřijde, přijde pozdě, G
 - [ ] Dva workery zpracují stejný záznam.
 - [ ] GoPay vrátí neznámý stav.
 - [ ] Refund zůstane dlouho v `processing`.
-- [ ] Po překročení retry limitu vznikne `manual_review`.
+- [ ] Po překročení retry limitu vznikne pro payment `requires_manual_review` a pro refund `manual_review`.
 
 ## Kritéria úspěchu
 
@@ -975,7 +983,7 @@ Zajistit bezpečné zotavení situací, kdy webhook nepřijde, přijde pozdě, G
 
 - [ ] Vypnout reconciliation worker, pokud způsobuje chyby.
 - [ ] Ponechat webhook aktivní pro existující platby, pokud je bezpečný.
-- [ ] Problémové položky převést do `manual_review`.
+- [ ] Problémové payment položky převést do `requires_manual_review`; problémové refundy do `manual_review`.
 
 ---
 
