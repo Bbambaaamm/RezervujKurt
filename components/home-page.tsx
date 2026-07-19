@@ -209,6 +209,10 @@ export function HomePage() {
               <p className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-bold uppercase tracking-wide text-court ring-1 ring-emerald-100">Online rezervace kurtů</p>
               <h1 className="max-w-3xl text-3xl font-black tracking-tight text-slate-950 md:text-6xl">Tenisové kurty TJ Baník Stříbro</h1>
               <p className="max-w-2xl text-base leading-7 text-slate-700 md:text-lg md:leading-8">Moderní a přehledný rezervační systém pro 3 venkovní antukové kurty. Vyberte den, volný kurt a odešlete rezervaci ke schválení.</p>
+              <div className="max-w-2xl rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950 shadow-sm">
+                <p className="font-semibold">Informace pro nečleny</p>
+                <p>Hodina hry stojí 250 Kč. Platba probíhá přes QR kód na nástěnce na budově, kde se zároveň zapíšete do evidence hry nečlenů.</p>
+              </div>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Link href="/rezervace" className="inline-flex items-center justify-center rounded-xl bg-court px-6 py-3 font-semibold text-white shadow-lg shadow-emerald-900/15 transition hover:bg-green-700">
