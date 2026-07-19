@@ -77,11 +77,22 @@ function safeSiteUrl(siteUrl: string): string {
   return siteUrl.replace(/\/+$/, '');
 }
 
-const NON_MEMBER_APPROVED_RESERVATION_ACCESS_TEXT = 'Pokud na kurtech není nikdo přítomný, použijte prosím zadní vchod. Na zadním vchodu je visací zámek na kód 2275.';
+const NON_MEMBER_APPROVED_RESERVATION_ACCESS_TEXT = 'Pokud je zamčený hlavní vchod, použijte prosím zadní vchod. Na zadním vchodu je visací zámek na kód 2275.';
+const NON_MEMBER_APPROVED_RESERVATION_ACCESS_MAP_PATH = '/images/zadni-vchod-mapa.svg';
 const NON_MEMBER_APPROVED_RESERVATION_PAYMENT_TEXT = [
   'Hodina hry stojí 250 Kč.',
   'Platba probíhá přes QR kód na nástěnce na budově, kde se zároveň zapíšete do evidence hry nečlenů.',
 ].join(' ');
+
+function buildNonMemberAccessHtml(accessMapUrl: string): string {
+  return [
+    '<div style="margin: 20px 0; padding: 16px; border: 1px solid #dbe5f0; border-radius: 14px; background: #f8fafc;">',
+    `<p style="margin: 0 0 12px;">${escapeHtml(NON_MEMBER_APPROVED_RESERVATION_ACCESS_TEXT)}</p>`,
+    `<img src="${escapeHtml(accessMapUrl)}" alt="Mapa přístupu k zadnímu vchodu" width="560" style="display: block; width: 100%; max-width: 560px; height: auto; border-radius: 12px; border: 1px solid #cbd5e1;">`,
+    '<p style="margin: 12px 0 0; font-size: 13px; color: #475569;">Na mapě je vyznačen hlavní vchod, zadní vchod a doporučená trasa.</p>',
+    '</div>',
+  ].join('');
+}
 
 function hashIdempotencyValue(value: string): string {
   let hash = 2166136261;
@@ -164,7 +175,9 @@ export function buildReservationApprovedEmail(
   const recipient = detail.userEmail?.trim();
   if (!recipient) return null;
 
-  const reservationsUrl = `${safeSiteUrl(siteUrl)}/moje-rezervace`;
+  const baseUrl = safeSiteUrl(siteUrl);
+  const reservationsUrl = `${baseUrl}/moje-rezervace`;
+  const accessMapUrl = `${baseUrl}${NON_MEMBER_APPROVED_RESERVATION_ACCESS_MAP_PATH}`;
   const subject = `Rezervace byla schválena – ${detail.courtName}`;
   const includeNonMemberAccessInfo = detail.userRole !== 'member' && detail.userRole !== 'admin';
   const text = [
@@ -178,7 +191,7 @@ export function buildReservationApprovedEmail(
     '',
     ...(
       includeNonMemberAccessInfo
-        ? [NON_MEMBER_APPROVED_RESERVATION_ACCESS_TEXT, NON_MEMBER_APPROVED_RESERVATION_PAYMENT_TEXT, '']
+        ? [NON_MEMBER_APPROVED_RESERVATION_ACCESS_TEXT, `Mapa přístupu k zadnímu vchodu: ${accessMapUrl}`, NON_MEMBER_APPROVED_RESERVATION_PAYMENT_TEXT, '']
         : []
     ),
     'Rezervaci najdete v přehledu „Moje rezervace“:',
@@ -198,7 +211,7 @@ export function buildReservationApprovedEmail(
       </tbody>
     </table>
     ${includeNonMemberAccessInfo
-      ? `<p>${escapeHtml(NON_MEMBER_APPROVED_RESERVATION_ACCESS_TEXT)}</p><p>${escapeHtml(NON_MEMBER_APPROVED_RESERVATION_PAYMENT_TEXT)}</p>`
+      ? `${buildNonMemberAccessHtml(accessMapUrl)}<p>${escapeHtml(NON_MEMBER_APPROVED_RESERVATION_PAYMENT_TEXT)}</p>`
       : ''}
     <p>Rezervaci najdete v přehledu <a href="${escapeHtml(reservationsUrl)}">Moje rezervace</a>.</p>
     <p>S pozdravem<br>RezervujKurt</p>
