@@ -162,7 +162,7 @@ export function buildReservationApprovedEmail(
 
   const reservationsUrl = `${safeSiteUrl(siteUrl)}/moje-rezervace`;
   const subject = `Rezervace byla schválena – ${detail.courtName}`;
-  const includeNonMemberAccessInfo = detail.userRole === 'user';
+  const includeNonMemberAccessInfo = detail.userRole !== 'member' && detail.userRole !== 'admin';
   const text = [
     'Dobrý den,',
     '',
