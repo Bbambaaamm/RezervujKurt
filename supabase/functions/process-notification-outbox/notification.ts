@@ -77,7 +77,7 @@ function safeSiteUrl(siteUrl: string): string {
   return siteUrl.replace(/\/+$/, '');
 }
 
-const NON_MEMBER_APPROVED_RESERVATION_ACCESS_TEXT = 'Pokud na kurtech není nikdo přítomný, použijte prosím zadní vchod. Na zadním vchodu je visací zámek na kód 2275.';
+const NON_MEMBER_APPROVED_RESERVATION_ACCESS_TEXT = 'Pokud by byl přední vchod zamčený, použijte prosím zadní vchod. Na zadním vchodu je visací zámek na kód 2275.';
 const NON_MEMBER_APPROVED_RESERVATION_PAYMENT_TEXT = [
   'Hodina hry stojí 250 Kč.',
   'Platba probíhá přes QR kód na nástěnce na budově, kde se zároveň zapíšete do evidence hry nečlenů.',
