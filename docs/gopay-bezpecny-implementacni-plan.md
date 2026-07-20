@@ -35,7 +35,9 @@ Současné rezervace musí fungovat během celé implementace. Žádný krok nes
 
 ## Oddělení merge aplikace a produkční databázové migrace
 
-- [ ] Merge do `main` nesmí automaticky znamenat spuštění `supabase db push` do produkce.
+Stav prvního bezpečnostního bodu: v CI je přidaná kontrola `npm run check:no-auto-prod-db-push`, která hlídá, že běžné workflow a npm skripty nespouští produkční Supabase migrace automaticky. Kontrola je záměrně konzervativní a povoluje pouze lokální `supabase db push --local`; produkční migrace musí zůstat ruční, oddělená a auditovatelná operace.
+
+- [x] Merge do `main` nesmí automaticky znamenat spuštění `supabase db push` do produkce.
 - [ ] Produkční databázová migrace je samostatná, řízená a auditovatelná operace.
 - [ ] Před produkční migrací musí být zkontrolován přesný SQL obsah všech migrací, které se mají aplikovat.
 - [ ] Musí být potvrzeno, které tabulky, funkce, policies, views, triggery, indexy a constraints migrace mění.
@@ -44,6 +46,17 @@ Současné rezervace musí fungovat během celé implementace. Žádný krok nes
 - [ ] Aplikační kód se nesmí začít spoléhat na databázovou změnu, která ještě není v produkci.
 - [ ] U čistě aditivní migrace může být merge kódu bezpečný i před produkční migrací pouze tehdy, pokud aktuální produkční kód nový objekt vůbec nepoužívá.
 - [ ] Feature flag musí zůstat vypnutý, dokud není potvrzeno, že příslušná databázová změna existuje v produkci.
+
+
+### Nasazení po prvním bodu
+
+Pro správné nasazení této změny je potřeba:
+
+- [ ] Zkontrolovat, že GitHub Actions `Build Gate` po merge prochází včetně kroku `Ověření oddělení DB migrací od deploye`.
+- [ ] Ověřit, že žádný externí deployment nástroj mimo repozitář nespouští `supabase db push`, `supabase link` nebo jiný zápis do produkční databáze jako vedlejší efekt deploye aplikace.
+- [ ] Potvrdit, že Vercel/GitHub secrets pro produkční Supabase nejsou používány v běžném build workflow.
+- [ ] Zachovat produkční databázové migrace jako samostatný ruční release krok podle produkčního databázového preflightu níže.
+- [ ] Po aplikačním deployi spustit produkční smoke test současného rezervačního systému; tato změna nemá sama o sobě spouštět žádnou databázovou migraci.
 
 ## Deployment kompatibilita Blue/Green
 

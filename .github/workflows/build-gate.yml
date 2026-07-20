@@ -32,5 +32,8 @@ jobs:
       - name: RLS guard (dev mode)
         run: npm run check:rls
 
+      - name: Ověření oddělení DB migrací od deploye
+        run: npm run check:no-auto-prod-db-push
+
       - name: Build
         run: npm run build
