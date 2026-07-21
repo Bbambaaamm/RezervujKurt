@@ -601,7 +601,7 @@ Dynamické flagy mohou být uložené v bezpečné Supabase konfigurační tabul
 
 ## Požadavky na flagy
 
-- [x] Flagy jsou uložené pouze v serverově čitelné DB tabulce bez práv pro `anon` a `authenticated`; aplikační čtení bude doplněno až v kroku, který je začne používat.
+- [x] Flagy jsou uložené v DB tabulce bez práv pro `anon` a `authenticated`; `service_role` má explicitní least-privilege `select` pro budoucí serverové čtení kill switchů.
 - [x] Běžný uživatel je nemůže měnit.
 - [ ] Admin UI pro jejich změnu není nutné v první verzi; do dodání serverového nástroje se flagy nesmí měnit ručním jednoduchým `UPDATE`.
 - [x] Migrace auditně eviduje inicializaci flagů. Budoucí změny musí provádět bezpečný serverový nástroj nebo kontrolovaná transakce, která ve stejné transakci zapíše změnu i do auditního logu; jednoduchý ruční `UPDATE` audit sám nevytvoří.
