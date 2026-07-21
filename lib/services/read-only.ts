@@ -15,7 +15,7 @@ type ReservationRow = {
   reservation_date: string;
   time_from: string;
   time_to: string;
-  status: 'pending' | 'approved';
+  status: 'waiting_for_payment' | 'pending' | 'approved';
   note?: string | null;
 };
 
@@ -64,6 +64,7 @@ export type ReservationOverview = {
 };
 
 function mapStatus(status: ReservationRow['status']): ReservationStatus {
+  if (status === 'waiting_for_payment') return 'ceka_na_platbu';
   if (status === 'pending') return 'cekajici';
   if (status === 'approved') return 'potvrzeno';
   return 'blokace';
@@ -74,12 +75,21 @@ function parseHour(timeValue: string) {
   return hours + minutes / 60;
 }
 
-function getReservationReadKey(row: Pick<ReservationRow, 'court_id' | 'reservation_date' | 'time_from' | 'time_to' | 'status'>) {
-  return `${row.court_id}|${row.reservation_date}|${row.time_from}|${row.time_to}|${row.status}`;
+function getReservationReadKey(row: Pick<ReservationRow, 'court_id' | 'reservation_date' | 'time_from' | 'time_to'>) {
+  return `${row.court_id}|${row.reservation_date}|${row.time_from}|${row.time_to}`;
+}
+
+function maskPublicReservationRow(row: ReservationRow): ReservationRow {
+  if (row.status !== 'waiting_for_payment') return row;
+
+  return {
+    ...row,
+    status: 'approved',
+  };
 }
 
 async function getPrivateReservationNotes(date: string, accessToken: string) {
-  const endpoint = `reservation_member_occupancy_notes?select=court_id,reservation_date,time_from,time_to,status,note&reservation_date=eq.${date}&status=in.(pending,approved)&order=time_from.asc`;
+  const endpoint = `reservation_member_occupancy_notes?select=court_id,reservation_date,time_from,time_to,status,note&reservation_date=eq.${date}&status=in.(waiting_for_payment,pending,approved)&order=time_from.asc`;
 
   if (process.env.NODE_ENV === 'development') {
     console.info('getPrivateReservationNotes request', { date, endpoint });
@@ -89,16 +99,23 @@ async function getPrivateReservationNotes(date: string, accessToken: string) {
 }
 
 function mergeReservationNotes(publicRows: ReservationRow[], privateRows: ReservationRow[]) {
-  const notesByKey = new Map(
-    privateRows
-      .map((row) => [getReservationReadKey(row), row.note?.trim() || null] as const)
-      .filter(([, note]) => note),
+  const privateRowsByKey = new Map(
+    privateRows.map((row) => [getReservationReadKey(row), row] as const),
   );
 
-  return publicRows.map((row) => ({
-    ...row,
-    note: notesByKey.get(getReservationReadKey(row)) ?? null,
-  }));
+  return publicRows.map((row) => {
+    const privateRow = privateRowsByKey.get(getReservationReadKey(row));
+
+    if (!privateRow) {
+      return maskPublicReservationRow(row);
+    }
+
+    return {
+      ...row,
+      status: privateRow.status,
+      note: privateRow.note?.trim() || null,
+    };
+  });
 }
 
 function mapCourt(row: CourtRow): Court {
@@ -190,14 +207,14 @@ export async function getCourtsReadOnly() {
 }
 
 export async function getReservationsReadOnly(date: string, accessToken?: string | null) {
-  const endpoint = `reservation_public_occupancy?select=court_id,reservation_date,time_from,time_to,status&reservation_date=eq.${date}&status=in.(pending,approved)&order=time_from.asc`;
+  const endpoint = `reservation_public_occupancy?select=court_id,reservation_date,time_from,time_to,status&reservation_date=eq.${date}&status=in.(waiting_for_payment,pending,approved)&order=time_from.asc`;
 
   if (process.env.NODE_ENV === 'development') {
     console.info('getReservationsReadOnly request', { date, endpoint });
   }
 
   const publicRows = await supabaseSelect<ReservationRow>(endpoint);
-  let rows = publicRows;
+  let rows = publicRows.map(maskPublicReservationRow);
 
   if (accessToken) {
     try {

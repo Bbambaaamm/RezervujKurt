@@ -30,8 +30,26 @@ type ReservationAvailabilityCheckInput = {
 type ReservationAvailabilityRow = {
   time_from: string;
   time_to: string;
-  status: 'pending' | 'approved' | 'cancelled';
+  status: 'waiting_for_payment' | 'pending' | 'approved' | 'cancelled';
 };
+
+export const OCCUPYING_RESERVATION_STATUSES = [
+  'waiting_for_payment',
+  'pending',
+  'approved',
+] as const;
+
+type OccupyingReservationStatus = typeof OCCUPYING_RESERVATION_STATUSES[number];
+
+function isOccupyingReservationStatus(
+  status: ReservationAvailabilityRow['status'],
+): status is OccupyingReservationStatus {
+  return OCCUPYING_RESERVATION_STATUSES.includes(status as OccupyingReservationStatus);
+}
+
+function getOccupyingReservationStatusFilter() {
+  return `in.(${OCCUPYING_RESERVATION_STATUSES.join(',')})`;
+}
 
 export class ReservationAvailabilityReadError extends Error {
   readonly status: number;
@@ -183,7 +201,7 @@ export async function checkReservationSlotAvailability(input: ReservationAvailab
   endpoint.searchParams.set('select', 'court_id,reservation_date,time_from,time_to,status');
   endpoint.searchParams.set('court_id', `eq.${input.courtId}`);
   endpoint.searchParams.set('reservation_date', `eq.${input.reservationDate}`);
-  endpoint.searchParams.set('status', 'in.(pending,approved)');
+  endpoint.searchParams.set('status', getOccupyingReservationStatusFilter());
 
   if (process.env.NODE_ENV === 'development') {
     console.info('public occupancy request started', { courtId: input.courtId, reservationDate: input.reservationDate });
@@ -228,10 +246,14 @@ export async function checkReservationSlotAvailability(input: ReservationAvailab
     console.info('public occupancy loaded', { courtId: input.courtId, reservationDate: input.reservationDate, count: rows.length });
   }
 
-  const hasConflict = rows.some((row) => doesReservationIntervalOverlap(
-    { timeFrom: input.timeFrom, timeTo: input.timeTo },
-    { timeFrom: row.time_from, timeTo: row.time_to },
-  ) && (row.status === 'pending' || row.status === 'approved'));
+  const hasConflict = rows.some(
+    (row) =>
+      isOccupyingReservationStatus(row.status)
+      && doesReservationIntervalOverlap(
+        { timeFrom: input.timeFrom, timeTo: input.timeTo },
+        { timeFrom: row.time_from, timeTo: row.time_to },
+      ),
+  );
 
   return !hasConflict;
 }

@@ -64,6 +64,18 @@ test('cizí pending rezervace blokuje výběr', () => {
   assert.equal(occupied, true);
 });
 
+test('cizí rezervace čekající na platbu blokuje výběr', () => {
+  const occupied = isSlotOccupiedByPublicReservations({
+    reservations: [reservation({ status: 'ceka_na_platbu', name: 'Někdo jiný' })],
+    courtId: 1,
+    date: '2026-05-20',
+    timeFrom: '15:30',
+    timeTo: '16:00',
+  });
+
+  assert.equal(occupied, true);
+});
+
 test('cizí approved rezervace blokuje výběr', () => {
   const occupied = isSlotOccupiedByPublicReservations({
     reservations: [reservation({ status: 'potvrzeno', name: 'Někdo jiný' })],
