@@ -54,6 +54,7 @@ alter table public.payment_feature_flag_audit_log enable row level security;
 revoke all privileges on public.payment_feature_flags from anon, authenticated;
 revoke all privileges on public.payment_feature_flag_audit_log from anon, authenticated;
 revoke all privileges on sequence public.payment_feature_flag_audit_log_id_seq from anon, authenticated;
+
 insert into public.payment_feature_flags (flag_name, enabled, description, owner, removal_condition)
 values
   (

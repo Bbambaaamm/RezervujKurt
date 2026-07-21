@@ -603,12 +603,47 @@ Dynamické flagy mohou být uložené v bezpečné Supabase konfigurační tabul
 
 - [x] Flagy jsou uložené pouze v serverově čitelné DB tabulce bez práv pro `anon` a `authenticated`; aplikační čtení bude doplněno až v kroku, který je začne používat.
 - [x] Běžný uživatel je nemůže měnit.
-- [ ] Admin UI pro jejich změnu není nutné v první verzi.
-- [x] Inicializace flagů se auditují; budoucí změny musí zapisovat do audit logu přes určený serverový/admin nástroj.
+- [ ] Admin UI pro jejich změnu není nutné v první verzi; do dodání serverového nástroje se flagy nesmí měnit ručním jednoduchým `UPDATE`.
+- [x] Migrace auditně eviduje inicializaci flagů. Budoucí změny musí provádět bezpečný serverový nástroj nebo kontrolovaná transakce, která ve stejné transakci zapíše změnu i do auditního logu; jednoduchý ruční `UPDATE` audit sám nevytvoří.
 - [x] Výchozí hodnota je bezpečně vypnutá.
 - [x] Při nedostupnosti konfigurace se helpery chovají fail-closed pro nové platby.
 - [ ] Vypnutí create flow nesmí vypnout zpracování existujících webhooků.
 - [ ] Vypnutí auto-refundu nesmí ztratit již rozpracované refundy.
+
+Doporučený tvar kontrolované změny flagu před dodáním serverového nástroje:
+
+```sql
+begin;
+
+update public.payment_feature_flags
+set
+  enabled = true,
+  updated_by = '<UUID oprávněného správce>',
+  updated_at = now()
+where flag_name = 'gopay_create_enabled'
+  and enabled = false;
+
+insert into public.payment_feature_flag_audit_log (
+  flag_name,
+  old_enabled,
+  new_enabled,
+  changed_by,
+  reason,
+  source
+)
+values (
+  'gopay_create_enabled',
+  false,
+  true,
+  '<UUID oprávněného správce>',
+  'Konkrétní schválený důvod zapnutí.',
+  'incident_response'
+);
+
+commit;
+```
+
+V produkci se v této fázi nemá zapínat žádný platební flag.
 
 ## Lifecycle feature flagů
 
