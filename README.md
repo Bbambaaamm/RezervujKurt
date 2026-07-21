@@ -14,7 +14,7 @@ Webový rezervační systém pro tenisové kurty TJ Baník Stříbro. Aplikace p
 - auditní stopa vytvoření rezervace a změn jejího stavu;
 - unit testy a Playwright smoke scénáře pro anonymní i autentizovaný průchod.
 
-Rozsah potvrzeného MVP a navazující práci eviduje [řídicí checklist](docs/dalsi-postup.md). Funkce jako blokace kurtů, produktové notifikace, platby nebo další poskytovatelé přihlášení jsou plánované, ale nejsou součástí aktuálně dokončeného základu.
+Rozsah potvrzeného MVP a navazující práci eviduje [řídicí checklist](docs/dalsi-postup.md). Funkce jako blokace kurtů, produktové notifikace nebo další poskytovatelé přihlášení jsou plánované, ale nejsou součástí aktuálně dokončeného základu. Platební provoz ještě není aktivní; jeho databázový a bezpečnostní základ je už implementovaný a částečně ověřený na stagingu.
 
 Pro bezpečné nasazení a řešení výpadků slouží [provozní release, incident a rollback runbook](docs/provozni-runbook.md). Konkrétní vlastníci a neveřejné kontakty musí být před produkčním použitím doplněné v provozní evidenci.
 

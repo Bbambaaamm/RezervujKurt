@@ -2,9 +2,9 @@
 
 > Rozhodnutí vlastníka projektu pro první produkční verzi s cílovými náklady **0 Kč/měsíc**.
 
-- **Stav:** rozpracováno; production konfigurace a oba Supabase projekty jsou potvrzené
+- **Stav:** rozpracováno; production konfigurace a oba Supabase projekty jsou potvrzené, chybí stálý staging Vercel projekt
 - **Datum rozhodnutí:** 11. 6. 2026
-- **Poslední aktualizace:** 12. 6. 2026
+- **Poslední aktualizace:** 21. 7. 2026
 - **Repozitář:** GitHub
 - **Hosting aplikace:** Vercel Hobby
 - **Databáze a autentizace:** Supabase Free
@@ -18,11 +18,12 @@ Rozhodnutí určuje poskytovatele, oddělení prostředí a vlastnictví konfigu
 
 P1 zatím není plně dokončené, protože ještě chybí:
 
-- konkrétní URL staging/Preview deploymentu na Vercelu;
+- stálý staging Vercel projekt, doporučeně `rezervuj-kurt-staging` napojený na branch `staging`;
+- konkrétní staging URL, například `https://rezervuj-kurt-staging.vercel.app`;
 - konečný seznam osob s přístupem k Vercel a Supabase projektům;
 - povolená auth redirect URL pro staging prostředí;
-- potvrzení a konfigurace custom SMTP pro staging a production;
-- prakticky ověřené doručování přes custom SMTP na dvě externí adresy.
+- potvrzení a konfigurace custom SMTP pro staging a production; custom SMTP neblokuje základní staging lifecycle, ale zůstává podmínkou finálního production confidence passu a širšího veřejného provozu;
+- prakticky ověřené doručování přes custom SMTP na dvě externí adresy před širším veřejným provozem.
 
 Skutečné secrets ani neveřejné osobní kontakty se do této matice nezapisují.
 
@@ -32,9 +33,10 @@ Skutečné secrets ani neveřejné osobní kontakty se do této matice nezapisuj
 GitHub repozitář
     ├── lokální vývoj / GitHub Codespaces
     │       └── lokální Supabase
-    ├── Vercel projekt (Hobby)
-    │       ├── Preview deployment (staging)
-    │       │       └── samostatný Supabase Free projekt pro staging
+    ├── Vercel projekt `rezervuj-kurt-staging` (Hobby)
+    │       └── staging deployment z branche `staging`
+    │               └── samostatný Supabase Free projekt pro staging
+    ├── Vercel projekt pro production (Hobby)
     │       └── Production deployment
     │               └── samostatný Supabase Free projekt pro production
     └── Brevo Free (doporučený custom SMTP)
@@ -43,10 +45,10 @@ GitHub repozitář
 ```
 
 - **GitHub** je zdroj pravdy pro verzovaný kód, dokumentaci, migrace a CI kontroly.
-- **Vercel Hobby** sestavuje aplikaci z GitHub repozitáře. Preview deployment slouží jako staging, production deployment jako veřejná produkce.
+- **Vercel Hobby** sestavuje aplikaci z GitHub repozitáře. Doporučené rozdělení je samostatný Vercel projekt `rezervuj-kurt-staging` pro branch `staging` a oddělený production projekt pro veřejnou produkci.
 - **Supabase Free** poskytuje databázi a autentizaci. Staging a production používají různé projekty, aby se nemíchala data, uživatelé ani auth konfigurace.
 - **Development** používá lokální Supabase a lokální Mailpit; skutečné e-maily se při vývoji neposílají. Codespaces je pouze vzdálené vývojové pracoviště; není staging ani production.
-- **Brevo Free** je doporučený custom SMTP poskytovatel pro první veřejnou verzi. Bezplatný tarif podporuje SMTP a aktuálně omezuje odesílání na 300 e-mailů denně.
+- **Brevo Free** je doporučený custom SMTP poskytovatel pro první veřejnou verzi. Bezplatný tarif podporuje SMTP a aktuálně omezuje odesílání na 300 e-mailů denně. Custom SMTP není nutné dokončit před základním staging lifecycle, ale je podmínkou širšího veřejného provozu.
 - Bezplatný provoz platí pouze při dodržení limitů tarifů. Překročení limitu se nesmí automaticky řešit přechodem na placený tarif bez nového rozhodnutí vlastníka projektu.
 
 ## 3. Prostředí
@@ -61,10 +63,11 @@ GitHub repozitář
 
 ### Staging
 
-- Staging tvoří Vercel Preview deployment propojený s GitHub branchem nebo pull requestem určeným k ověření.
-- Používá samostatný Supabase Free projekt určený pouze pro staging.
-- Aplikační proměnné se spravují ve Vercelu pro prostředí **Preview**.
-- Staging Supabase projekt má před širším testováním dostat custom SMTP. SMTP host, port, uživatelské jméno, heslo a ověřený odesílatel se spravují pouze v Supabase Dashboardu daného projektu.
+- Staging má tvořit samostatný Vercel projekt `rezervuj-kurt-staging` propojený s Git branchem `staging`.
+- Používá samostatný Supabase Free projekt `rrlvlgoiwesteevzupyi` určený pouze pro staging.
+- Aplikační proměnné se spravují ve Vercelu pro staging projekt a všechny hodnoty musí mířit na staging Supabase projekt.
+- Platební capability flag má zůstat na stagingu vypnutý (`false`), dokud není výslovně ověřeno platební flow; GoPay prostředí má být připravené jako sandbox.
+- Staging Supabase projekt má před širším testováním dostat custom SMTP. SMTP host, port, uživatelské jméno, heslo a ověřený odesílatel se spravují pouze v Supabase Dashboardu daného projektu. Custom SMTP ale neblokuje základní hostovaný staging lifecycle přes výchozího poskytovatele, pokud se výsledek takto zdokumentuje.
 - Povolené Supabase Auth redirect URL musí odpovídat používané Preview URL. Konkrétní URL nebo bezpečně omezený vzor se nastaví až po vytvoření Vercel projektu a ověření skutečného formátu Preview URL.
 - Staging nesmí používat produkční databázi, produkční uživatele ani produkční secrets.
 
@@ -83,7 +86,7 @@ GitHub repozitář
 | Prostředí | Aplikační URL | Supabase projekt | Secrets spravuje | Přístup | Auth redirect |
 |---|---|---|---|---|---|
 | Development | `http://localhost:3000`, případně aktuální Codespaces URL | Lokální Supabase + Mailpit | Vývojář v ignorovaném `.env.local`; případné sdílené hodnoty v GitHub Codespaces secrets; bez Brevo credentials | Vývojář pracující na daném lokálním prostředí / Codespace | `http://localhost:3000/rezervace`, případně aktuální Codespaces URL s cestou `/rezervace` |
-| Staging | Bude doplněna konkrétní Vercel Preview URL | Supabase Free `rrlvlgoiwesteevzupyi` | Pověřený správce ve Vercel **Preview** environment variables; auth a Brevo SMTP credentials v Supabase Dashboardu | Vlastník projektu a výslovně pověření správci; aplikační přístup podle účelu testu | Bude doplněna a povolena po vzniku Preview deploymentu; musí končit cestou `/rezervace` |
+| Staging | Plánovaná stálá URL `https://rezervuj-kurt-staging.vercel.app` po vytvoření projektu `rezervuj-kurt-staging` | Supabase Free `rrlvlgoiwesteevzupyi` | Pověřený správce ve Vercel staging project environment variables; auth a Brevo SMTP credentials v Supabase Dashboardu | Vlastník projektu a výslovně pověření správci; aplikační přístup podle účelu testu | Bude doplněna a povolena po vzniku staging deploymentu; musí končit cestou `/rezervace` |
 | Production | `https://rezervuj-kurt.vercel.app` | Supabase Free `jrmenwgaponihgzroduw` | Pověřený správce ve Vercel **Production** environment variables; auth a budoucí custom SMTP credentials v Supabase Dashboardu | Vlastník projektu a výslovně pověření správci; veřejný přístup k aplikaci | Prakticky ověřený návrat na `https://rezervuj-kurt.vercel.app/rezervace` |
 
 ## 5. Doručování magic linků přes SMTP

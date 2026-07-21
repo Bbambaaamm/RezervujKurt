@@ -264,14 +264,14 @@ Cíl fáze: ověřit aplikaci nad prostředím, které odpovídá budoucímu pro
 **Akceptační kritéria:**
 
 - [x] je rozhodnuto, zda budou existovat `development`, `staging` a `production` prostředí;
-- [ ] každé prostředí má určený Supabase projekt a aplikační URL — oba hostované Supabase project refs a production Vercel URL jsou známé, chybí konkrétní staging/Preview URL;
+- [ ] každé prostředí má určený Supabase projekt a aplikační URL — oba hostované Supabase project refs a production Vercel URL jsou známé, chybí stálá staging Vercel URL;
 - [x] je zdokumentováno, kde se spravují secrets a kdo k nim má přístup;
 - [x] produkční secrets nejsou uložené v repozitáři ani veřejné dokumentaci;
 - [x] je runtime ověřeno propojení production Vercel deploymentu s production Supabase projektem;
-- [ ] staging a production mají nakonfigurovaný custom SMTP pro veřejné magic linky — technický test přes výchozího Supabase poskytovatele prošel na Gmail, custom SMTP pro širší provoz zatím chybí;
+- [ ] staging a production mají nakonfigurovaný custom SMTP pro veřejné magic linky — technický test přes výchozího Supabase poskytovatele prošel na Gmail, custom SMTP pro širší provoz zatím chybí; custom SMTP neblokuje vytvoření staging Vercelu ani základní staging lifecycle, ale zůstává podmínkou finálního production confidence passu a širšího veřejného provozu;
 - [ ] redirect URL pro auth jsou explicitně povolené pro každé prostředí — production návrat na `/rezervace` je prakticky ověřený, staging URL a její redirect allowlist zatím chybí.
 
-**Potvrzení:** rozpracováno; původní návrh prostředí potvrzen `11. 6. 2026`, konkrétní production URL, oba Supabase project refs a produkční propojení ověřeny `12. 6. 2026`. P1 čeká na staging/Preview URL, konkrétní vlastníky provozních přístupů a custom SMTP pro širší veřejný provoz.
+**Potvrzení:** rozpracováno; původní návrh prostředí potvrzen `11. 6. 2026`, konkrétní production URL, oba Supabase project refs a produkční propojení ověřeny `12. 6. 2026`. P1 čeká hlavně na stálou staging Vercel URL, konkrétní vlastníky provozních přístupů a povolení staging auth redirectu. Custom SMTP zůstává samostatná podmínka širšího veřejného provozu, ne blocker základního staging lifecycle.
 
 ## [-] P2 — Ověřit migrace na hostované databázi
 
@@ -285,23 +285,24 @@ Cíl fáze: ověřit aplikaci nad prostředím, které odpovídá budoucímu pro
 - [x] produkční aplikace po migraci úspěšně vytvořila rezervaci;
 - [x] produkční databáze je prokazatelně používaná production deploymentem.
 
-**Repozitářová kontrola migračních souborů:**
+**Repozitářová a staging kontrola migračních souborů:**
 
 - [x] `npm run check:rls` prošel nad lokálními SQL soubory v `supabase/migrations`;
 - [x] `npm run check:rls:prod` prošel v release režimu nad stejnými lokálními migračními soubory a upozornil na legacy DEV migraci v historii;
-- [ ] tyto statické kontroly nepotvrzují skutečně nasazené RLS politiky v hostované databázi; ty musí ověřit čistý staging migration run a databázová kontrola výsledného stavu.
+- [x] na používaném staging projektu byly ověřené platební tabulky, stav `waiting_for_payment`, constrainty, views, oprávnění, overlap ochrana, veřejné maskování platebního stavu, member occupancy view, granty pro `anon`/`authenticated`, omezení auto-approve pouze na `pending` a rollback test bez zbylých řádků;
+- [ ] širší RLS inventura musí ještě potvrdit skutečně nasazené politiky v hostované databázi nad všemi relevantními objekty; statické kontroly lokálních SQL souborů samy o sobě nestačí.
 
 **Zbývající akceptační kritéria pro úplné uzavření P2:**
 
-- [ ] všechny migrace lze aplikovat ve správném pořadí na čistou staging databázi;
-- [ ] výsledné RLS politiky na čistém stagingu odpovídají očekávanému release stavu;
+- [ ] všechny migrace lze aplikovat ve správném pořadí na prázdnou databázi ve fresh replay prostředí mimo aktuálně ověřovaný staging;
+- [ ] výsledné RLS politiky po fresh replay odpovídají očekávanému release stavu;
 - [x] veřejný occupancy kontrakt funguje na hostovaném production prostředí bez vývojového RLS režimu;
 - [x] je popsaný bezpečný postup migrace a návratu při selhání;
 - [ ] legacy RLS migrace nezpůsobí při kompletním aplikačním pořadí regresi.
 
-**Povinné ověření pro uzavření:** čistý staging databázový reset/migration run a databázová kontrola výsledných RLS politik po aplikaci celého migračního pořadí.
+**Povinné ověření pro uzavření:** zachovat rozlišení mezi incrementálním staging runem a fresh database replay. Incrementální staging run ověřuje reálnou aktualizaci používané staging databáze a nesmí být nahrazen destruktivním resetem bez samostatného plánu. Fresh database replay ověřuje celé migrační pořadí na prázdné databázi a má proběhnout v dočasné lokální Supabase instanci nebo samostatném dočasném projektu, ne destruktivně nad aktuálně ověřeným stagingem. Součástí uzavření zůstává databázová kontrola výsledných RLS politik po aplikaci celého migračního pořadí.
 
-**Potvrzení:** významná část ověřena `12. 6. 2026` na production. Před opravou vytvoření rezervace selhalo na `reservations_court_id_fkey` s chybou chybějícího kurtu; po aplikaci seed migrace byla rezervace úspěšně vytvořena. Pro uzavření P2 stále chybí kompletní aplikace migrací na čisté staging databázi, databázové ověření výsledných RLS politik a potvrzení, že legacy RLS migrace nezpůsobí regresi v kompletním migračním pořadí.
+**Potvrzení:** významná část ověřena `12. 6. 2026` na production. Před opravou vytvoření rezervace selhalo na `reservations_court_id_fkey` s chybou chybějícího kurtu; po aplikaci seed migrace byla rezervace úspěšně vytvořena. Pro uzavření P2 už nejde o start od nuly: hostovaná staging databáze má významnou část kontrol provedenou. Chybí hlavně zdokumentovat provedené staging ověření, doplnit širší RLS inventuru nad hostovanou databází a případně provést fresh migration replay mimo současný staging, aby se potvrdilo, že legacy RLS migrace nezpůsobí regresi v kompletním migračním pořadí.
 
 ## [x] P2a — Seed základních kurtů v hostované production databázi
 
@@ -594,11 +595,13 @@ Každý bod před zahájením musí dostat samostatná akceptační kritéria a 
 
 ## Doporučené nejbližší položky
 
-1. **Dokončit P3** — ověřit admin schválení, admin zrušení a uvolnění termínu na hostovaném prostředí.
-2. **F1 — Administrátorské blokace kurtů** — základní provozní potřeba pro údržbu a odstávky.
-3. **F3 — Provozní obsah veřejného webu** — pravidla rezervací, kontakty, ochrana osobních údajů, ceník a odstranění placeholderů.
-4. **P5 — Minimální produkční observabilita** — dohledatelné chyby auth a rezervačních operací bez ukládání citlivých údajů.
-5. **Custom SMTP** — není blocker technického MVP, ale zůstává podmínkou spolehlivějšího širšího provozu kvůli nízkému rate limitu výchozího Supabase poskytovatele.
+1. **Vytvořit stálý staging Vercel projekt** — doporučeně `rezervuj-kurt-staging` napojený na Git branch `staging`, se stálou URL například `https://rezervuj-kurt-staging.vercel.app`.
+2. **Nastavit staging environment variables** — všechny hodnoty musí mířit na staging Supabase projekt `rrlvlgoiwesteevzupyi`; GoPay capability zůstává vypnutá a GoPay prostředí sandbox.
+3. **Doplnit staging auth redirect allowlist** — povolit staging URL s návratem na `/rezervace` a ověřit, že staging nepoužívá production Supabase ani production secrets.
+4. **Spustit hostovaný staging lifecycle** — anonymní smoke, member rezervace, admin schválení/zrušení a uvolnění slotu; výsledky zapsat do P3.
+5. **Doplnit P2 evidence** — zdokumentovat už provedené staging kontroly, doplnit širší RLS inventuru a fresh migration replay provést pouze mimo současný staging.
+6. **Rozhodnout production migraci `waiting_for_payment`** — až po zeleném staging lifecycle a doplněné P2 evidenci.
+7. **Custom SMTP, P5 observabilita a P6 runbook** — custom SMTP není blocker základního staging testování, ale zůstává blocker finálního production confidence passu a širšího veřejného provozu.
 
 # 5. Evidence dokončení
 
