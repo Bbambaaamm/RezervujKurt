@@ -42,7 +42,7 @@ Dále musí být splněno:
 
 - CI `Build Gate` je zelený;
 - povinné E2E checky cílové větve jsou zelené, pokud už jsou aktivované;
-- změny databáze byly nejprve aplikované a ověřené na čistém staging prostředí;
+- změny databáze byly nejprve aplikované a ověřené na staging prostředí incrementální cestou odpovídající reálnému releasu; fresh replay celého migračního řetězce se dělá v dočasné lokální Supabase instanci nebo samostatném dočasném projektu, ne destruktivním resetem ověřeného stagingu bez samostatného plánu;
 - je dostupná aktuální databázová záloha nebo platformní point-in-time recovery odpovídající riziku releasu;
 - cílové env proměnné a povolené Supabase Auth redirect URL odpovídají cílové aplikační URL;
 - žádný secret, service-role klíč ani magic-link token není součástí commitu, logu nebo release poznámek.
