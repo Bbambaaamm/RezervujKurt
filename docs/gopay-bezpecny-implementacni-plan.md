@@ -385,7 +385,6 @@ Přidat izolovaný platební datový model, který stará aplikace zcela ignoruj
 - [x] Přidat `attempt_count`.
 - [x] Přidat `metadata jsonb` bez citlivých údajů.
 - [x] Přidat `created_at` a `updated_at`.
-- [x] Zajistit automatickou aktualizaci `updated_at` databázovým triggerem.
 
 ## Doporučené platební stavy
 
@@ -411,18 +410,14 @@ Přidat izolovaný platební datový model, který stará aplikace zcela ignoruj
 
 - [x] Check constraint na `provider in ('gopay')`.
 - [x] Check constraint na `amount_cents > 0`.
-- [x] Check constraint na délku externích identifikátorů `provider_payment_id`, `idempotency_key` a `provider_refund_id`.
 - [x] Check constraint na `currency = 'CZK'`, pokud bude první verze pouze v CZK.
 - [x] Check constraint na validní payment statusy.
 - [x] Check constraint na validní refund statusy.
 - [x] Check constraint `refunded_amount_cents >= 0`.
 - [x] Check constraint `refunded_amount_cents <= amount_cents`.
-- [x] Check constraint `status = paid` vyžaduje `paid_at`.
-- [x] Check constraint `refund_status = succeeded` vyžaduje `refunded_at`.
-- [x] Check constraint na rozumnou velikost `metadata`.
 - [x] Unique index na `idempotency_key`.
 - [x] Partial unique index na `(provider, provider_payment_id)` tam, kde `provider_payment_id is not null`.
-- [x] Partial unique index zajišťující nejvýše jednu otevřenou nebo úspěšnou hlavní platbu na rezervaci.
+- [x] Partial unique index zajišťující nejvýše jednu aktivní platbu na rezervaci.
 - [x] Index na `reservation_id`.
 - [x] Index na `expires_at` pro aktivní čekající platby.
 - [x] Index na problémové refund stavy.
@@ -552,7 +547,7 @@ Pro správné nasazení této změny je potřeba:
 - [ ] Po staging migraci spustit regresní smoke test současných rezervací: public grid, přihlášení, vytvoření rezervace členem, admin approve/cancel, zrušení vlastní rezervace, kolizní ochrana, notification outbox.
 - [ ] Před produkcí posoudit lock riziko: nové tabulky a nové indexy jsou nízkorizikové, foreign keys na `reservations` ale vyžadují krátké metadata zámky při vytvoření.
 - [ ] Aplikovat produkční migraci v době nízkého provozu a se zajištěnou aktuální zálohou nebo point-in-time recovery.
-- [ ] Po produkční migraci ověřit, že běžné role `anon` a `authenticated` nemají přímý přístup k `payments`, `payment_audit_log` ani k identity sequence `payment_audit_log_id_seq`.
+- [ ] Po produkční migraci ověřit, že běžné role `anon` a `authenticated` nemají přímý přístup k `payments` ani `payment_audit_log`.
 - [ ] Po produkční migraci spustit produkční smoke test současného systému a potvrdit, že platební flow stále není aktivované a GoPay API se nikde nevolá.
 - [ ] Destruktivní rollback nepřipravovat jako primární postup; při potížích tabulky ponechat nevyužité a pokračovat dopřednou opravnou migrací.
 
