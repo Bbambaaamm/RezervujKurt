@@ -363,71 +363,71 @@ Přidat izolovaný platební datový model, který stará aplikace zcela ignoruj
 
 ## Konkrétní změny
 
-- [ ] Přidat novou tabulku `payments`.
-- [ ] Přidat interní `id uuid primary key`.
-- [ ] Přidat `reservation_id` jako foreign key na `reservations`.
-- [ ] Přidat `provider`, výchozí hodnota `gopay`.
-- [ ] Přidat `provider_payment_id` pro GoPay payment ID.
-- [ ] Přidat interní `idempotency_key`.
-- [ ] Přidat `amount_cents`.
-- [ ] Přidat `currency`.
-- [ ] Přidat `status` platby.
-- [ ] Přidat `expires_at`.
-- [ ] Přidat `paid_at`.
-- [ ] Přidat `failed_at`.
-- [ ] Přidat `cancelled_at`.
-- [ ] Přidat `refunded_amount_cents`.
-- [ ] Přidat `refund_status`.
-- [ ] Přidat `provider_refund_id`.
-- [ ] Přidat `refund_requested_at`.
-- [ ] Přidat `refunded_at`.
-- [ ] Přidat `last_error` omezený na bezpečnou délku.
-- [ ] Přidat `attempt_count`.
-- [ ] Přidat `metadata jsonb` bez citlivých údajů.
-- [ ] Přidat `created_at` a `updated_at`.
+- [x] Přidat novou tabulku `payments`.
+- [x] Přidat interní `id uuid primary key`.
+- [x] Přidat `reservation_id` jako foreign key na `reservations`.
+- [x] Přidat `provider`, výchozí hodnota `gopay`.
+- [x] Přidat `provider_payment_id` pro GoPay payment ID.
+- [x] Přidat interní `idempotency_key`.
+- [x] Přidat `amount_cents`.
+- [x] Přidat `currency`.
+- [x] Přidat `status` platby.
+- [x] Přidat `expires_at`.
+- [x] Přidat `paid_at`.
+- [x] Přidat `failed_at`.
+- [x] Přidat `cancelled_at`.
+- [x] Přidat `refunded_amount_cents`.
+- [x] Přidat `refund_status`.
+- [x] Přidat `provider_refund_id`.
+- [x] Přidat `refund_requested_at`.
+- [x] Přidat `refunded_at`.
+- [x] Přidat `last_error` omezený na bezpečnou délku.
+- [x] Přidat `attempt_count`.
+- [x] Přidat `metadata jsonb` bez citlivých údajů.
+- [x] Přidat `created_at` a `updated_at`.
 
 ## Doporučené platební stavy
 
-- [ ] `created`
-- [ ] `awaiting_payment`
-- [ ] `paid`
-- [ ] `failed`
-- [ ] `cancelled`
-- [ ] `expired`
-- [ ] `requires_manual_review`
+- [x] `created`
+- [x] `awaiting_payment`
+- [x] `paid`
+- [x] `failed`
+- [x] `cancelled`
+- [x] `expired`
+- [x] `requires_manual_review`
 
 ## Doporučené refund stavy
 
-- [ ] `not_requested`
-- [ ] `not_eligible`
-- [ ] `requested`
-- [ ] `processing`
-- [ ] `succeeded`
-- [ ] `failed`
-- [ ] `manual_review`
+- [x] `not_requested`
+- [x] `not_eligible`
+- [x] `requested`
+- [x] `processing`
+- [x] `succeeded`
+- [x] `failed`
+- [x] `manual_review`
 
 ## Constraints a indexy
 
-- [ ] Check constraint na `provider in ('gopay')`.
-- [ ] Check constraint na `amount_cents > 0`.
-- [ ] Check constraint na `currency = 'CZK'`, pokud bude první verze pouze v CZK.
-- [ ] Check constraint na validní payment statusy.
-- [ ] Check constraint na validní refund statusy.
-- [ ] Check constraint `refunded_amount_cents >= 0`.
-- [ ] Check constraint `refunded_amount_cents <= amount_cents`.
-- [ ] Unique index na `idempotency_key`.
-- [ ] Partial unique index na `(provider, provider_payment_id)` tam, kde `provider_payment_id is not null`.
-- [ ] Partial unique index zajišťující nejvýše jednu aktivní platbu na rezervaci.
-- [ ] Index na `reservation_id`.
-- [ ] Index na `expires_at` pro aktivní čekající platby.
-- [ ] Index na problémové refund stavy.
+- [x] Check constraint na `provider in ('gopay')`.
+- [x] Check constraint na `amount_cents > 0`.
+- [x] Check constraint na `currency = 'CZK'`, pokud bude první verze pouze v CZK.
+- [x] Check constraint na validní payment statusy.
+- [x] Check constraint na validní refund statusy.
+- [x] Check constraint `refunded_amount_cents >= 0`.
+- [x] Check constraint `refunded_amount_cents <= amount_cents`.
+- [x] Unique index na `idempotency_key`.
+- [x] Partial unique index na `(provider, provider_payment_id)` tam, kde `provider_payment_id is not null`.
+- [x] Partial unique index zajišťující nejvýše jednu aktivní platbu na rezervaci.
+- [x] Index na `reservation_id`.
+- [x] Index na `expires_at` pro aktivní čekající platby.
+- [x] Index na problémové refund stavy.
 
 ## RLS a oprávnění
 
-- [ ] Zapnout RLS na `payments`.
-- [ ] Odebrat broad privileges pro `anon` a `authenticated`.
-- [ ] Běžný uživatel nesmí insertovat ani updatovat `payments`.
-- [ ] Běžný uživatel ideálně nemá mít přímý přístup k celé tabulce `payments`.
+- [x] Zapnout RLS na `payments`.
+- [x] Odebrat broad privileges pro `anon` a `authenticated`.
+- [x] Běžný uživatel nesmí insertovat ani updatovat `payments`.
+- [x] Běžný uživatel ideálně nemá mít přímý přístup k celé tabulce `payments`.
 - [ ] Preferovat omezený databázový view, security definer RPC nebo serverový status endpoint.
 - [ ] Běžný uživatel smí číst pouze bezpečný výřez vlastní platby, pokud je to nutné pro UI.
 - [ ] Admin smí číst provozní přehled plateb, ale nemá ručně přepisovat citlivé stavy mimo určené RPC.
@@ -461,18 +461,18 @@ Běžnému uživateli nezobrazovat:
 
 `notification_outbox` slouží k doručování notifikací. Nemá být jediným platebním auditem a ne každá technická platební událost má vyvolat e-mail.
 
-- [ ] Navrhnout samostatnou tabulku `payment_audit_log` nebo `payment_events`.
-- [ ] Evidovat interní payment ID.
-- [ ] Evidovat reservation ID.
-- [ ] Evidovat typ události.
-- [ ] Evidovat starý stav.
-- [ ] Evidovat nový stav.
-- [ ] Evidovat bezpečný důvod změny.
-- [ ] Evidovat interní zdroj události.
-- [ ] Evidovat počet pokusů.
-- [ ] Evidovat timestamp.
-- [ ] Evidovat pouze bezpečná metadata bez secrets.
-- [ ] Auditní zápis nesmí obsahovat raw tokeny, Authorization headery ani citlivé payloady.
+- [x] Navrhnout samostatnou tabulku `payment_audit_log` nebo `payment_events`.
+- [x] Evidovat interní payment ID.
+- [x] Evidovat reservation ID.
+- [x] Evidovat typ události.
+- [x] Evidovat starý stav.
+- [x] Evidovat nový stav.
+- [x] Evidovat bezpečný důvod změny.
+- [x] Evidovat interní zdroj události.
+- [x] Evidovat počet pokusů.
+- [x] Evidovat timestamp.
+- [x] Evidovat pouze bezpečná metadata bez secrets.
+- [x] Auditní zápis nesmí obsahovat raw tokeny, Authorization headery ani citlivé payloady.
 
 Možné eventy:
 
@@ -501,27 +501,42 @@ Možné eventy:
 
 ## Testy
 
-- [ ] DB test vytvoření validní platby.
-- [ ] DB test odmítnutí nulové nebo záporné částky.
-- [ ] DB test odmítnutí neplatné měny.
-- [ ] DB test odmítnutí neplatného payment statusu.
-- [ ] DB test odmítnutí neplatného refund statusu.
-- [ ] DB test unikátního idempotency key.
-- [ ] DB test unikátního GoPay payment ID.
-- [ ] DB test zákazu dvojí aktivní platby na jednu rezervaci.
-- [ ] RLS test, že authenticated uživatel nemůže měnit platební stav.
-- [ ] Test, že běžný uživatel nevidí `provider_payment_id`.
-- [ ] Test, že běžný uživatel nevidí `provider_refund_id`.
-- [ ] Test, že běžný uživatel nevidí `idempotency_key`.
-- [ ] Test, že běžný uživatel nevidí `last_error`, `attempt_count` ani interní metadata.
-- [ ] Test, že platební audit neukládá secrets ani raw citlivé payloady.
-- [ ] Regresní test, že současné rezervace fungují beze změny.
+- [x] DB test vytvoření validní platby.
+- [x] DB test odmítnutí nulové nebo záporné částky.
+- [x] DB test odmítnutí neplatné měny.
+- [x] DB test odmítnutí neplatného payment statusu.
+- [x] DB test odmítnutí neplatného refund statusu.
+- [x] DB test unikátního idempotency key.
+- [x] DB test unikátního GoPay payment ID.
+- [x] DB test zákazu dvojí aktivní platby na jednu rezervaci.
+- [x] RLS test, že authenticated uživatel nemůže měnit platební stav.
+- [x] Test, že běžný uživatel nevidí `provider_payment_id`.
+- [x] Test, že běžný uživatel nevidí `provider_refund_id`.
+- [x] Test, že běžný uživatel nevidí `idempotency_key`.
+- [x] Test, že běžný uživatel nevidí `last_error`, `attempt_count` ani interní metadata.
+- [x] Test, že platební audit neukládá secrets ani raw citlivé payloady.
+- [x] Regresní test, že současné rezervace fungují beze změny.
 
 ## Kritéria úspěchu
 
-- [ ] Nová tabulka existuje a je bezpečně chráněná.
-- [ ] Starý aplikační kód dál funguje.
-- [ ] Současné rezervace nejsou nijak ovlivněny.
+- [x] Nová tabulka existuje a je bezpečně chráněná.
+- [x] Starý aplikační kód dál funguje.
+- [x] Současné rezervace nejsou nijak ovlivněny.
+
+
+### Nasazení po fázi 1
+
+Pro správné nasazení této změny je potřeba:
+
+- [ ] Před staging/production migrací zkontrolovat přesný SQL obsah `supabase/migrations/20260721120000_create_payments_foundation.sql`.
+- [ ] Potvrdit, že migrace je pouze aditivní: vytváří `payments`, `payment_audit_log`, jejich constraints, indexy, RLS a revokace práv; nemění `reservations`, public occupancy, admin UI ani klientské create flow.
+- [ ] Aplikovat migraci nejdříve na staging jako samostatnou řízenou databázovou operaci, ne jako vedlejší efekt aplikačního deploye.
+- [ ] Po staging migraci spustit regresní smoke test současných rezervací: public grid, přihlášení, vytvoření rezervace členem, admin approve/cancel, zrušení vlastní rezervace, kolizní ochrana, notification outbox.
+- [ ] Před produkcí posoudit lock riziko: nové tabulky a nové indexy jsou nízkorizikové, foreign keys na `reservations` ale vyžadují krátké metadata zámky při vytvoření.
+- [ ] Aplikovat produkční migraci v době nízkého provozu a se zajištěnou aktuální zálohou nebo point-in-time recovery.
+- [ ] Po produkční migraci ověřit, že běžné role `anon` a `authenticated` nemají přímý přístup k `payments` ani `payment_audit_log`.
+- [ ] Po produkční migraci spustit produkční smoke test současného systému a potvrdit, že platební flow stále není aktivované a GoPay API se nikde nevolá.
+- [ ] Destruktivní rollback nepřipravovat jako primární postup; při potížích tabulky ponechat nevyužité a pokračovat dopřednou opravnou migrací.
 
 ## Rollback
 
