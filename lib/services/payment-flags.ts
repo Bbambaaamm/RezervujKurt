@@ -24,7 +24,7 @@ type PaymentFeatureFlagEnvironment = {
 };
 
 function isEnabled(value: string | undefined) {
-  return value?.trim().toLowerCase() === 'true';
+  return value === 'true';
 }
 
 function resolveGoPayEnvironment(value: string | undefined): GoPayEnvironment {
