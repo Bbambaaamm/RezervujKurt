@@ -541,15 +541,28 @@ Možné eventy:
 
 Pro správné nasazení této změny je potřeba:
 
-- [ ] Před staging/production migrací zkontrolovat přesný SQL obsah `supabase/migrations/20260721120000_create_payments_foundation.sql`.
-- [ ] Potvrdit, že migrace je pouze aditivní: vytváří `payments`, `payment_audit_log`, jejich constraints včetně konzistence auditního `reservation_id` vůči platbě, indexy, RLS a revokace práv; nemění `reservations`, public occupancy, admin UI ani klientské create flow.
-- [ ] Aplikovat migraci nejdříve na staging jako samostatnou řízenou databázovou operaci, ne jako vedlejší efekt aplikačního deploye.
+- [x] Před staging/production migrací zkontrolovat přesný SQL obsah `supabase/migrations/20260721120000_create_payments_foundation.sql`.
+- [x] Potvrdit, že migrace je pouze aditivní: vytváří `payments`, `payment_audit_log`, jejich constraints včetně konzistence auditního `reservation_id` vůči platbě, indexy, RLS a revokace práv; nemění `reservations`, public occupancy, admin UI ani klientské create flow.
+- [x] Aplikovat migraci nejdříve na staging jako samostatnou řízenou databázovou operaci, ne jako vedlejší efekt aplikačního deploye.
 - [ ] Po staging migraci spustit regresní smoke test současných rezervací: public grid, přihlášení, vytvoření rezervace členem, admin approve/cancel, zrušení vlastní rezervace, kolizní ochrana, notification outbox.
+- [x] Po staging migraci ověřit základní databázový stav: RLS je zapnuté na `payments` i `payment_audit_log`, role `anon` a `authenticated` nemají přímý přístup, trigger `payments_set_updated_at` existuje a nové tabulky jsou prázdné.
 - [ ] Před produkcí posoudit lock riziko: nové tabulky a nové indexy jsou nízkorizikové, foreign keys na `reservations` ale vyžadují krátké metadata zámky při vytvoření.
 - [ ] Aplikovat produkční migraci v době nízkého provozu a se zajištěnou aktuální zálohou nebo point-in-time recovery.
 - [ ] Po produkční migraci ověřit, že běžné role `anon` a `authenticated` nemají přímý přístup k `payments` ani `payment_audit_log`.
 - [ ] Po produkční migraci spustit produkční smoke test současného systému a potvrdit, že platební flow stále není aktivované a GoPay API se nikde nevolá.
 - [ ] Destruktivní rollback nepřipravovat jako primární postup; při potížích tabulky ponechat nevyužité a pokračovat dopřednou opravnou migrací.
+
+#### Stav staging ověření po fázi 1
+
+Staging databázová migrace byla provedena 2026-07-21 a ověřena těmito výsledky:
+
+- `payments` a `payment_audit_log` mají zapnuté RLS.
+- Role `anon` a `authenticated` nemají přímý přístup k novým platebním tabulkám.
+- Trigger `payments_set_updated_at` existuje jako `BEFORE UPDATE` trigger na `payments`.
+- `payment_audit_log` je po migraci prázdná.
+- `payments` je po migraci prázdná.
+
+Zbývající nejbližší krok před produkční migrací je regresní staging smoke test současných rezervací. Bez jeho úspěšného dokončení se nemá pokračovat na produkční databázovou migraci ani na zavedení `waiting_for_payment`.
 
 ## Rollback
 
