@@ -53,6 +53,10 @@ create table public.payments (
     refunded_amount_cents >= 0
     and refunded_amount_cents <= amount_cents
   ),
+  constraint payments_refunded_amount_status_chk check (
+    refunded_amount_cents = 0
+    or refund_status not in ('not_requested', 'not_eligible')
+  ),
   constraint payments_attempt_count_chk check (attempt_count >= 0),
   constraint payments_provider_payment_id_length_chk check (
     provider_payment_id is null
@@ -172,3 +176,5 @@ alter table public.payment_audit_log enable row level security;
 
 revoke all privileges on public.payments from anon, authenticated;
 revoke all privileges on public.payment_audit_log from anon, authenticated;
+revoke all privileges on sequence public.payment_audit_log_id_seq from anon, authenticated;
+revoke all on function public.set_payments_updated_at() from public;

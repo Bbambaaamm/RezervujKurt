@@ -36,6 +36,7 @@ test('payments omezuje provider, částku, měnu, stavy, externí identifikátor
   assert.match(migrationSql, /'created'[\s\S]+'awaiting_payment'[\s\S]+'paid'[\s\S]+'requires_manual_review'/i);
   assert.match(migrationSql, /'not_requested'[\s\S]+'processing'[\s\S]+'manual_review'/i);
   assert.match(migrationSql, /refunded_amount_cents\s*>=\s*0[\s\S]+refunded_amount_cents\s*<=\s*amount_cents/i);
+  assert.match(migrationSql, /payments_refunded_amount_status_chk\s+check\s*\([\s\S]+refunded_amount_cents\s*=\s*0[\s\S]+refund_status\s+not\s+in\s*\('not_requested',\s*'not_eligible'\)/i);
   assert.match(migrationSql, /payments_provider_payment_id_length_chk[\s\S]+char_length\(provider_payment_id\)\s+between\s+1\s+and\s+255/i);
   assert.match(migrationSql, /payments_idempotency_key_length_chk\s+check\s*\(char_length\(idempotency_key\)\s+between\s+1\s+and\s+255\)/i);
   assert.match(migrationSql, /payments_provider_refund_id_length_chk[\s\S]+char_length\(provider_refund_id\)\s+between\s+1\s+and\s+255/i);
@@ -60,6 +61,8 @@ test('payments a payment audit nejsou přímo dostupné běžným rolím', () =>
   assert.match(migrationSql, /alter\s+table\s+public\.payment_audit_log\s+enable\s+row\s+level\s+security/i);
   assert.match(migrationSql, /revoke\s+all\s+privileges\s+on\s+public\.payments\s+from\s+anon,\s*authenticated/i);
   assert.match(migrationSql, /revoke\s+all\s+privileges\s+on\s+public\.payment_audit_log\s+from\s+anon,\s*authenticated/i);
+  assert.match(migrationSql, /revoke\s+all\s+privileges\s+on\s+sequence\s+public\.payment_audit_log_id_seq\s+from\s+anon,\s*authenticated/i);
+  assert.match(migrationSql, /revoke\s+all\s+on\s+function\s+public\.set_payments_updated_at\(\)\s+from\s+public/i);
   assert.doesNotMatch(migrationSql, /grant\s+select\s+on\s+public\.payments\s+to\s+(anon|authenticated)/i);
 });
 
