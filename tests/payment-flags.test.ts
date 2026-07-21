@@ -6,6 +6,7 @@ import {
   canExpirePayment,
   canProcessGoPayWebhook,
   canStartAutomaticRefund,
+  mapPaymentFeatureFlagRows,
   PaymentFeatureDisabledError,
   resolvePaymentFeatureFlags,
   requireAutomaticRefundEnabled,
@@ -115,7 +116,6 @@ test('GoPay webhook processing vyžaduje capability flag i dynamický flag', () 
   );
 });
 
-
 test('guard pro vypnuté vytváření GoPay plateb vrací mapovatelnou platební chybu', () => {
   assert.throws(
     () => requireGoPayCreateEnabled(resolvePaymentFeatureFlags({ PAYMENTS_GOPAY_CODE_AVAILABLE: 'true' })),
@@ -165,4 +165,72 @@ test('guardy pro budoucí platební operace vrací konkrétní důvody vypnutí'
     (error: unknown) => error instanceof PaymentFeatureDisabledError
       && error.reason === 'auto_refund_disabled',
   );
+});
+
+const allEnabledPaymentFlagRows = [
+  { flag_name: 'gopay_create_enabled', enabled: true },
+  { flag_name: 'gopay_webhook_processing_enabled', enabled: true },
+  { flag_name: 'payment_expiration_enabled', enabled: true },
+  { flag_name: 'auto_refund_enabled', enabled: true },
+  { flag_name: 'payment_admin_monitoring_enabled', enabled: true },
+];
+
+test('DB řádky platebních flagů se kompletně mapují podle známých názvů', () => {
+  assert.deepEqual(mapPaymentFeatureFlagRows(allEnabledPaymentFlagRows), {
+    gopayCreateEnabled: true,
+    gopayWebhookProcessingEnabled: true,
+    paymentExpirationEnabled: true,
+    autoRefundEnabled: true,
+    paymentAdminMonitoringEnabled: true,
+  });
+});
+
+test('všechny vypnuté DB hodnoty vrátí vypnuté dynamické flagy', () => {
+  assert.deepEqual(mapPaymentFeatureFlagRows(allEnabledPaymentFlagRows.map((row) => ({ ...row, enabled: false }))), {
+    gopayCreateEnabled: false,
+    gopayWebhookProcessingEnabled: false,
+    paymentExpirationEnabled: false,
+    autoRefundEnabled: false,
+    paymentAdminMonitoringEnabled: false,
+  });
+});
+
+test('neúplné, neznámé nebo nevalidní platební flagy zůstávají fail-closed', () => {
+  assert.deepEqual(mapPaymentFeatureFlagRows([
+    { flag_name: 'gopay_create_enabled', enabled: true },
+    { flag_name: 'gopay_webhook_processing_enabled', enabled: null },
+    { flag_name: 'payment_expiration_enabled', enabled: 'true' },
+    { flag_name: 'neznamy_flag', enabled: true },
+  ]), {
+    gopayCreateEnabled: true,
+    gopayWebhookProcessingEnabled: false,
+    paymentExpirationEnabled: false,
+    autoRefundEnabled: false,
+    paymentAdminMonitoringEnabled: false,
+  });
+});
+
+test('duplicitní známý platební flag zůstane vypnutý bez ohledu na pořadí řádků', () => {
+  assert.deepEqual(mapPaymentFeatureFlagRows([
+    { flag_name: 'gopay_create_enabled', enabled: true },
+    { flag_name: 'gopay_create_enabled', enabled: true },
+    { flag_name: 'auto_refund_enabled', enabled: true },
+    { flag_name: 'auto_refund_enabled', enabled: false },
+  ]), {
+    gopayCreateEnabled: false,
+    gopayWebhookProcessingEnabled: false,
+    paymentExpirationEnabled: false,
+    autoRefundEnabled: false,
+    paymentAdminMonitoringEnabled: false,
+  });
+});
+
+test('odpověď platebních flagů mimo pole se mapuje na vypnuté dynamické flagy', () => {
+  assert.deepEqual(mapPaymentFeatureFlagRows({ flag_name: 'gopay_create_enabled', enabled: true }), {
+    gopayCreateEnabled: false,
+    gopayWebhookProcessingEnabled: false,
+    paymentExpirationEnabled: false,
+    autoRefundEnabled: false,
+    paymentAdminMonitoringEnabled: false,
+  });
 });
