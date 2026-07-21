@@ -8,6 +8,31 @@ export type PaymentDynamicFlags = {
   paymentAdminMonitoringEnabled?: boolean;
 };
 
+export type PaymentFeatureFlagRow = {
+  flag_name?: unknown;
+  enabled?: unknown;
+};
+
+const dynamicFlagNames = {
+  gopay_create_enabled: 'gopayCreateEnabled',
+  gopay_webhook_processing_enabled: 'gopayWebhookProcessingEnabled',
+  payment_expiration_enabled: 'paymentExpirationEnabled',
+  auto_refund_enabled: 'autoRefundEnabled',
+  payment_admin_monitoring_enabled: 'paymentAdminMonitoringEnabled',
+} as const satisfies Record<string, keyof PaymentDynamicFlags>;
+
+export const DEFAULT_PAYMENT_DYNAMIC_FLAGS: Required<PaymentDynamicFlags> = {
+  gopayCreateEnabled: false,
+  gopayWebhookProcessingEnabled: false,
+  paymentExpirationEnabled: false,
+  autoRefundEnabled: false,
+  paymentAdminMonitoringEnabled: false,
+};
+
+function createDefaultPaymentDynamicFlags(): Required<PaymentDynamicFlags> {
+  return { ...DEFAULT_PAYMENT_DYNAMIC_FLAGS };
+}
+
 export type PaymentFeatureFlags = {
   gopayCodeAvailable: boolean;
   gopayEnvironment: GoPayEnvironment;
@@ -105,4 +130,40 @@ export function requireAutomaticRefundEnabled(flags: Pick<PaymentFeatureFlags, '
   if (!canStartAutomaticRefund(flags)) {
     throw new PaymentFeatureDisabledError('auto_refund_disabled');
   }
+}
+
+export function mapPaymentFeatureFlagRows(rows: unknown): Required<PaymentDynamicFlags> {
+  const dynamicFlags = createDefaultPaymentDynamicFlags();
+
+  if (!Array.isArray(rows)) return dynamicFlags;
+
+  const seenFlagNames = new Set<keyof typeof dynamicFlagNames>();
+  const duplicatedDynamicFlagNames = new Set<keyof PaymentDynamicFlags>();
+
+  for (const row of rows) {
+    if (!row || typeof row !== 'object') continue;
+
+    const flagName = (row as PaymentFeatureFlagRow).flag_name;
+    if (typeof flagName !== 'string') continue;
+
+    const dynamicFlagName = dynamicFlagNames[flagName as keyof typeof dynamicFlagNames];
+    if (!dynamicFlagName) continue;
+
+    if (seenFlagNames.has(flagName as keyof typeof dynamicFlagNames)) {
+      duplicatedDynamicFlagNames.add(dynamicFlagName);
+      dynamicFlags[dynamicFlagName] = false;
+      continue;
+    }
+
+    seenFlagNames.add(flagName as keyof typeof dynamicFlagNames);
+
+    const enabled = (row as PaymentFeatureFlagRow).enabled;
+    dynamicFlags[dynamicFlagName] = enabled === true;
+  }
+
+  for (const dynamicFlagName of duplicatedDynamicFlagNames) {
+    dynamicFlags[dynamicFlagName] = false;
+  }
+
+  return dynamicFlags;
 }
