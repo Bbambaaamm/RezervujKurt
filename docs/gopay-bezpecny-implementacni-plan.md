@@ -457,6 +457,17 @@ Běžnému uživateli nezobrazovat:
 - [ ] Webhook metadata.
 - [ ] Technické retry informace.
 
+
+### Rozhodnutí k opakované platbě po refundu
+
+Pro fázi 1 platí konzervativní pravidlo: jedna rezervace může mít nejvýše jednu otevřenou nebo úspěšnou hlavní platbu. Po stavech `failed`, `cancelled` a `expired` lze vytvořit nový platební pokus, ale po stavu `paid` se pro stejnou rezervaci nevytváří další hlavní platba ani po plném refundu. Pokud bude produktově potřeba opětovné zaplacení po refundu, musí tomu předcházet samostatné rozhodnutí a nová migrace, která bezpečně rozliší původní platbu, refund a nový platební cyklus.
+
+### Pravidla pro metadata a serverový přístup
+
+- [x] SQL omezuje `metadata` na JSON objekt a rozumnou velikost, ale neověřuje jejich obchodní obsah.
+- [x] Serverová vrstva nesmí do `payments.metadata` ani `payment_audit_log.metadata` ukládat celé GoPay odpovědi bez filtrace, autorizační tokeny, platební údaje, nepotřebné osobní údaje, celé stack traces ani raw webhook payloady bez redakce.
+- [x] Jediná povolená cesta pro budoucí zápis do `payments` a `payment_audit_log` bude serverová service role nebo úzce vymezené `security definer` RPC; klient nikdy nesmí dostat service-role klíč ani přímý zápis do platebních tabulek.
+
 ## Platební audit oddělený od notification outboxu
 
 `notification_outbox` slouží k doručování notifikací. Nemá být jediným platebním auditem a ne každá technická platební událost má vyvolat e-mail.
