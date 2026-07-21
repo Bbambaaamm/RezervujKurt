@@ -1,4 +1,5 @@
 import { SupabaseRequestError } from '../supabase/client';
+import { reportOperationalEvent } from './observability';
 
 export class ReservationConflictError extends Error {}
 export class ReservationUnauthorizedError extends Error {}
@@ -35,6 +36,12 @@ export function mapReservationWriteError(params: {
     console.error('[reservation-write] raw supabase error', { status, statusText, endpoint, errorCode, responseBody });
   }
 
+  reportOperationalEvent({
+    level: 'error',
+    operation: `reservation.${operation}`,
+    message: 'Zápis rezervace do Supabase selhal.',
+    metadata: { status, statusText, endpoint, errorCode },
+  });
 
   if (status === 401 || status === 403 || errorCode === '42501') {
     const message = operation === 'update'
