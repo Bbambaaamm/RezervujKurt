@@ -20,7 +20,7 @@ Nasadit pouze kontraktovou podporu `waiting_for_payment` za vypnutými platební
 2. Ověřit, že staging Vercel deployment používá staging Supabase URL a staging anon key.
 3. Zkontrolovat, že staging nemá nastavené produkční secrets ani produkční Supabase URL.
 4. Ověřit, že platební capability flag v aplikační konfiguraci zůstává vypnutý: `PAYMENTS_GOPAY_CODE_AVAILABLE=false` nebo není vůbec nastavený.
-5. V databázi ověřit, že dynamické platební flagy zůstávají vypnuté: `gopay_create_enabled`, `gopay_webhook_processing_enabled`, `payment_expiration_enabled`, `auto_refund_enabled` a `payment_admin_monitoring_enabled`.
+5. Pokud už je v daném prostředí aplikovaná migrace `supabase/migrations/20260721150000_payment_feature_flags.sql`, v databázi ověřit, že dynamické platební flagy zůstávají vypnuté: `gopay_create_enabled`, `gopay_webhook_processing_enabled`, `payment_expiration_enabled`, `auto_refund_enabled` a `payment_admin_monitoring_enabled`. Pokud tabulka `public.payment_feature_flags` ještě neexistuje, tento krok nepouštět a nepřidávat kvůli němu žádnou další migraci mimo scope fáze 3.
 6. Před migrací spustit read-only kontrolu aktuálních statusů rezervací:
 
 ```sql
@@ -55,7 +55,7 @@ from public.reservations
 where status = 'waiting_for_payment';
 ```
 
-5. Ověřit, že nevznikly žádné nové platby:
+5. Pokud už je v daném prostředí aplikovaná migrace `supabase/migrations/20260721120000_create_payments_foundation.sql`, ověřit, že nevznikly žádné nové platby. Pokud tabulka `public.payments` ještě neexistuje, tento krok nepouštět a nepřidávat kvůli němu žádnou další migraci mimo scope fáze 3:
 
 ```sql
 select count(*) as payments_count
@@ -84,7 +84,7 @@ Na stagingu musí projít celý současný rezervační lifecycle bez použití 
 1. Pokračovat do production teprve po úspěšném staging smoke testu z předchozí části.
 2. Ověřit, že production Supabase project ref je `jrmenwgaponihgzroduw`.
 3. Ověřit, že production Vercel deployment používá production Supabase URL a production anon key.
-4. Znovu potvrdit, že platební capability flag a všechny dynamické platební flagy zůstávají v production vypnuté.
+4. Znovu potvrdit, že platební capability flag zůstává v production vypnutý. Dynamické platební flagy kontrolovat pouze tehdy, pokud už v production existuje `public.payment_feature_flags`; kvůli fázi 3 se nemá přidávat migrace `20260721150000_payment_feature_flags.sql` mimo plánovaný release scope.
 5. Naplánovat migraci na dobu nízkého provozu, protože změna constraintů může krátce potřebovat databázový zámek.
 6. Těsně před migrací zopakovat read-only kontrolu statusů a dlouhých transakcí stejnými SQL dotazy jako na stagingu.
 7. Aplikovat migraci jako samostatný ruční databázový release krok, ne jako nepozorovaný vedlejší efekt aplikačního deploye.
@@ -99,9 +99,9 @@ Po production migraci musí vlastník ověřit:
 4. Admin běžnou čekající rezervaci schválí nebo zruší stejně jako před změnou.
 5. Zrušená rezervace uvolní slot.
 6. Překryv obsazeného slotu je odmítnutý.
-7. V tabulce `payments` nepřibyly řádky.
+7. Pokud existuje tabulka `payments`, nepřibyly v ní řádky.
 8. V produkčních logách není žádné GoPay API volání.
-9. Všechny platební flagy zůstávají vypnuté.
+9. Platební capability flag zůstává vypnutý a dynamické platební flagy zůstávají vypnuté, pokud jejich tabulka v production už existuje.
 
 ## Rollback a stop podmínky
 
