@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 
 import {
   canCreateGoPayPayment,
-  readPaymentFeatureFlags,
+  canProcessGoPayWebhook,
+  resolvePaymentFeatureFlags,
   requireGoPayCreateEnabled,
-} from '../lib/services/payment-flags';
+} from '../lib/services/payment-flags-core';
 
 test('platební flagy jsou ve výchozím stavu bezpečně vypnuté', () => {
-  const flags = readPaymentFeatureFlags({});
+  const flags = resolvePaymentFeatureFlags({});
 
   assert.equal(flags.gopayCodeAvailable, false);
   assert.equal(flags.gopayEnvironment, 'sandbox');
@@ -22,7 +23,7 @@ test('platební flagy jsou ve výchozím stavu bezpečně vypnuté', () => {
 
 test('capability flag je zapnutý pouze při přesné hodnotě true', () => {
   for (const value of ['', 'false', 'TRUE', 'True', '1', 'yes']) {
-    const flags = readPaymentFeatureFlags({
+    const flags = resolvePaymentFeatureFlags({
       PAYMENTS_GOPAY_CODE_AVAILABLE: value,
     });
 
@@ -35,30 +36,30 @@ test('capability flag je zapnutý pouze při přesné hodnotě true', () => {
 });
 
 test('neplatné GoPay prostředí bezpečně spadne na sandbox', () => {
-  const flags = readPaymentFeatureFlags({
+  const flags = resolvePaymentFeatureFlags({
     PAYMENTS_GOPAY_ENV: 'invalid',
   });
 
   assert.equal(flags.gopayEnvironment, 'sandbox');
   assert.equal(
-    readPaymentFeatureFlags({ PAYMENTS_GOPAY_ENV: '' }).gopayEnvironment,
+    resolvePaymentFeatureFlags({ PAYMENTS_GOPAY_ENV: '' }).gopayEnvironment,
     'sandbox',
   );
 });
 
 test('GoPay create flow zůstane vypnutý, pokud chybí capability flag nebo dynamický kill switch', () => {
   assert.equal(
-    canCreateGoPayPayment(readPaymentFeatureFlags({ PAYMENTS_GOPAY_CODE_AVAILABLE: 'true' })),
+    canCreateGoPayPayment(resolvePaymentFeatureFlags({ PAYMENTS_GOPAY_CODE_AVAILABLE: 'true' })),
     false,
   );
   assert.equal(
-    canCreateGoPayPayment(readPaymentFeatureFlags({}, { gopayCreateEnabled: true })),
+    canCreateGoPayPayment(resolvePaymentFeatureFlags({}, { gopayCreateEnabled: true })),
     false,
   );
 });
 
 test('GoPay create flow lze povolit jen kombinací capability flagu a dynamického flagu', () => {
-  const flags = readPaymentFeatureFlags(
+  const flags = resolvePaymentFeatureFlags(
     { PAYMENTS_GOPAY_CODE_AVAILABLE: 'true', PAYMENTS_GOPAY_ENV: 'production' },
     { gopayCreateEnabled: true },
   );
@@ -69,13 +70,13 @@ test('GoPay create flow lze povolit jen kombinací capability flagu a dynamické
 
 test('serverový guard odmítne budoucí vytvoření platby při vypnutém flow', () => {
   assert.throws(
-    () => requireGoPayCreateEnabled(readPaymentFeatureFlags({ PAYMENTS_GOPAY_CODE_AVAILABLE: 'true' })),
+    () => requireGoPayCreateEnabled(resolvePaymentFeatureFlags({ PAYMENTS_GOPAY_CODE_AVAILABLE: 'true' })),
     /Vytváření GoPay plateb je vypnuté\./,
   );
 });
 
 test('serverový guard povolený GoPay create flow neodmítne', () => {
-  const flags = readPaymentFeatureFlags(
+  const flags = resolvePaymentFeatureFlags(
     {
       PAYMENTS_GOPAY_CODE_AVAILABLE: 'true',
       PAYMENTS_GOPAY_ENV: 'sandbox',
@@ -86,4 +87,24 @@ test('serverový guard povolený GoPay create flow neodmítne', () => {
   );
 
   assert.doesNotThrow(() => requireGoPayCreateEnabled(flags));
+});
+
+test('GoPay webhook processing vyžaduje capability flag i dynamický flag', () => {
+  assert.equal(
+    canProcessGoPayWebhook(resolvePaymentFeatureFlags({}, { gopayWebhookProcessingEnabled: true })),
+    false,
+  );
+  assert.equal(
+    canProcessGoPayWebhook(resolvePaymentFeatureFlags({ PAYMENTS_GOPAY_CODE_AVAILABLE: 'true' })),
+    false,
+  );
+  assert.equal(
+    canProcessGoPayWebhook(
+      resolvePaymentFeatureFlags(
+        { PAYMENTS_GOPAY_CODE_AVAILABLE: 'true' },
+        { gopayWebhookProcessingEnabled: true },
+      ),
+    ),
+    true,
+  );
 });
