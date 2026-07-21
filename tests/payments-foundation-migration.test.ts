@@ -39,6 +39,7 @@ test('payments omezuje provider, částku, měnu, stavy a bezpečnou délku chyb
 });
 
 test('payments má idempotentní a provozní indexy', () => {
+  assert.match(migrationSql, /payments_id_reservation_uq\s+unique\s*\(id,\s*reservation_id\)/i);
   assert.match(migrationSql, /unique\s+index\s+if\s+not\s+exists\s+payments_idempotency_key_uq/i);
   assert.match(migrationSql, /unique\s+index\s+if\s+not\s+exists\s+payments_provider_payment_id_uq[\s\S]+where\s+provider_payment_id\s+is\s+not\s+null/i);
   assert.match(migrationSql, /unique\s+index\s+if\s+not\s+exists\s+payments_one_active_per_reservation_uq[\s\S]+where\s+status\s+in\s*\('created',\s*'awaiting_payment',\s*'paid',\s*'requires_manual_review'\)/i);
@@ -55,10 +56,14 @@ test('payments a payment audit nejsou přímo dostupné běžným rolím', () =>
 });
 
 test('payment_audit_log eviduje jen bezpečný technický audit oddělený od notification outboxu', () => {
-  assert.match(migrationSql, /payment_id\s+uuid\s+not\s+null\s+references\s+public\.payments\s*\(id\)\s+on\s+delete\s+cascade/i);
-  assert.match(migrationSql, /reservation_id\s+uuid\s+not\s+null\s+references\s+public\.reservations\s*\(id\)\s+on\s+delete\s+restrict/i);
+  assert.match(migrationSql, /payment_id\s+uuid\s+not\s+null/i);
+  assert.match(migrationSql, /reservation_id\s+uuid\s+not\s+null/i);
+  assert.match(migrationSql, /foreign\s+key\s*\(payment_id,\s*reservation_id\)[\s\S]+references\s+public\.payments\s*\(id,\s*reservation_id\)[\s\S]+on\s+delete\s+cascade/i);
   assert.match(migrationSql, /event_type\s+text\s+not\s+null/i);
   assert.match(migrationSql, /'payment_created'[\s\S]+'payment_verified'[\s\S]+'refund_succeeded'[\s\S]+'reconciliation_completed'/i);
+  assert.match(migrationSql, /old_refund_status\s+text/i);
+  assert.match(migrationSql, /new_refund_status\s+text/i);
+  assert.match(migrationSql, /payment_audit_log_refund_statuses_chk[\s\S]+'not_requested'[\s\S]+'processing'[\s\S]+'succeeded'[\s\S]+'manual_review'/i);
   assert.match(migrationSql, /source\s+in\s*\('app_server',\s*'gopay_webhook',\s*'reconciliation',\s*'admin_tool',\s*'db_migration'\)/i);
   assert.doesNotMatch(migrationSql, /notification_outbox/i);
   assert.doesNotMatch(migrationSql, /authorization|access_token|refresh_token|client_secret/i);

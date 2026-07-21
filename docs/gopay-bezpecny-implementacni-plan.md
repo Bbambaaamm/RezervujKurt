@@ -467,6 +467,8 @@ Běžnému uživateli nezobrazovat:
 - [x] Evidovat typ události.
 - [x] Evidovat starý stav.
 - [x] Evidovat nový stav.
+- [x] Evidovat starý refund stav pro refund události.
+- [x] Evidovat nový refund stav pro refund události.
 - [x] Evidovat bezpečný důvod změny.
 - [x] Evidovat interní zdroj události.
 - [x] Evidovat počet pokusů.
@@ -529,7 +531,7 @@ Možné eventy:
 Pro správné nasazení této změny je potřeba:
 
 - [ ] Před staging/production migrací zkontrolovat přesný SQL obsah `supabase/migrations/20260721120000_create_payments_foundation.sql`.
-- [ ] Potvrdit, že migrace je pouze aditivní: vytváří `payments`, `payment_audit_log`, jejich constraints, indexy, RLS a revokace práv; nemění `reservations`, public occupancy, admin UI ani klientské create flow.
+- [ ] Potvrdit, že migrace je pouze aditivní: vytváří `payments`, `payment_audit_log`, jejich constraints včetně konzistence auditního `reservation_id` vůči platbě, indexy, RLS a revokace práv; nemění `reservations`, public occupancy, admin UI ani klientské create flow.
 - [ ] Aplikovat migraci nejdříve na staging jako samostatnou řízenou databázovou operaci, ne jako vedlejší efekt aplikačního deploye.
 - [ ] Po staging migraci spustit regresní smoke test současných rezervací: public grid, přihlášení, vytvoření rezervace členem, admin approve/cancel, zrušení vlastní rezervace, kolizní ochrana, notification outbox.
 - [ ] Před produkcí posoudit lock riziko: nové tabulky a nové indexy jsou nízkorizikové, foreign keys na `reservations` ale vyžadují krátké metadata zámky při vytvoření.
