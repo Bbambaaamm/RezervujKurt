@@ -10,8 +10,9 @@ const migrationPath = resolve(
 const migrationSql = readFileSync(migrationPath, 'utf8');
 
 test('platební migrace je aditivní a nemění současný stav rezervací', () => {
-  assert.match(migrationSql, /create\s+table\s+if\s+not\s+exists\s+public\.payments/i);
-  assert.match(migrationSql, /create\s+table\s+if\s+not\s+exists\s+public\.payment_audit_log/i);
+  assert.match(migrationSql, /create\s+table\s+public\.payments/i);
+  assert.match(migrationSql, /create\s+table\s+public\.payment_audit_log/i);
+  assert.doesNotMatch(migrationSql, /create\s+(?:unique\s+)?index\s+if\s+not\s+exists/i);
   assert.doesNotMatch(migrationSql, /alter\s+table\s+public\.reservations/i);
   assert.doesNotMatch(migrationSql, /waiting_for_payment/i);
   assert.doesNotMatch(migrationSql, /gopay\.com|payments\/payment|oauth2\/token/i);
@@ -28,23 +29,30 @@ test('payments obsahuje povinné bezpečnostní sloupce a vazbu na rezervaci', (
   assert.match(migrationSql, /metadata\s+jsonb\s+not\s+null\s+default\s+'\{\}'::jsonb/i);
 });
 
-test('payments omezuje provider, částku, měnu, stavy a bezpečnou délku chyb', () => {
+test('payments omezuje provider, částku, měnu, stavy, externí identifikátory a bezpečnou délku chyb', () => {
   assert.match(migrationSql, /payments_provider_chk\s+check\s*\(provider\s+in\s*\('gopay'\)\)/i);
   assert.match(migrationSql, /payments_amount_cents_chk\s+check\s*\(amount_cents\s*>\s*0\)/i);
   assert.match(migrationSql, /payments_currency_chk\s+check\s*\(currency\s*=\s*'CZK'\)/i);
   assert.match(migrationSql, /'created'[\s\S]+'awaiting_payment'[\s\S]+'paid'[\s\S]+'requires_manual_review'/i);
   assert.match(migrationSql, /'not_requested'[\s\S]+'processing'[\s\S]+'manual_review'/i);
   assert.match(migrationSql, /refunded_amount_cents\s*>=\s*0[\s\S]+refunded_amount_cents\s*<=\s*amount_cents/i);
+  assert.match(migrationSql, /payments_provider_payment_id_length_chk[\s\S]+char_length\(provider_payment_id\)\s+between\s+1\s+and\s+255/i);
+  assert.match(migrationSql, /payments_idempotency_key_length_chk\s+check\s*\(char_length\(idempotency_key\)\s+between\s+1\s+and\s+255\)/i);
+  assert.match(migrationSql, /payments_provider_refund_id_length_chk[\s\S]+char_length\(provider_refund_id\)\s+between\s+1\s+and\s+255/i);
+  assert.match(migrationSql, /payments_paid_at_chk\s+check\s*\(status\s*<>\s*'paid'\s+or\s+paid_at\s+is\s+not\s+null\)/i);
+  assert.match(migrationSql, /payments_refunded_at_chk\s+check\s*\(refund_status\s*<>\s*'succeeded'\s+or\s+refunded_at\s+is\s+not\s+null\)/i);
   assert.match(migrationSql, /last_error\s+is\s+null\s+or\s+char_length\(last_error\)\s*<=\s*1000/i);
+  assert.match(migrationSql, /payments_metadata_size_chk\s+check\s*\(octet_length\(metadata::text\)\s*<=\s*8192\)/i);
 });
 
 test('payments má idempotentní a provozní indexy', () => {
   assert.match(migrationSql, /payments_id_reservation_uq\s+unique\s*\(id,\s*reservation_id\)/i);
-  assert.match(migrationSql, /unique\s+index\s+if\s+not\s+exists\s+payments_idempotency_key_uq/i);
-  assert.match(migrationSql, /unique\s+index\s+if\s+not\s+exists\s+payments_provider_payment_id_uq[\s\S]+where\s+provider_payment_id\s+is\s+not\s+null/i);
-  assert.match(migrationSql, /unique\s+index\s+if\s+not\s+exists\s+payments_one_active_per_reservation_uq[\s\S]+where\s+status\s+in\s*\('created',\s*'awaiting_payment',\s*'paid',\s*'requires_manual_review'\)/i);
+  assert.match(migrationSql, /unique\s+index\s+payments_idempotency_key_uq/i);
+  assert.match(migrationSql, /unique\s+index\s+payments_provider_payment_id_uq[\s\S]+where\s+provider_payment_id\s+is\s+not\s+null/i);
+  assert.match(migrationSql, /unique\s+index\s+payments_one_retained_per_reservation_uq[\s\S]+where\s+status\s+in\s*\('created',\s*'awaiting_payment',\s*'paid',\s*'requires_manual_review'\)/i);
   assert.match(migrationSql, /payments_active_expires_at_idx[\s\S]+where\s+status\s+in\s*\('created',\s*'awaiting_payment'\)/i);
   assert.match(migrationSql, /payments_refund_attention_idx[\s\S]+where\s+refund_status\s+in\s*\('requested',\s*'processing',\s*'failed',\s*'manual_review'\)/i);
+  assert.match(migrationSql, /create\s+trigger\s+payments_set_updated_at[\s\S]+before\s+update\s+on\s+public\.payments[\s\S]+execute\s+function\s+public\.set_payments_updated_at\(\)/i);
 });
 
 test('payments a payment audit nejsou přímo dostupné běžným rolím', () => {
@@ -64,6 +72,7 @@ test('payment_audit_log eviduje jen bezpečný technický audit oddělený od no
   assert.match(migrationSql, /old_refund_status\s+text/i);
   assert.match(migrationSql, /new_refund_status\s+text/i);
   assert.match(migrationSql, /payment_audit_log_refund_statuses_chk[\s\S]+'not_requested'[\s\S]+'processing'[\s\S]+'succeeded'[\s\S]+'manual_review'/i);
+  assert.match(migrationSql, /payment_audit_log_metadata_size_chk\s+check\s*\(octet_length\(metadata::text\)\s*<=\s*8192\)/i);
   assert.match(migrationSql, /source\s+in\s*\('app_server',\s*'gopay_webhook',\s*'reconciliation',\s*'admin_tool',\s*'db_migration'\)/i);
   assert.doesNotMatch(migrationSql, /notification_outbox/i);
   assert.doesNotMatch(migrationSql, /authorization|access_token|refresh_token|client_secret/i);
