@@ -71,7 +71,7 @@ test('full overlap je kolize', async () => {
   );
 });
 
-test('checkReservationSlotAvailability: pending a approved blokují slot, cancelled neblokuje', async () => {
+test('checkReservationSlotAvailability: waiting_for_payment, pending a approved blokují slot, cancelled neblokuje', async () => {
   const { checkReservationSlotAvailability } = await import('../lib/services/reservations');
 
   let capturedUrl = '';
@@ -81,6 +81,7 @@ test('checkReservationSlotAvailability: pending a approved blokují slot, cancel
       JSON.stringify([
         { time_from: '08:00', time_to: '09:00', status: 'cancelled' },
         { time_from: '09:30', time_to: '10:30', status: 'pending' },
+        { time_from: '10:00', time_to: '10:30', status: 'waiting_for_payment' },
         { time_from: '11:00', time_to: '12:00', status: 'approved' },
       ]),
       { status: 200 },
@@ -101,7 +102,7 @@ test('checkReservationSlotAvailability: pending a approved blokují slot, cancel
   assert.equal(parsedUrl.searchParams.get('select'), 'court_id,reservation_date,time_from,time_to,status');
   assert.equal(parsedUrl.searchParams.get('court_id'), 'eq.2');
   assert.equal(parsedUrl.searchParams.get('reservation_date'), 'eq.2026-05-20');
-  assert.equal(parsedUrl.searchParams.get('status'), 'in.(pending,approved)');
+  assert.equal(parsedUrl.searchParams.get('status'), 'in.(waiting_for_payment,pending,approved)');
 });
 
 test('checkReservationSlotAvailability: nepoužívá session token a volá anonymní read bez user filtru', async () => {

@@ -50,7 +50,16 @@ export function getReservationSlotState(reservations: Reservation[], courtId: nu
   const reservation = reservations.find((item) => item.courtId === courtId && item.date === date && isReservationSlotOccupied(item, slotFrom, slotTo));
 
   if (!reservation) return { type: 'volno' as const, label: 'Volno', isOccupied: false, reservation: null };
-  return { type: reservation.status as ReservationSlotType, label: reservation.status === 'cekajici' ? 'Čeká na schválení' : 'Obsazeno', isOccupied: true, reservation };
+  return {
+    type: reservation.status as ReservationSlotType,
+    label: reservation.status === 'ceka_na_platbu'
+      ? 'Čeká na platbu'
+      : reservation.status === 'cekajici'
+        ? 'Čeká na schválení'
+        : 'Obsazeno',
+    isOccupied: true,
+    reservation,
+  };
 }
 
 export function getReservationSlotClassName(slotType: ReservationSlotType, isSelected: boolean, selectedPosition: ReservationSlotSelectionPosition = 'single') {
@@ -70,6 +79,7 @@ export function getReservationSlotClassName(slotType: ReservationSlotType, isSel
   }
 
   if (slotType === 'potvrzeno' || slotType === 'blokace') return `${baseClass} bg-rose-50 text-rose-900 border-rose-200`;
+  if (slotType === 'ceka_na_platbu') return `${baseClass} bg-sky-50 text-sky-900 border-sky-200`;
   if (slotType === 'cekajici') return `${baseClass} bg-amber-50 text-amber-900 border-amber-300`;
 
   return `${baseClass} bg-white text-slate-700 hover:bg-sky-50`;
@@ -84,6 +94,7 @@ export function getReservationSlotCellClassName(slotType: ReservationSlotType, i
   const baseClass = 'block min-h-[48px] w-full px-3 py-1.5 text-left';
   if (isSelected && slotType === 'volno') return `${baseClass} text-white`;
   if (slotType === 'potvrzeno' || slotType === 'blokace') return `${baseClass} text-rose-900`;
+  if (slotType === 'ceka_na_platbu') return `${baseClass} text-sky-900`;
   if (slotType === 'cekajici') return `${baseClass} text-amber-900`;
   return `${baseClass} text-slate-700`;
 }

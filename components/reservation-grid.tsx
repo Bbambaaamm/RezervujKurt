@@ -200,7 +200,7 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
             ? 'hover:bg-sky-50 transition-colors duration-150'
           : '';
     const slotClassName = buildReservationSlotRenderClassName(slot.type, isSelected, selectedPosition, interactionClassName);
-    const slotStateLabel = canApplySelectedStyle ? 'vybráno' : isPastSlot && slot.type === 'volno' ? 'již proběhlo' : slot.type === 'volno' ? 'volno' : slot.type === 'cekajici' ? 'čeká na schválení' : 'obsazeno';
+    const slotStateLabel = canApplySelectedStyle ? 'vybráno' : isPastSlot && slot.type === 'volno' ? 'již proběhlo' : slot.type === 'volno' ? 'volno' : slot.type === 'ceka_na_platbu' ? 'čeká na platbu' : slot.type === 'cekajici' ? 'čeká na schválení' : 'obsazeno';
     const slotNote = slot.reservation?.note?.trim() || null;
     const slotAriaLabel = slotNote
       ? `${court.name}, ${formatTimeLabel(time)} až ${formatTimeLabel(time + 0.5)}, stav ${slotStateLabel}, poznámka ${slotNote}`
@@ -233,6 +233,11 @@ export function ReservationGrid({ selectedDate, courts = fallbackCourts, reserva
             <span className="block truncate whitespace-nowrap text-sm font-medium leading-tight text-slate-500">Již proběhlo</span>
           ) : slot.type === 'volno' ? (
             <span className="block truncate whitespace-nowrap text-sm font-medium leading-tight text-slate-700">Volno</span>
+          ) : slot.type === 'ceka_na_platbu' ? (
+            <>
+              <span className="block truncate whitespace-nowrap text-sm font-medium leading-tight text-sky-900">Čeká na platbu</span>
+              {slotNote ? <span className="block max-w-full truncate whitespace-nowrap text-xs leading-tight text-sky-800/80" title={slotNote}>{slotNote}</span> : null}
+            </>
           ) : slot.type === 'cekajici' ? (
             <>
               <span className="block truncate whitespace-nowrap text-sm font-medium leading-tight text-amber-900">Čeká na schválení</span>

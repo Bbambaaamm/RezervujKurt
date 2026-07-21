@@ -83,6 +83,15 @@ test('čekající slot má viditelné barevné pozadí', () => {
   assert.match(className, /bg-amber-50/);
 });
 
+test('rezervace čekající na platbu má viditelné barevné pozadí', () => {
+  const slot = getReservationSlotState([createReservation({ status: 'ceka_na_platbu' })], 1, '2026-05-20', 9, 9.5);
+  assert.equal(slot.isOccupied, true);
+  assert.equal(slot.label, 'Čeká na platbu');
+
+  const className = getReservationSlotClassName(slot.type, false);
+  assert.match(className, /bg-sky-50/);
+});
+
 test('potvrzený slot má viditelné barevné pozadí', () => {
   const className = getReservationSlotClassName('potvrzeno', false);
   assert.match(className, /bg-rose-50/);

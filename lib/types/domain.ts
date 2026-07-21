@@ -4,7 +4,7 @@ export type Court = {
   surface: 'antuka';
 };
 
-export type ReservationStatus = 'cekajici' | 'potvrzeno' | 'zamítnuto' | 'zruseno' | 'blokace';
+export type ReservationStatus = 'ceka_na_platbu' | 'cekajici' | 'potvrzeno' | 'zamítnuto' | 'zruseno' | 'blokace';
 
 export type Reservation = {
   id: string;
