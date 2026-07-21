@@ -1,4 +1,8 @@
 -- Stav čekající na platbu blokuje obsazenost, ale veřejný anonymní pohled nesmí prozradit platební detail.
+-- Krátký lock timeout brání tomu, aby migrace při zámku neomezeně blokovala produkční rezervace.
+
+set lock_timeout = '5s';
+
 
 alter table public.reservations
   drop constraint if exists reservations_status_check;
@@ -82,3 +86,6 @@ revoke all privileges on public.reservation_member_occupancy_notes from anon;
 revoke all privileges on public.reservation_member_occupancy_notes from authenticated;
 
 grant select on public.reservation_member_occupancy_notes to authenticated;
+
+-- Po dokončení migrace explicitně vracíme session nastavení do výchozího stavu.
+reset lock_timeout;

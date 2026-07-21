@@ -4,6 +4,18 @@ import { readFileSync } from 'node:fs';
 
 const migrationSql = readFileSync('supabase/migrations/20260721133000_waiting_for_payment_occupancy.sql', 'utf8');
 
+test('waiting_for_payment migrace nastaví krátký lock timeout před prvním ALTER TABLE a na konci jej resetuje', () => {
+  const setLockTimeoutIndex = migrationSql.search(/set\s+lock_timeout\s*=\s*'5s'/i);
+  const firstAlterTableIndex = migrationSql.search(/alter\s+table/i);
+  const resetLockTimeoutIndex = migrationSql.search(/reset\s+lock_timeout/i);
+
+  assert.notEqual(setLockTimeoutIndex, -1);
+  assert.notEqual(firstAlterTableIndex, -1);
+  assert.notEqual(resetLockTimeoutIndex, -1);
+  assert.ok(setLockTimeoutIndex < firstAlterTableIndex);
+  assert.ok(resetLockTimeoutIndex > firstAlterTableIndex);
+});
+
 test('waiting_for_payment migrace rozšiřuje povolené stavy rezervací a auditu', () => {
   assert.match(migrationSql, /drop\s+constraint\s+if\s+exists\s+reservations_status_check/i);
   assert.match(migrationSql, /check\s*\(status\s+in\s*\(\s*'waiting_for_payment'\s*,\s*'pending'\s*,\s*'approved'\s*,\s*'cancelled'\s*\)\s*\)/i);
