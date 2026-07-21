@@ -417,7 +417,7 @@ Přidat izolovaný platební datový model, který stará aplikace zcela ignoruj
 - [x] Check constraint `refunded_amount_cents <= amount_cents`.
 - [x] Unique index na `idempotency_key`.
 - [x] Partial unique index na `(provider, provider_payment_id)` tam, kde `provider_payment_id is not null`.
-- [x] Partial unique index zajišťující nejvýše jednu aktivní platbu na rezervaci.
+- [x] Partial unique index zajišťující nejvýše jednu otevřenou nebo úspěšnou hlavní platbu na rezervaci.
 - [x] Index na `reservation_id`.
 - [x] Index na `expires_at` pro aktivní čekající platby.
 - [x] Index na problémové refund stavy.
