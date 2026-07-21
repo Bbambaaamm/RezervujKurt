@@ -381,7 +381,7 @@ Cíl fáze: ověřit aplikaci nad prostředím, které odpovídá budoucímu pro
 - [ ] testovací chyba je dohledatelná;
 - [ ] je určeno, kdo a kdy reaguje na kritickou chybu.
 
-**Potvrzení:** rozpracováno `21. 7. 2026`; aplikace zapisuje strukturované provozní události pro chyby magic-link auth, odhlášení a zápisy rezervací. Uzavření P5 ještě čeká na runtime dohledání testovací chyby v hostingu a potvrzení reakční odpovědnosti vlastníkem provozu.
+**Potvrzení:** rozpracováno `21. 7. 2026`; aplikace zapisuje strukturované provozní události pro chyby magic-link auth, odhlášení a zápisy rezervací. Klientské auth chyby se posílají přes serverovou `/api/observability` route, aby byly dohledatelné v runtime logách hostingu, ne pouze v konzoli prohlížeče. Uzavření P5 ještě čeká na runtime dohledání testovací chyby v hostingu a potvrzení reakční odpovědnosti vlastníkem provozu.
 
 ## [-] P6 — Sepsat release, incident a rollback runbook
 

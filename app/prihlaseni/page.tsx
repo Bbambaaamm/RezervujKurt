@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { supabaseAuthClient, type AuthSession } from '@/lib/supabase/auth-client';
 import { buildEmailRedirectTo } from '@/lib/supabase/auth-redirect';
-import { reportOperationalEvent } from '@/lib/services/observability';
+import { reportClientOperationalEvent } from '@/lib/services/client-observability';
 
 const MAGIC_LINK_COOLDOWN_SECONDS = 60;
 
@@ -101,7 +101,7 @@ export default function LoginPage() {
     setIsSubmitting(false);
 
     if (signInError) {
-      reportOperationalEvent({
+      reportClientOperationalEvent({
         level: 'warn',
         operation: 'auth.magic_link',
         message: 'Odeslání magic linku selhalo.',
@@ -122,7 +122,7 @@ export default function LoginPage() {
     const { error: signOutError } = await supabaseAuthClient.auth.signOut();
 
     if (signOutError) {
-      reportOperationalEvent({
+      reportClientOperationalEvent({
         level: 'warn',
         operation: 'auth.sign_out',
         message: 'Odhlášení uživatele selhalo.',
