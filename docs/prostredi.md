@@ -68,7 +68,7 @@ GitHub repozitář
 - Aplikační proměnné se spravují ve Vercelu pro staging projekt a všechny hodnoty musí mířit na staging Supabase projekt.
 - Platební capability flag má zůstat na stagingu vypnutý (`false`), dokud není výslovně ověřeno platební flow; GoPay prostředí má být připravené jako sandbox.
 - Staging Supabase projekt má před širším testováním dostat custom SMTP. SMTP host, port, uživatelské jméno, heslo a ověřený odesílatel se spravují pouze v Supabase Dashboardu daného projektu. Custom SMTP ale neblokuje základní hostovaný staging lifecycle přes výchozího poskytovatele, pokud se výsledek takto zdokumentuje.
-- Povolené Supabase Auth redirect URL musí odpovídat používané Preview URL. Konkrétní URL nebo bezpečně omezený vzor se nastaví až po vytvoření Vercel projektu a ověření skutečného formátu Preview URL.
+- Povolené Supabase Auth redirect URL musí odpovídat stálé staging URL samostatného Vercel projektu a návratové cestě `/rezervace`. Konkrétní URL se nastaví až po vytvoření projektu `rezervuj-kurt-staging` a ověření skutečné deployment URL.
 - Staging nesmí používat produkční databázi, produkční uživatele ani produkční secrets.
 
 ### Production
@@ -144,9 +144,9 @@ Skutečné hodnoty se doplňují pouze v úložišti konfigurace daného prostř
 
 P1 lze označit jako plně dokončené až po provedení těchto kroků:
 
-- [ ] doplnit konkrétní Preview URL; production Vercel URL `https://rezervuj-kurt.vercel.app` je potvrzená;
+- [ ] vytvořit samostatný Vercel staging projekt `rezervuj-kurt-staging` napojený na branch `staging` a doplnit jeho konkrétní staging URL; production Vercel URL `https://rezervuj-kurt.vercel.app` je potvrzená;
 - [x] vytvořit dva oddělené Supabase Free projekty a zapsat jejich project refs;
-- [ ] nastavit a ověřit oddělené Preview environment variables; production environment variables a propojení s production Supabase byly runtime ověřené;
+- [ ] nastavit a ověřit environment variables v samostatném staging Vercel projektu; všechny `NEXT_PUBLIC_*` hodnoty musí mířit na staging Supabase projekt `rrlvlgoiwesteevzupyi`; production environment variables a propojení s production Supabase byly runtime ověřené;
 - [ ] potvrdit Brevo Free jako SMTP poskytovatele nebo zdokumentovat jinou variantu kompatibilní s cílem 0 Kč/měsíc; následně založit účet, ověřit odesílatele a nastavit oddělené custom SMTP konfigurace ve staging a production Supabase projektu;
 - [ ] nastavit a ověřit Site URL a povolené auth redirect URL ve staging projektu; production návrat na `https://rezervuj-kurt.vercel.app/rezervace` byl prakticky ověřen;
 - [ ] ověřit doručení a použití magic linku přes custom SMTP alespoň na dvou externích adresách mimo tým Supabase projektu;
