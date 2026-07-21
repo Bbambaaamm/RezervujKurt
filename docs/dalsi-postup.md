@@ -362,7 +362,7 @@ Cíl fáze: ověřit aplikaci nad prostředím, které odpovídá budoucímu pro
 
 **Potvrzení:** částečně ověřeno `12. 6. 2026` na production přes Gmail. P4 čeká na custom SMTP, druhého poskytovatele schránky a negativní/session scénáře.
 
-## [ ] P5 — Zavést minimální produkční observabilitu
+## [-] P5 — Zavést minimální produkční observabilitu
 
 **Priorita:** P1
 
@@ -375,13 +375,13 @@ Cíl fáze: ověřit aplikaci nad prostředím, které odpovídá budoucímu pro
 
 **Akceptační kritéria:**
 
-- [ ] je zvolen způsob sběru chyb a provozních událostí;
-- [ ] logy neobsahují access tokeny, service-role klíče ani magic-link tokeny;
-- [ ] je možné rozlišit prostředí a typ operace;
+- [x] je zvolen způsob sběru chyb a provozních událostí — pro první bezplatný provoz se používají strukturované aplikační logy hostingu bez nové dependency;
+- [x] logy neobsahují access tokeny, service-role klíče ani magic-link tokeny;
+- [x] je možné rozlišit prostředí a typ operace;
 - [ ] testovací chyba je dohledatelná;
 - [ ] je určeno, kdo a kdy reaguje na kritickou chybu.
 
-**Potvrzení:** datum `—`, důkaz `—`.
+**Potvrzení:** rozpracováno `21. 7. 2026`; aplikace zapisuje strukturované provozní události pro chyby magic-link auth, odhlášení a zápisy rezervací. Klientské auth chyby se posílají přes serverovou `/api/observability` route, aby byly dohledatelné v runtime logách hostingu, ne pouze v konzoli prohlížeče. Uzavření P5 ještě čeká na runtime dohledání testovací chyby v hostingu a potvrzení reakční odpovědnosti vlastníkem provozu.
 
 ## [-] P6 — Sepsat release, incident a rollback runbook
 

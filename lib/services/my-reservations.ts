@@ -1,4 +1,5 @@
 import type { AuthSession } from '../supabase/auth-client';
+import { reportOperationalEvent } from './observability';
 import { getPragueReservationStartMs } from './reservation-time';
 import { mapReservationWriteError, ReservationNoLongerPendingError, ReservationUnauthorizedError } from './supabase-error-mapping';
 
@@ -59,6 +60,12 @@ export async function cancelMyReservation(input: CancelMyReservationInput): Prom
   const accessToken = input.session?.access_token;
 
   if (!userId || !accessToken) {
+    reportOperationalEvent({
+      level: 'warn',
+      operation: 'reservation.cancel',
+      message: 'Zrušení rezervace bylo odmítnuto kvůli chybějící session.',
+      metadata: { reservationId: input.reservationId },
+    });
     throw new ReservationUnauthorizedError('Nemáte oprávnění zrušit tuto rezervaci.');
   }
 
@@ -125,6 +132,13 @@ export async function cancelMyReservation(input: CancelMyReservationInput): Prom
   if (process.env.NODE_ENV === 'development') {
     console.info('my reservation cancel failed', { reservationId: input.reservationId, userId, status: response.status });
   }
+
+  reportOperationalEvent({
+    level: 'error',
+    operation: 'reservation.cancel',
+    message: 'Zrušení rezervace uživatelem selhalo.',
+    metadata: { reservationId: input.reservationId, userId, status: response.status },
+  });
 
   if (mappedError instanceof ReservationUnauthorizedError) {
     throw new ReservationUnauthorizedError('Nemáte oprávnění zrušit tuto rezervaci.');

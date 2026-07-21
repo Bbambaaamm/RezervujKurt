@@ -58,7 +58,7 @@ Výsledek je **NO-GO**, pokud chybí vlastník, záloha pro databázovou změnu,
 5. Nasaď aplikaci z potvrzeného commitu. Nebuilduj produkční artefakt z pracovního stromu s lokálními změnami.
 6. Ověř health signál hostingu a dostupnost veřejné stránky.
 7. Projdi kritický smoke podle `docs/runtime-verification.md` nad cílovým prostředím, nikoli nad mock daty.
-8. Zkontroluj chyby auth, Supabase a rezervačních operací v dostupné provozní diagnostice.
+8. Zkontroluj strukturované události `rezervuj_kurt.observability` pro chyby auth, Supabase a rezervačních operací v logách hostingu.
 9. Pokud release používá admin e-mailové notifikace, ověř poslední běh
    `process-notification-outbox-every-minute` a stav fronty podle
    `docs/notifikacni-worker.md`.
@@ -143,8 +143,9 @@ Postupuj od nejméně invazivních kontrol:
 3. Reprodukuj problém testovacím účtem a unikátním testovacím slotem; nemanipuluj s cizí rezervací.
 4. Porovnej UI se stavem `reservations`, `reservation_public_occupancy` a auditním logem.
 5. Rozliš chybu anonymního čtení, session/auth, RLS, databázové kolize a nedostupnost infrastruktury.
-6. Uchovej relevantní logy a diagnostické artefakty v souladu s retenčními pravidly provozovatele.
-7. Pokud je incident spojený s releasem, použij rozhodnutí z rollback části; jinak nedělej preventivní změny bez potvrzené hypotézy.
+6. Vyhledej strukturovanou událost `rezervuj_kurt.observability` podle času, prostředí a pole `operation`.
+7. Uchovej relevantní logy a diagnostické artefakty v souladu s retenčními pravidly provozovatele.
+8. Pokud je incident spojený s releasem, použij rozhodnutí z rollback části; jinak nedělej preventivní změny bez potvrzené hypotézy.
 
 ### 4.4 Omezení provozu při nespolehlivé obsazenosti
 
