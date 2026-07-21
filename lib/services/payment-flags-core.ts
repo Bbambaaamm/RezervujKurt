@@ -23,6 +23,21 @@ export type PaymentFeatureFlagEnvironment = {
   PAYMENTS_GOPAY_ENV?: string;
 };
 
+export type PaymentFeatureDisabledReason =
+  | 'gopay_create_disabled'
+  | 'gopay_webhook_disabled'
+  | 'payment_expiration_disabled'
+  | 'auto_refund_disabled';
+
+export class PaymentFeatureDisabledError extends Error {
+  readonly httpStatus = 503;
+
+  constructor(readonly reason: PaymentFeatureDisabledReason) {
+    super('Payment feature is disabled');
+    this.name = 'PaymentFeatureDisabledError';
+  }
+}
+
 function isEnabled(value: string | undefined) {
   return value === 'true';
 }
@@ -56,8 +71,38 @@ export function canProcessGoPayWebhook(
   return flags.gopayCodeAvailable && flags.gopayWebhookProcessingEnabled;
 }
 
+export function canExpirePayment(flags: Pick<PaymentFeatureFlags, 'gopayCodeAvailable' | 'paymentExpirationEnabled'>) {
+  return flags.gopayCodeAvailable && flags.paymentExpirationEnabled;
+}
+
+export function canStartAutomaticRefund(flags: Pick<PaymentFeatureFlags, 'gopayCodeAvailable' | 'autoRefundEnabled'>) {
+  return flags.gopayCodeAvailable && flags.autoRefundEnabled;
+}
+
 export function requireGoPayCreateEnabled(flags: Pick<PaymentFeatureFlags, 'gopayCodeAvailable' | 'gopayCreateEnabled'>) {
   if (!canCreateGoPayPayment(flags)) {
-    throw new Error('Vytváření GoPay plateb je vypnuté.');
+    throw new PaymentFeatureDisabledError('gopay_create_disabled');
+  }
+}
+
+export function requireGoPayWebhookEnabled(
+  flags: Pick<PaymentFeatureFlags, 'gopayCodeAvailable' | 'gopayWebhookProcessingEnabled'>,
+) {
+  if (!canProcessGoPayWebhook(flags)) {
+    throw new PaymentFeatureDisabledError('gopay_webhook_disabled');
+  }
+}
+
+export function requirePaymentExpirationEnabled(
+  flags: Pick<PaymentFeatureFlags, 'gopayCodeAvailable' | 'paymentExpirationEnabled'>,
+) {
+  if (!canExpirePayment(flags)) {
+    throw new PaymentFeatureDisabledError('payment_expiration_disabled');
+  }
+}
+
+export function requireAutomaticRefundEnabled(flags: Pick<PaymentFeatureFlags, 'gopayCodeAvailable' | 'autoRefundEnabled'>) {
+  if (!canStartAutomaticRefund(flags)) {
+    throw new PaymentFeatureDisabledError('auto_refund_disabled');
   }
 }

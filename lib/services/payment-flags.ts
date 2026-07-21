@@ -2,8 +2,14 @@ import 'server-only';
 
 import {
   canCreateGoPayPayment,
+  canExpirePayment,
   canProcessGoPayWebhook,
+  canStartAutomaticRefund,
+  requireAutomaticRefundEnabled,
   requireGoPayCreateEnabled,
+  PaymentFeatureDisabledError,
+  requireGoPayWebhookEnabled,
+  requirePaymentExpirationEnabled,
   resolvePaymentFeatureFlags,
   type PaymentDynamicFlags,
   type PaymentFeatureFlagEnvironment,
@@ -11,13 +17,20 @@ import {
 
 export {
   canCreateGoPayPayment,
+  canExpirePayment,
   canProcessGoPayWebhook,
+  canStartAutomaticRefund,
+  requireAutomaticRefundEnabled,
   requireGoPayCreateEnabled,
+  PaymentFeatureDisabledError,
+  requireGoPayWebhookEnabled,
+  requirePaymentExpirationEnabled,
   resolvePaymentFeatureFlags,
 };
 export type {
   GoPayEnvironment,
   PaymentDynamicFlags,
+  PaymentFeatureDisabledReason,
   PaymentFeatureFlagEnvironment,
   PaymentFeatureFlags,
 } from './payment-flags-core';

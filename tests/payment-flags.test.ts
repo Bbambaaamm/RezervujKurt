@@ -3,9 +3,15 @@ import assert from 'node:assert/strict';
 
 import {
   canCreateGoPayPayment,
+  canExpirePayment,
   canProcessGoPayWebhook,
+  canStartAutomaticRefund,
+  PaymentFeatureDisabledError,
   resolvePaymentFeatureFlags,
+  requireAutomaticRefundEnabled,
   requireGoPayCreateEnabled,
+  requireGoPayWebhookEnabled,
+  requirePaymentExpirationEnabled,
 } from '../lib/services/payment-flags-core';
 
 test('platební flagy jsou ve výchozím stavu bezpečně vypnuté', () => {
@@ -71,7 +77,7 @@ test('GoPay create flow lze povolit jen kombinací capability flagu a dynamické
 test('serverový guard odmítne budoucí vytvoření platby při vypnutém flow', () => {
   assert.throws(
     () => requireGoPayCreateEnabled(resolvePaymentFeatureFlags({ PAYMENTS_GOPAY_CODE_AVAILABLE: 'true' })),
-    /Vytváření GoPay plateb je vypnuté\./,
+    /Payment feature is disabled/,
   );
 });
 
@@ -106,5 +112,57 @@ test('GoPay webhook processing vyžaduje capability flag i dynamický flag', () 
       ),
     ),
     true,
+  );
+});
+
+
+test('guard pro vypnuté vytváření GoPay plateb vrací mapovatelnou platební chybu', () => {
+  assert.throws(
+    () => requireGoPayCreateEnabled(resolvePaymentFeatureFlags({ PAYMENTS_GOPAY_CODE_AVAILABLE: 'true' })),
+    (error: unknown) => {
+      assert.equal(error instanceof PaymentFeatureDisabledError, true);
+      assert.equal((error as PaymentFeatureDisabledError).reason, 'gopay_create_disabled');
+      assert.equal((error as PaymentFeatureDisabledError).httpStatus, 503);
+      return true;
+    },
+  );
+});
+
+test('expirace plateb a automatický refund používají capability-aware helpery', () => {
+  assert.equal(
+    canExpirePayment(resolvePaymentFeatureFlags({}, { paymentExpirationEnabled: true })),
+    false,
+  );
+  assert.equal(
+    canStartAutomaticRefund(resolvePaymentFeatureFlags({}, { autoRefundEnabled: true })),
+    false,
+  );
+
+  const flags = resolvePaymentFeatureFlags(
+    { PAYMENTS_GOPAY_CODE_AVAILABLE: 'true' },
+    { paymentExpirationEnabled: true, autoRefundEnabled: true },
+  );
+
+  assert.equal(canExpirePayment(flags), true);
+  assert.equal(canStartAutomaticRefund(flags), true);
+});
+
+test('guardy pro budoucí platební operace vrací konkrétní důvody vypnutí', () => {
+  const flags = resolvePaymentFeatureFlags({ PAYMENTS_GOPAY_CODE_AVAILABLE: 'true' });
+
+  assert.throws(
+    () => requireGoPayWebhookEnabled(flags),
+    (error: unknown) => error instanceof PaymentFeatureDisabledError
+      && error.reason === 'gopay_webhook_disabled',
+  );
+  assert.throws(
+    () => requirePaymentExpirationEnabled(flags),
+    (error: unknown) => error instanceof PaymentFeatureDisabledError
+      && error.reason === 'payment_expiration_disabled',
+  );
+  assert.throws(
+    () => requireAutomaticRefundEnabled(flags),
+    (error: unknown) => error instanceof PaymentFeatureDisabledError
+      && error.reason === 'auto_refund_disabled',
   );
 });
