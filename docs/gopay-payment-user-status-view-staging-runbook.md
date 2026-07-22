@@ -1,6 +1,6 @@
 # Staging runbook: bezpečnostní ověření `payment_user_statuses`
 
-Tento runbook ověřuje, že read-only view `public.payment_user_statuses` izoluje platební stav mezi uživateli a nezpřístupňuje podkladovou tabulku `payments`. Platí pouze pro staging. GoPay flow musí zůstat vypnuté a test nesmí používat produkční credentials.
+Tento runbook ověřuje, že read-only view `public.payment_user_statuses` izoluje platební stav mezi uživateli, nezpřístupňuje podkladovou tabulku `payments` a při více pokusech jedné rezervace vrací nejvýše jeden deterministicky vybraný platební stav. Platí pouze pro staging. GoPay flow musí zůstat vypnuté a test nesmí používat produkční credentials.
 
 ## Problém a zvolené řešení
 
@@ -71,7 +71,16 @@ insert into public.payments (
 values
   (
     '00000000-0000-4000-8000-0000000000a1',
-    'staging-payment-view-a',
+    'staging-payment-view-a-old-failed',
+    25000,
+    'CZK',
+    'failed',
+    'not_requested',
+    now() - interval '15 minutes'
+  ),
+  (
+    '00000000-0000-4000-8000-0000000000a1',
+    'staging-payment-view-a-current',
     25000,
     'CZK',
     'awaiting_payment',
@@ -80,7 +89,7 @@ values
   ),
   (
     '00000000-0000-4000-8000-0000000000b1',
-    'staging-payment-view-b',
+    'staging-payment-view-b-current',
     30000,
     'CZK',
     'awaiting_payment',
@@ -103,7 +112,7 @@ curl -sS "$STAGING_SUPABASE_URL/rest/v1/payment_user_statuses?select=*&reservati
   -H "Authorization: Bearer $TOKEN_A"
 ```
 
-Očekávání: odpověď obsahuje právě jeden řádek s `reservation_id = 00000000-0000-4000-8000-0000000000a1`.
+Očekávání: odpověď obsahuje právě jeden řádek s `reservation_id = 00000000-0000-4000-8000-0000000000a1`, `status = awaiting_payment` a nevrací starší `failed` pokus stejné rezervace.
 
 ### Uživatel B vidí pouze platbu B
 
@@ -160,7 +169,7 @@ where n.nspname = 'public'
   and c.relname = 'payment_user_statuses';
 ```
 
-Očekávání: `security_invoker = false`, `security_barrier = true`; vlastníka zapiš do evidence staging ověření.
+Očekávání: `security_invoker = false`, `security_barrier = true`; vlastníka zapiš do evidence staging ověření. Definice view musí obsahovat deterministické omezení na jeden řádek přes `payment_rank = 1`.
 
 ```sql
 select grantee, privilege_type

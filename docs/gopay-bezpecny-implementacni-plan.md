@@ -470,7 +470,7 @@ Pro fázi 1 platí konzervativní pravidlo: jedna rezervace může mít nejvýš
 
 ### Stav uživatelského výřezu po navazujícím kroku
 
-Přidán je read-only view `payment_user_statuses`, který přes vazbu na vlastní rezervaci vrací pouze bezpečné stavové údaje platby pro přihlášeného uživatele. View záměrně nezpřístupňuje GoPay identifikátory, idempotency key, interní chyby, počet pokusů ani metadata. Slouží jako příprava pro budoucí návratovou/status obrazovku; současné rezervační flow ani GoPay aktivaci nemění.
+Přidán je read-only view `payment_user_statuses`, který přes vazbu na vlastní rezervaci vrací pouze bezpečné stavové údaje platby pro přihlášeného uživatele. View záměrně nezpřístupňuje GoPay identifikátory, idempotency key, interní chyby, počet pokusů ani metadata. Pokud má rezervace více historických platebních pokusů, view vrací nejvýše jeden deterministicky zvolený řádek: nejdříve aktuální/retained stav `created`, `awaiting_payment`, `paid` nebo `requires_manual_review`, jinak nejnovější historický pokus podle `updated_at`, `created_at` a interního `id`. Slouží jako příprava pro budoucí návratovou/status obrazovku; současné rezervační flow ani GoPay aktivaci nemění.
 
 `security_invoker = false` je zde úmyslné: view tvoří omezený bezpečný kontrakt bez přímého `SELECT` grantu na `payments`, podkladová tabulka zůstává běžnému uživateli nepřístupná a izolaci uživatelů zajišťuje přesný filtr `r.user_id = auth.uid()` společně se `security_barrier = true`. Každá změna definice view, filtru, grantů nebo seznamu sloupců vyžaduje samostatné bezpečnostní review. Staging ověření dvou oddělených identit a SQL kontroly jsou popsané v [`docs/gopay-payment-user-status-view-staging-runbook.md`](gopay-payment-user-status-view-staging-runbook.md).
 
