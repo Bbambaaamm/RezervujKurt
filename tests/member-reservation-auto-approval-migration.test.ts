@@ -28,9 +28,11 @@ test('auto approve funkce omezuje schvalování jednoznačně pouze na pending r
   const updateStatement = functionBody.match(/update\s+public\.reservations\s+as\s+r[\s\S]*?get\s+diagnostics/i)?.[0] ?? '';
   const whereClause = updateStatement.match(/where[\s\S]*?(?=get\s+diagnostics)/i)?.[0] ?? '';
 
+  const statusReferences = whereClause.match(/\br\.status\b/gi) ?? [];
+
+  assert.deepEqual(statusReferences, ['r.status']);
   assert.match(whereClause, /\br\.status\s*=\s*'pending'/i);
-  assert.doesNotMatch(whereClause, /\br\.status\s+in\s*\([^)]*waiting_for_payment/i);
-  assert.doesNotMatch(whereClause, /\br\.status\s*(?:<>|!=)\s*'(?:approved|cancelled)'/i);
+  assert.doesNotMatch(whereClause, /waiting_for_payment/i);
 });
 
 test('auto approve audit se zapisuje jako systémová akce bez předstírání uživatele', () => {
