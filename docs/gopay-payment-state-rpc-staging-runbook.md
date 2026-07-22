@@ -29,6 +29,61 @@ Pevné testovací identifikátory níže ponech jen v případě, že preflight 
 - `idempotency_key`: `staging-rpc-paid-001`
 - testovací slot: `2099-12-30`, `<TEST_COURT_ID>`, `21:00` až `22:00`
 
+
+## Opakovaný běh po přerušeném testu
+
+Pokud předchozí staging pokus doběhl až k pozitivnímu přechodu a selhal před cleanupem, testovací platba může zůstat ve stavu `paid` nebo v jiném než očekávaném baseline stavu. V takovém případě runbook nesmí pokračovat dalším během nad existujícím řádkem.
+
+Před opakovaným během nejdřív zkontroluj pevné testovací hodnoty:
+
+```sql
+select
+  p.id,
+  p.reservation_id,
+  p.status,
+  p.provider_payment_id,
+  p.idempotency_key,
+  p.paid_at,
+  p.failed_at,
+  p.cancelled_at,
+  p.expires_at,
+  p.attempt_count,
+  p.last_error
+from public.payments p
+where p.id = '00000000-0000-4000-9100-000000000011'
+   or p.provider_payment_id = 'STAGING-RPC-PAID-001'
+   or p.idempotency_key = 'staging-rpc-paid-001';
+
+select
+  r.id,
+  r.user_id,
+  r.court_id,
+  r.reservation_date,
+  r.time_from,
+  r.time_to,
+  r.status,
+  r.note
+from public.reservations r
+where r.id = '00000000-0000-4000-9100-000000000001';
+
+select
+  id,
+  payment_id,
+  reservation_id,
+  event_type,
+  old_status,
+  new_status,
+  reason,
+  source,
+  metadata,
+  created_at
+from public.payment_audit_log
+where payment_id = '00000000-0000-4000-9100-000000000011'
+order by id;
+```
+
+Očekávání pro čistý opakovaný běh: všechny tři dotazy vrátí nula řádků. Pokud existuje testovací platba, rezervace nebo auditní řádky, nejdřív proveď cleanup podle sekce níže, případně zvol nová UUID a nové unikátní hodnoty. Neopravuj existující testovací platbu přes `UPDATE` zpět do `awaiting_payment`; tím by se zakrylo, že nový běh nepoužívá čistě připravený stav.
+
 ## Preflight kontroly
 
 ### Ověření testovacího uživatele
