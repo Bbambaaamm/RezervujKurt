@@ -48,6 +48,10 @@ export type PaymentFeatureFlagFetchResult = {
   loadedFromDatabase: boolean;
 };
 
+export type GoPayCreateGuardResult = PaymentFeatureFlagFetchResult & {
+  canCreatePayment: true;
+};
+
 export type PaymentFeatureFlagFetchOptions = {
   timeoutMs?: number;
 };
@@ -69,6 +73,21 @@ export function readPaymentFeatureFlags(
   dynamicFlags: PaymentDynamicFlags = {},
 ) {
   return resolvePaymentFeatureFlags(env, dynamicFlags);
+}
+
+export async function requireGoPayCreateEnabledFromDatabase(
+  env?: PaymentFeatureFlagFetchEnvironment,
+  fetchFn?: typeof fetch,
+  options?: PaymentFeatureFlagFetchOptions,
+): Promise<GoPayCreateGuardResult> {
+  const result = await readPaymentFeatureFlagsFromDatabase(env, fetchFn, options);
+
+  requireGoPayCreateEnabled(result.flags);
+
+  return {
+    ...result,
+    canCreatePayment: true,
+  };
 }
 
 export async function readPaymentFeatureFlagsFromDatabase(
