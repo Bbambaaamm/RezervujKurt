@@ -149,7 +149,7 @@ Ve všech odmítnutých scénářích bylo ověřeno, že se nezměnil žádný 
 
 Samostatně byl ověřen atomický rollback celé transakce při selhání vložení do `payment_audit_log` testem s nepovolenou hodnotou `source`. Potvrzeno bylo, že update platby byl vrácen, auditní záznam nevznikl a transakce byla plně atomická.
 
-Jako dosud runtime neověřené zůstávají tyto scénáře; neoznačovat je jako staging `PASS`, dokud neproběhne samostatné staging ověření:
+Pro dosud runtime neověřené scénáře je doplněný samostatný runbook `docs/gopay-payment-state-rpc-staging-runbook.md`. Neoznačovat je jako staging `PASS`, dokud podle něj neproběhne samostatné staging ověření:
 
 - no-op přechod,
 - neexistující `payment_id`,
