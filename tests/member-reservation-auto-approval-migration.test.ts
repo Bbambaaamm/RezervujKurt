@@ -23,6 +23,15 @@ test('auto approve funkce schvaluje jen pending rezervace členů a adminů po 1
   assert.match(migrationSql, /set_config\(\s*'app\.reservation_auto_approval'\s*,\s*'true'\s*,\s*true\s*\)/i);
 });
 
+test('auto approve funkce omezuje schvalování jednoznačně pouze na pending rezervace', () => {
+  const functionBody = migrationSql.match(/create\s+or\s+replace\s+function\s+public\.auto_approve_member_reservations\(\)[\s\S]*?\$\$;/i)?.[0] ?? '';
+  const updateStatement = functionBody.match(/update\s+public\.reservations\s+as\s+r[\s\S]*?get\s+diagnostics/i)?.[0] ?? '';
+  const whereClause = updateStatement.match(/where[\s\S]*?(?=get\s+diagnostics)/i)?.[0] ?? '';
+
+  assert.match(whereClause, /\br\.status\s*=\s*'pending'/i);
+  assert.doesNotMatch(whereClause, /\br\.status\s+in\s*\([^)]*waiting_for_payment/i);
+  assert.doesNotMatch(whereClause, /\br\.status\s*(?:<>|!=)\s*'(?:approved|cancelled)'/i);
+});
 
 test('auto approve audit se zapisuje jako systémová akce bez předstírání uživatele', () => {
   assert.match(migrationSql, /current_setting\(\s*'app\.reservation_auto_approval'\s*,\s*true\s*\)\s*=\s*'true'/i);

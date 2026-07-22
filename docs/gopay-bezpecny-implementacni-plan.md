@@ -778,7 +778,7 @@ Migrace nesmí neomezeně čekat na zámek a tím blokovat nové rezervace. U ri
 - [ ] Upravit TypeScript typy pro stav rezervace.
 - [ ] Upravit mapování stavů v UI tak, aby neznámý stav nespadl do nesprávného významu.
 - [ ] Upravit admin pending query tak, aby `waiting_for_payment` nebyl běžná manuálně schvalovaná rezervace.
-- [ ] Přidat testy, že `waiting_for_payment` není automaticky schválen člen/admin cronem.
+- [x] Přidat testy, že `waiting_for_payment` není automaticky schválen člen/admin cronem.
 
 ## Důležité invarianty
 
@@ -804,9 +804,11 @@ Migrace nesmí neomezeně čekat na zámek a tím blokovat nové rezervace. U ri
 - [ ] Test aplikačního grid/read endpointu, že filtr vrací i `waiting_for_payment`.
 - [ ] Test availability pre-checku, že `waiting_for_payment` vyhodnotí jako kolizi.
 - [ ] Test klientského occupancy predikátu, že `waiting_for_payment` není volný slot.
-- [ ] Test admin pending listu, že `waiting_for_payment` není běžná schvalovací položka.
-- [ ] Regresní test `pending -> approved` pro člena/admina.
+- [x] Test admin pending listu, že `waiting_for_payment` není běžná schvalovací položka.
+- [x] Regresní test `pending -> approved` pro člena/admina.
 - [ ] Regresní test ručního admin schválení obyčejné `pending` rezervace.
+
+Poznámka k testu auto-approve cronu: současná source-level kontrola migrace chrání repozitář před odstraněním nebo rozšířením filtru `r.status = 'pending'`, ale nenahrazuje runtime ověření skutečně nasazené PostgreSQL funkce. Před produkčním nasazením celé změny `waiting_for_payment` je potřeba na stagingu prakticky ověřit, že `select public.auto_approve_member_reservations();` převede starší členskou `pending` rezervaci na `approved`, zatímco rezervace stejného člena ve stavu `waiting_for_payment` zůstane beze změny.
 
 ## Kritéria úspěchu
 
