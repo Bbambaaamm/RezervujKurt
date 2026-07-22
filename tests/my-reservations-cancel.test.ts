@@ -87,6 +87,41 @@ test('cancelMyReservation: Content-Range */0 mapuje na stale/no-op chybu', async
   );
 });
 
+
+test('cancelMyReservation: platebně blokovanou rezervaci neobejde serverovým PATCH filtrem', async () => {
+  const { cancelMyReservation } = await import('../lib/services/my-reservations');
+
+  let calledUrl = '';
+  let calledMethod = '';
+  let calledBody = '';
+
+  globalThis.fetch = async (input, init) => {
+    calledUrl = String(input);
+    calledMethod = String(init?.method ?? '');
+    calledBody = String(init?.body ?? '');
+
+    return createResponse({
+      status: 200,
+      body: '[]',
+      contentRange: '*/0',
+    });
+  };
+
+  await assert.rejects(
+    () => cancelMyReservation({
+      session: { access_token: 'token', user: { id: 'user-1', email: 'u@example.com' } },
+      reservationId: 'res-waiting',
+    }),
+    (error: unknown) => error instanceof ReservationNoLongerPendingError,
+  );
+
+  const parsedUrl = new URL(calledUrl);
+  assert.equal(calledMethod, 'PATCH');
+  assert.equal(parsedUrl.searchParams.get('status'), 'in.(pending,approved)');
+  assert.doesNotMatch(calledUrl, /waiting_for_payment/);
+  assert.deepEqual(JSON.parse(calledBody), { status: 'cancelled' });
+});
+
 test('cancelMyReservation: 403 mapuje na ReservationUnauthorizedError', async () => {
   const { cancelMyReservation } = await import('../lib/services/my-reservations');
 
@@ -99,6 +134,15 @@ test('cancelMyReservation: 403 mapuje na ReservationUnauthorizedError', async ()
     }),
     (error: unknown) => error instanceof ReservationUnauthorizedError,
   );
+});
+
+test('canCancelReservation: explicitně povoluje jen pending a approved', async () => {
+  const { canCancelReservation } = await import('../lib/services/my-reservations');
+
+  assert.equal(canCancelReservation('pending'), true);
+  assert.equal(canCancelReservation('approved'), true);
+  assert.equal(canCancelReservation('waiting_for_payment'), false);
+  assert.equal(canCancelReservation('cancelled'), false);
 });
 
 test('isMyReservationCancelable: minulá rezervace není zrušitelná', async () => {
@@ -164,4 +208,18 @@ test('isMyReservationUpcoming: budoucí pending a approved rezervace jsou aktuá
   assert.equal(isMyReservationUpcoming({ reservationDate: '2026-01-10', timeFrom: '10:00:00', status: 'approved' }, now), true);
   assert.equal(isMyReservationUpcoming({ reservationDate: '2026-01-10', timeFrom: '10:00:00', status: 'cancelled' }, now), false);
   assert.equal(isMyReservationUpcoming({ reservationDate: '2026-01-10', timeFrom: '09:00:00', status: 'approved' }, now), false);
+});
+
+
+test('isMyReservationCancelable: platebně blokovanou rezervaci nejde ručně zrušit jako běžnou rezervaci', async () => {
+  const { isMyReservationCancelable } = await import('../lib/services/my-reservations');
+
+  assert.equal(
+    isMyReservationCancelable({
+      reservationDate: '2099-05-20',
+      timeFrom: '09:00:00',
+      status: 'waiting_for_payment',
+    }),
+    false,
+  );
 });

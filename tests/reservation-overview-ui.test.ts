@@ -41,6 +41,7 @@ test('getReservationUserRoleLabel: odlišuje člena od nečlena a administrátor
 });
 
 test('getReservationStatusLabel: mapuje statusy na sjednocené texty', () => {
+  assert.equal(getReservationStatusLabel('waiting_for_payment'), 'Čeká na platbu');
   assert.equal(getReservationStatusLabel('pending'), 'Čeká na schválení');
   assert.equal(getReservationStatusLabel('approved'), 'Schváleno');
   assert.equal(getReservationStatusLabel('cancelled'), 'Zrušeno');

@@ -74,10 +74,15 @@ const emptyTournamentForm: TournamentFormInput = {
   note: '',
 };
 
+const statusBadgeClasses: Record<ReservationOverview['status'], string> = {
+  waiting_for_payment: 'border-sky-200 bg-sky-50 text-sky-800',
+  pending: 'border-amber-200 bg-amber-50 text-amber-800',
+  approved: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+  cancelled: 'border-rose-200 bg-rose-50 text-rose-800',
+};
+
 function getStatusBadgeClass(status: ReservationOverview['status']) {
-  if (status === 'approved') return 'border-emerald-200 bg-emerald-50 text-emerald-800';
-  if (status === 'cancelled') return 'border-rose-200 bg-rose-50 text-rose-800';
-  return 'border-amber-200 bg-amber-50 text-amber-800';
+  return statusBadgeClasses[status];
 }
 
 function canAdminCancelReservation(reservation: ReservationOverview) {
