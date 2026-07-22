@@ -289,7 +289,7 @@ Cíl fáze: ověřit aplikaci nad prostředím, které odpovídá budoucímu pro
 
 - [x] `npm run check:rls` prošel nad lokálními SQL soubory v `supabase/migrations`;
 - [x] `npm run check:rls:prod` prošel v release režimu nad stejnými lokálními migračními soubory a upozornil na legacy DEV migraci v historii;
-- [x] na používaném staging projektu byly ověřené platební tabulky, stav `waiting_for_payment`, constrainty, views, oprávnění, overlap ochrana, veřejné maskování platebního stavu, member occupancy view, granty pro `anon`/`authenticated`, omezení auto-approve pouze na `pending` a rollback test bez zbylých řádků;
+- [x] na používaném staging projektu byly ověřené platební tabulky, stav `waiting_for_payment`, constrainty, views, oprávnění, overlap ochrana, veřejné maskování platebního stavu, member occupancy view, granty pro `anon`/`authenticated`, omezení auto-approve pouze na `pending` a rollback test bez zbylých řádků; pro zbývající runtime scénáře RPC `record_payment_state_change` je připravený samostatný staging runbook `docs/gopay-payment-state-rpc-staging-runbook.md`;
 - [ ] širší RLS inventura musí ještě potvrdit skutečně nasazené politiky v hostované databázi nad všemi relevantními objekty; statické kontroly lokálních SQL souborů samy o sobě nestačí.
 
 **Zbývající akceptační kritéria pro úplné uzavření P2:**
