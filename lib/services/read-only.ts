@@ -25,7 +25,7 @@ type ReservationOverviewRow = {
   time_from: string;
   time_to: string;
   created_at: string | null;
-  status: 'pending' | 'approved' | 'cancelled';
+  status: 'waiting_for_payment' | 'pending' | 'approved' | 'cancelled';
   note: string | null;
   court_id: number;
   user_id: string;
@@ -59,7 +59,7 @@ export type ReservationOverview = {
   userDisplayName: string | null;
   userEmail?: string | null;
   userRole?: 'user' | 'member' | 'admin' | null;
-  status: 'pending' | 'approved' | 'cancelled';
+  status: 'waiting_for_payment' | 'pending' | 'approved' | 'cancelled';
   note: string | null;
 };
 

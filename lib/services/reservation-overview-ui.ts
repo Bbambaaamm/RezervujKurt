@@ -74,10 +74,15 @@ export function getQuickReservationCourtHoursLabel(reservations: QuickReservatio
     .join(' · ');
 }
 
+const reservationStatusLabels: Record<ReservationOverview['status'], string> = {
+  waiting_for_payment: 'Čeká na platbu',
+  pending: 'Čeká na schválení',
+  approved: 'Schváleno',
+  cancelled: 'Zrušeno',
+};
+
 export function getReservationStatusLabel(status: ReservationOverview['status']) {
-  if (status === 'approved') return 'Schváleno';
-  if (status === 'cancelled') return 'Zrušeno';
-  return 'Čeká na schválení';
+  return reservationStatusLabels[status];
 }
 
 export function shouldRenderEmptyState(isLoading: boolean, hasError: boolean, count: number) {

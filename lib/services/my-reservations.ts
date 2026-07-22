@@ -11,10 +11,12 @@ type CancelMyReservationInput = {
   reservationId: string;
 };
 
+export type ReservationLifecycleStatus = 'waiting_for_payment' | 'pending' | 'approved' | 'cancelled';
+
 type CancelableReservation = {
   reservationDate: string;
   timeFrom: string;
-  status: 'pending' | 'approved' | 'cancelled';
+  status: ReservationLifecycleStatus;
 };
 
 type MyReservationsFeedbackState = {
@@ -34,8 +36,12 @@ export function getMyReservationsFeedbackOnReload(input: GetMyReservationsFeedba
   };
 }
 
+export function canCancelReservation(status: ReservationLifecycleStatus): boolean {
+  return status === 'pending' || status === 'approved';
+}
+
 export function isMyReservationUpcoming(reservation: CancelableReservation, now = new Date()) {
-  if (reservation.status !== 'pending' && reservation.status !== 'approved') {
+  if (!canCancelReservation(reservation.status)) {
     return false;
   }
 

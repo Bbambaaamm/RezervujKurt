@@ -138,6 +138,59 @@ test('updateReservationStatus: výchozí admin akce zůstává omezená na pendi
   assert.equal(url.searchParams.get('status'), 'eq.pending');
 });
 
+
+test('updateReservationStatus: admin approve serverová mutace nikdy necílí waiting_for_payment', async () => {
+  const { updateReservationStatus } = await import('../lib/services/reservations');
+
+  let requestedUrl = '';
+  globalThis.fetch = async (input: RequestInfo | URL) => {
+    requestedUrl = String(input);
+    return createResponse({
+      status: 200,
+      body: '[]',
+      contentRange: '*/0',
+    });
+  };
+
+  await assert.rejects(
+    () => updateReservationStatus({ accessToken: 'token', reservationId: 'res-waiting', status: 'approved' }),
+    (error: unknown) => error instanceof ReservationNoLongerPendingError,
+  );
+
+  const url = new URL(requestedUrl);
+  assert.equal(url.searchParams.get('status'), 'eq.pending');
+  assert.doesNotMatch(requestedUrl, /waiting_for_payment/);
+});
+
+
+test('updateReservationStatus: admin cancel serverová mutace nikdy necílí waiting_for_payment', async () => {
+  const { updateReservationStatus } = await import('../lib/services/reservations');
+
+  let requestedUrl = '';
+  globalThis.fetch = async (input: RequestInfo | URL) => {
+    requestedUrl = String(input);
+    return createResponse({
+      status: 200,
+      body: '[]',
+      contentRange: '*/0',
+    });
+  };
+
+  await assert.rejects(
+    () => updateReservationStatus({
+      accessToken: 'token',
+      reservationId: 'res-waiting',
+      status: 'cancelled',
+      fromStatuses: ['pending', 'approved'],
+    }),
+    (error: unknown) => error instanceof ReservationNoLongerPendingError,
+  );
+
+  const url = new URL(requestedUrl);
+  assert.equal(url.searchParams.get('status'), 'in.(pending,approved)');
+  assert.doesNotMatch(requestedUrl, /waiting_for_payment/);
+});
+
 test('updateReservationStatus: admin může cíleně rušit pending i approved rezervace', async () => {
   const { updateReservationStatus } = await import('../lib/services/reservations');
 
