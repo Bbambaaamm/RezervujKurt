@@ -149,10 +149,12 @@ Ve všech odmítnutých scénářích bylo ověřeno, že se nezměnil žádný 
 
 Samostatně byl ověřen atomický rollback celé transakce při selhání vložení do `payment_audit_log` testem s nepovolenou hodnotou `source`. Potvrzeno bylo, že update platby byl vrácen, auditní záznam nevznikl a transakce byla plně atomická.
 
-Jako dosud neověřené zůstávají tyto scénáře; neoznačovat je jako `PASS`, dokud neproběhne samostatné staging ověření:
+Jako dosud runtime neověřené zůstávají tyto scénáře; neoznačovat je jako staging `PASS`, dokud neproběhne samostatné staging ověření:
 
 - no-op přechod,
 - neexistující `payment_id`,
 - odmítnutí `EXECUTE` jako `authenticated`,
 - odmítnutí `EXECUTE` jako `anon`,
 - `awaiting_payment → paid` s nepovoleným `failed_at`.
+
+Repozitářově je pro tyto invarianty doplněný statický regresní test `tests/payment-state-rpc-migration.test.ts`. Test ověřuje, že migrační SQL obsahuje `SECURITY DEFINER`, bezpečný `search_path`, grant pouze pro `service_role`, odmítnutí no-op a neexistující platby, explicitní povolené přechody, povinné cílové timestampy a zákaz nesouvisejících parametrů pro stav `paid`. Tento test nenahrazuje staging runtime ověření, ale chrání kontrakt před nechtěnou změnou v repozitáři.
