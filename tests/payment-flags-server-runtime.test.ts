@@ -115,3 +115,52 @@ test('serverový loader runtime při chybějící URL nebo service role key nevo
   assert.equal(result.loadedFromDatabase, false);
   assert.equal(result.flags.gopayCreateEnabled, false);
 });
+
+test('serverový GoPay create guard spojuje capability flag s DB kill switchem', async () => {
+  const { requireGoPayCreateEnabledFromDatabase, PaymentFeatureDisabledError } = await loadPaymentFlagsServerModule();
+
+  await assert.rejects(
+    () => requireGoPayCreateEnabledFromDatabase(
+      { ...serverEnv, PAYMENTS_GOPAY_CODE_AVAILABLE: 'false' },
+      async () => new Response(JSON.stringify([{ flag_name: 'gopay_create_enabled', enabled: true }]), { status: 200 }),
+    ),
+    (error: unknown) => error instanceof PaymentFeatureDisabledError
+      && error.reason === 'gopay_create_disabled'
+      && error.httpStatus === 503,
+  );
+
+  await assert.rejects(
+    () => requireGoPayCreateEnabledFromDatabase(
+      serverEnv,
+      async () => new Response(JSON.stringify([{ flag_name: 'gopay_create_enabled', enabled: false }]), { status: 200 }),
+    ),
+    (error: unknown) => error instanceof PaymentFeatureDisabledError
+      && error.reason === 'gopay_create_disabled',
+  );
+
+  const result = await requireGoPayCreateEnabledFromDatabase(
+    serverEnv,
+    async () => new Response(JSON.stringify([{ flag_name: 'gopay_create_enabled', enabled: true }]), { status: 200 }),
+  );
+
+  assert.equal(result.loadedFromDatabase, true);
+  assert.equal(result.canCreatePayment, true);
+});
+
+test('serverový GoPay create guard zůstane fail-closed při chybě DB loaderu', async () => {
+  const { requireGoPayCreateEnabledFromDatabase, PaymentFeatureDisabledError } = await loadPaymentFlagsServerModule();
+
+  await assert.rejects(
+    () => requireGoPayCreateEnabledFromDatabase(serverEnv, async () => new Response('denied', { status: 403 })),
+    (error: unknown) => error instanceof PaymentFeatureDisabledError
+      && error.reason === 'gopay_create_disabled',
+  );
+
+  await assert.rejects(
+    () => requireGoPayCreateEnabledFromDatabase(serverEnv, async () => {
+      throw new Error('síťová chyba');
+    }),
+    (error: unknown) => error instanceof PaymentFeatureDisabledError
+      && error.reason === 'gopay_create_disabled',
+  );
+});

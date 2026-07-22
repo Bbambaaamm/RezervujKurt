@@ -26,3 +26,23 @@ test('serverové čtení platebních flagů má timeout a fail-closed větve pro
   assert.match(serverModule, /!response\.ok/);
   assert.match(serverModule, /resolveFallbackPaymentFeatureFlags\(env\)/);
 });
+
+test('GoPay create guard zůstává server-only, bez vlastního process.env čtení a bez logování', () => {
+  assert.match(serverModule, /export async function requireGoPayCreateEnabledFromDatabase/);
+  assert.match(serverModule, /const result = await readPaymentFeatureFlagsFromDatabase\(env, fetchFn, options\)/);
+  assert.doesNotMatch(serverModule, /process\.env\.ENABLE_GOPAY|process\.env\.PAYMENTS_GOPAY_CODE_AVAILABLE/);
+  assert.doesNotMatch(serverModule, /console\.(?:log|info|warn|error)|serviceRoleKey[\s\S]*console|response[\s\S]*console/);
+});
+
+test('GoPay create guard pouze rozhoduje a nedělá platební side effect', () => {
+  const guardMatch = serverModule.match(
+    /export async function requireGoPayCreateEnabledFromDatabase[\s\S]*?\n}\n\nexport async function readPaymentFeatureFlagsFromDatabase/,
+  );
+
+  assert.ok(guardMatch, 'Guard musí zůstat samostatná malá funkce před DB loaderem');
+  const guardSource = guardMatch[0];
+
+  assert.match(guardSource, /readPaymentFeatureFlagsFromDatabase\(env, fetchFn, options\)/);
+  assert.match(guardSource, /requireGoPayCreateEnabled\(result\.flags\)/);
+  assert.doesNotMatch(guardSource, /\bfetch\(|payments?\?|reservations?\?|\.(?:insert|update|upsert|delete)\(|audit|console\./i);
+});
