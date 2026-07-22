@@ -851,9 +851,9 @@ Přidat bezpečnou serverovou cestu pro vytvoření platební rezervace nečlena
 - [ ] Vytvořit GoPay sandbox platbu.
 - [ ] Uložit `provider_payment_id`.
 - [ ] Vrátit klientovi pouze GoPay redirect URL a bezpečné interní identifikátory.
-- [ ] Přidat idempotenci pro opakované kliknutí.
+- [x] Přidat idempotenci pro opakované kliknutí na úrovni deterministického serverového klíče; databázové použití v transakci endpointu přijde v navazujícím kroku.
 
-Přípravné bezpečné jádro fáze 4 je připravené v `lib/services/payment-create-core.ts`: role rozhoduje jen o základní větvi flow (`anonymous` vyžaduje login, `member`/`admin` zůstávají bez plateb, `user` pokračuje do budoucí platební větve), cena se počítá z explicitně dodané serverové hodinové sazby v haléřích a délky rezervace a expirace se odvozuje deterministicky z času serveru a TTL. Modul zatím nevolá GoPay API, nevytváří endpoint ani nemění současné klientské rezervační flow; jde o malý testovaný stavební blok pro navazující serverový endpoint.
+Přípravné bezpečné jádro fáze 4 je připravené v `lib/services/payment-create-core.ts`: role rozhoduje jen o základní větvi flow (`anonymous` vyžaduje login, `member`/`admin` zůstávají bez plateb, `user` pokračuje do budoucí platební větve), cena se počítá z explicitně dodané serverové hodinové sazby v haléřích a délky rezervace, expirace se odvozuje deterministicky z času serveru a TTL a idempotency key vzniká jako konstantně dlouhý SHA-256 hash kanonického payloadu ze serverově ověřených parametrů rezervace, uživatele, částky a měny; samotný klíč proto neobsahuje čitelné UUID uživatele ani detail slotu. Modul zatím nevolá GoPay API, nevytváří endpoint ani nemění současné klientské rezervační flow; jde o malý testovaný stavební blok pro navazující serverový endpoint.
 
 ## Cena
 
@@ -888,6 +888,7 @@ Pokud není jisté, zda GoPay platbu vytvořilo:
 - [ ] Opakovaný request musí použít stejný idempotency key, pokud to GoPay podporuje.
 - [ ] Ověřit stav přes GoPay API.
 - [ ] Zabránit vytvoření druhé platby za stejnou rezervaci.
+- [ ] Před použitím v endpointu přesně definovat retry model pro aktivní, expirované, zrušené a failed platby; helper sám řeší pouze stabilní klíč, ne DB idempotenci ani životní cyklus opakovaného pokusu.
 
 ## Performance budget
 
@@ -915,7 +916,7 @@ GoPay workflow přidává SQL dotazy, serverovou logiku a externí HTTP volání
 - [x] Unit test výpočtu ceny.
 - [x] Unit test rozpoznání role.
 - [x] Unit test výpočtu expirace.
-- [ ] Test idempotence opakovaného vytvoření platby.
+- [x] Test idempotence opakovaného vytvoření platby na úrovni deterministického hashovaného klíče včetně kanonizace času a validace skutečného data.
 - [ ] Integrační test GoPay sandbox create payment.
 - [ ] Test GoPay create uspěje.
 - [ ] Test GoPay create jednoznačně selže.
