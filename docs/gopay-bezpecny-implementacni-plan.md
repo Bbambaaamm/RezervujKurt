@@ -430,8 +430,10 @@ Přidat izolovaný platební datový model, který stará aplikace zcela ignoruj
 - [x] Běžný uživatel ideálně nemá mít přímý přístup k celé tabulce `payments`.
 - [x] Preferovat omezený databázový view, security definer RPC nebo serverový status endpoint.
 - [x] Běžný uživatel smí číst pouze bezpečný výřez vlastní platby, pokud je to nutné pro UI.
-- [ ] Admin smí číst provozní přehled plateb, ale nemá ručně přepisovat citlivé stavy mimo určené RPC.
+- [x] Admin smí číst provozní přehled plateb, ale nemá ručně přepisovat citlivé stavy mimo určené RPC.
 - [ ] Stav platby smí měnit pouze serverová service role / security definer RPC.
+
+Admin provozní přehled je připravený jako read-only view `payment_admin_statuses`. View běží jako vlastnické (`security_invoker = false`), protože běžné klientské role nemají mít přímý `SELECT` na `payments`; izolaci proto zajišťuje `security_barrier = true` a explicitní filtr `profiles.id = auth.uid()` společně s `profiles.role = 'admin'`. Kontrakt záměrně vrací všechny platební pokusy, ne jeden agregovaný řádek na rezervaci, aby podpora viděla historii opakovaných pokusů. Budoucí UI s tím musí počítat a nesmí řádky interpretovat jako počet rezervací. Staging ověření tří identit a zákazu přímého čtení `payments` je popsané v [`docs/gopay-payment-admin-status-view-staging-runbook.md`](gopay-payment-admin-status-view-staging-runbook.md).
 
 ### Bezpečný uživatelský výřez platby
 
