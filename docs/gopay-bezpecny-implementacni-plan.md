@@ -428,8 +428,8 @@ Přidat izolovaný platební datový model, který stará aplikace zcela ignoruj
 - [x] Odebrat broad privileges pro `anon` a `authenticated`.
 - [x] Běžný uživatel nesmí insertovat ani updatovat `payments`.
 - [x] Běžný uživatel ideálně nemá mít přímý přístup k celé tabulce `payments`.
-- [ ] Preferovat omezený databázový view, security definer RPC nebo serverový status endpoint.
-- [ ] Běžný uživatel smí číst pouze bezpečný výřez vlastní platby, pokud je to nutné pro UI.
+- [x] Preferovat omezený databázový view, security definer RPC nebo serverový status endpoint.
+- [x] Běžný uživatel smí číst pouze bezpečný výřez vlastní platby, pokud je to nutné pro UI.
 - [ ] Admin smí číst provozní přehled plateb, ale nemá ručně přepisovat citlivé stavy mimo určené RPC.
 - [ ] Stav platby smí měnit pouze serverová service role / security definer RPC.
 
@@ -437,25 +437,25 @@ Přidat izolovaný platební datový model, který stará aplikace zcela ignoruj
 
 Uživateli lze zobrazit pouze:
 
-- [ ] `reservation_id`
-- [ ] `amount_cents`
-- [ ] `currency`
-- [ ] `status`
-- [ ] `refund_status`
-- [ ] `expires_at`
-- [ ] `paid_at`
-- [ ] `refunded_at`
+- [x] `reservation_id`
+- [x] `amount_cents`
+- [x] `currency`
+- [x] `status`
+- [x] `refund_status`
+- [x] `expires_at`
+- [x] `paid_at`
+- [x] `refunded_at`
 
 Běžnému uživateli nezobrazovat:
 
-- [ ] `provider_payment_id`
-- [ ] `provider_refund_id`
-- [ ] `idempotency_key`
-- [ ] `last_error`
-- [ ] `attempt_count`
-- [ ] Interní metadata.
-- [ ] Webhook metadata.
-- [ ] Technické retry informace.
+- [x] `provider_payment_id`
+- [x] `provider_refund_id`
+- [x] `idempotency_key`
+- [x] `last_error`
+- [x] `attempt_count`
+- [x] Interní metadata.
+- [x] Webhook metadata.
+- [x] Technické retry informace.
 
 
 ### Rozhodnutí k opakované platbě po refundu
@@ -467,6 +467,12 @@ Pro fázi 1 platí konzervativní pravidlo: jedna rezervace může mít nejvýš
 - [x] SQL omezuje `metadata` na JSON objekt a rozumnou velikost, ale neověřuje jejich obchodní obsah.
 - [x] Serverová vrstva nesmí do `payments.metadata` ani `payment_audit_log.metadata` ukládat celé GoPay odpovědi bez filtrace, autorizační tokeny, platební údaje, nepotřebné osobní údaje, celé stack traces ani raw webhook payloady bez redakce.
 - [x] Jediná povolená cesta pro budoucí zápis do `payments` a `payment_audit_log` bude serverová service role nebo úzce vymezené `security definer` RPC; klient nikdy nesmí dostat service-role klíč ani přímý zápis do platebních tabulek.
+
+### Stav uživatelského výřezu po navazujícím kroku
+
+Přidán je read-only view `payment_user_statuses`, který přes vazbu na vlastní rezervaci vrací pouze bezpečné stavové údaje platby pro přihlášeného uživatele. View záměrně nezpřístupňuje GoPay identifikátory, idempotency key, interní chyby, počet pokusů ani metadata. Slouží jako příprava pro budoucí návratovou/status obrazovku; současné rezervační flow ani GoPay aktivaci nemění.
+
+`security_invoker = false` je zde úmyslné: view tvoří omezený bezpečný kontrakt bez přímého `SELECT` grantu na `payments`, podkladová tabulka zůstává běžnému uživateli nepřístupná a izolaci uživatelů zajišťuje přesný filtr `r.user_id = auth.uid()` společně se `security_barrier = true`. Každá změna definice view, filtru, grantů nebo seznamu sloupců vyžaduje samostatné bezpečnostní review. Staging ověření dvou oddělených identit a SQL kontroly jsou popsané v [`docs/gopay-payment-user-status-view-staging-runbook.md`](gopay-payment-user-status-view-staging-runbook.md).
 
 ## Platební audit oddělený od notification outboxu
 
