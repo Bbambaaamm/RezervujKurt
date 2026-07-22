@@ -34,6 +34,10 @@ test('RPC pro změnu platebního stavu je dostupné pouze service_role', () => {
   );
   assert.match(
     migrationSql,
+    /revoke\s+all\s+on\s+function\s+public\.record_payment_state_change\s*\([^;]+\)\s+from\s+public\s*;/i,
+  );
+  assert.match(
+    migrationSql,
     /revoke\s+all\s+on\s+function\s+public\.record_payment_state_change\s*\([^;]+\)\s+from\s+anon\s*,\s*authenticated\s*;/i,
   );
   assert.match(
