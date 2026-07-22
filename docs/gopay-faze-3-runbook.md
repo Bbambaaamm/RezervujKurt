@@ -110,3 +110,49 @@ Po production migraci musí vlastník ověřit:
 - Pokud po migraci selže běžné vytvoření, schválení nebo zrušení rezervace, zastavit další platební práce, ponechat platební flagy vypnuté a řešit dopřednou opravnou migraci nebo aplikační opravu.
 - Neprovádět destruktivní rollback databázových změn, pokud pouze přidaly podporu nového stavu a nejsou příčinou incidentu.
 - Dokud neprojde production smoke test, nesmí následovat fáze 4 ani žádné GoPay sandbox/prod volání.
+
+## Výsledek staging ověření RPC `record_payment_state_change` z 22. 7. 2026
+
+Výsledek ověřené části: `PASS`.
+
+Na stagingu bylo ověřeno, že funkce `public.record_payment_state_change()` běží jako `SECURITY DEFINER`, má nastavený `search_path = public, pg_temp` a `EXECUTE` má pouze `service_role` společně s vlastníkem `postgres`. Role `anon` ani `authenticated` nemají grant `EXECUTE`.
+
+Úspěšně prošly tyto povolené přechody platebního stavu:
+
+- `created → awaiting_payment`,
+- `awaiting_payment → paid`,
+- `created → failed`,
+- `failed → requires_manual_review`,
+- `awaiting_payment → expired` po dosažení uloženého `expires_at`.
+
+V rámci úspěšných přechodů bylo potvrzeno:
+
+- `provider_payment_id` se zapisuje pouze při přechodu do `awaiting_payment`,
+- `expires_at` se zapisuje pouze při přechodu do `awaiting_payment`,
+- `paid_at` se zapisuje pouze při přechodu do `paid`,
+- `failed_at` se zapisuje pouze při přechodu do `failed`,
+- `last_error` se zapisuje pouze při přechodu do `failed`,
+- `attempt_count` se navyšuje pouze při přechodu do `awaiting_payment`,
+- `refund_status` zůstává beze změny,
+- auditní `event_type` je odvozován interně funkcí,
+- auditní záznam používá skutečný `reservation_id` z aktualizované platby,
+- update platby i vložení auditního záznamu probíhají atomicky.
+
+Úspěšně bylo potvrzeno odmítnutí těchto scénářů:
+
+- `paid → failed`,
+- `created → failed` s podstrčeným `paid_at`,
+- `failed → requires_manual_review` s podstrčeným `provider_payment_id`,
+- `awaiting_payment → expired` před dosažením uloženého `expires_at`.
+
+Ve všech odmítnutých scénářích bylo ověřeno, že se nezměnil žádný řádek v `payments` a nevznikl žádný nový řádek v `payment_audit_log`.
+
+Samostatně byl ověřen atomický rollback celé transakce při selhání vložení do `payment_audit_log` testem s nepovolenou hodnotou `source`. Potvrzeno bylo, že update platby byl vrácen, auditní záznam nevznikl a transakce byla plně atomická.
+
+Jako dosud neověřené zůstávají tyto scénáře; neoznačovat je jako `PASS`, dokud neproběhne samostatné staging ověření:
+
+- no-op přechod,
+- neexistující `payment_id`,
+- odmítnutí `EXECUTE` jako `authenticated`,
+- odmítnutí `EXECUTE` jako `anon`,
+- `awaiting_payment → paid` s nepovoleným `failed_at`.
