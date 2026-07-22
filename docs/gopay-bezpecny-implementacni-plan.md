@@ -853,6 +853,8 @@ Přidat bezpečnou serverovou cestu pro vytvoření platební rezervace nečlena
 - [ ] Vrátit klientovi pouze GoPay redirect URL a bezpečné interní identifikátory.
 - [ ] Přidat idempotenci pro opakované kliknutí.
 
+Přípravné bezpečné jádro fáze 4 je připravené v `lib/services/payment-create-core.ts`: role rozhoduje jen o základní větvi flow (`anonymous` vyžaduje login, `member`/`admin` zůstávají bez plateb, `user` pokračuje do budoucí platební větve), cena se počítá z explicitně dodané serverové hodinové sazby v haléřích a délky rezervace a expirace se odvozuje deterministicky z času serveru a TTL. Modul zatím nevolá GoPay API, nevytváří endpoint ani nemění současné klientské rezervační flow; jde o malý testovaný stavební blok pro navazující serverový endpoint.
+
 ## Cena
 
 - [ ] Cenu nikdy nepřebírat důvěryhodně z klienta.
@@ -910,9 +912,9 @@ GoPay workflow přidává SQL dotazy, serverovou logiku a externí HTTP volání
 
 ## Testy
 
-- [ ] Unit test výpočtu ceny.
-- [ ] Unit test rozpoznání role.
-- [ ] Unit test výpočtu expirace.
+- [x] Unit test výpočtu ceny.
+- [x] Unit test rozpoznání role.
+- [x] Unit test výpočtu expirace.
 - [ ] Test idempotence opakovaného vytvoření platby.
 - [ ] Integrační test GoPay sandbox create payment.
 - [ ] Test GoPay create uspěje.
