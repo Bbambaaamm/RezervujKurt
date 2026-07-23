@@ -838,7 +838,7 @@ Přidat bezpečnou serverovou cestu pro vytvoření platební rezervace nečlena
 
 ## Konkrétní změny
 
-- [ ] Přidat serverový endpoint nebo Edge Function pro vytvoření GoPay platby.
+- [x] Přidat serverový endpoint nebo Edge Function pro vytvoření GoPay platby.
 - [ ] Ověřit session uživatele serverově.
 - [ ] Serverově načíst roli uživatele.
 - [ ] Pokud je uživatel `member` nebo `admin`, zachovat současné neplatební flow.
@@ -854,6 +854,8 @@ Přidat bezpečnou serverovou cestu pro vytvoření platební rezervace nečlena
 - [x] Přidat idempotenci pro opakované kliknutí na úrovni deterministického serverového klíče; databázové použití v transakci endpointu přijde v navazujícím kroku.
 
 Přípravné bezpečné jádro fáze 4 je připravené v `lib/services/payment-create-core.ts`: role rozhoduje jen o základní větvi flow (`anonymous` vyžaduje login, `member`/`admin` zůstávají bez plateb, `user` pokračuje do budoucí platební větve), cena se počítá z explicitně dodané serverové hodinové sazby v haléřích a délky rezervace, expirace se odvozuje deterministicky z času serveru a TTL a idempotency key vzniká jako konstantně dlouhý SHA-256 hash kanonického payloadu ze serverově ověřených parametrů rezervace, uživatele, částky a měny; samotný klíč proto neobsahuje čitelné UUID uživatele ani detail slotu. Modul zatím nevolá GoPay API, nevytváří endpoint ani nemění současné klientské rezervační flow; jde o malý testovaný stavební blok pro navazující serverový endpoint.
+
+První serverový endpoint fáze 4 je připravený na `POST /api/payments/gopay/create`, ale záměrně zatím funguje pouze jako bezpečná brána: vyžaduje skutečně ověřený Supabase bearer token přes Auth endpoint, validuje úzký rezervační payload bez neznámých polí a před jakýmkoli zápisem kontroluje serverový GoPay create guard. Pokud je platební flow vypnuté nebo guard selže, vrací fail-closed `503`; pokud by bylo zapnuté, vrací `501`, protože databázová transakce a volání GoPay API ještě nejsou implementované. Endpoint proto zatím nemění rezervace, nevytváří platby, nevolá GoPay API a provádí jen read-only načtení feature flagů; nesmí být napojený na klientské flow.
 
 ## Cena
 
