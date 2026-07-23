@@ -72,7 +72,7 @@ Očekávání: výsledek je prázdný. Role `authenticated` nemá přímý `SELE
 
 ## Příprava testovacích dat
 
-Spusť přes staging SQL editor nebo jiný kontrolovaný service-role nástroj. Nepoužívej produkční databázi. Zástupné hodnoty `<REGULAR_USER_UUID>` a `<ADMIN_USER_UUID>` před spuštěním nahraď aktuálními staging identitami mimo verzovaný repozitář. Identifikátory testovací rezervace a plateb jsou záměrně pevné, aby byl cleanup jednoznačný a šel bezpečně opakovat.
+Spusť přes staging SQL editor nebo jiný kontrolovaný service-role nástroj. Nepoužívej produkční databázi. Zástupné hodnoty `<REGULAR_USER_UUID>` a `<ADMIN_USER_UUID>` před spuštěním nahraď aktuálními staging identitami mimo verzovaný repozitář. Skutečné hodnoty neuváděj ani v commit message, PR popisu, testovacích příkazech nebo issue komentářích. Identifikátory testovací rezervace a plateb jsou záměrně pevné, aby byl cleanup jednoznačný a šel bezpečně opakovat.
 
 ```sql
 begin;
