@@ -1,4 +1,4 @@
-import { readdirSync, rmSync } from "node:fs";
+import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -7,6 +7,7 @@ const scriptDirectory = fileURLToPath(new URL(".", import.meta.url));
 const projectRoot = resolve(scriptDirectory, "..");
 const outputDirectory = resolve(projectRoot, ".tmp-tests");
 const testDirectory = resolve(outputDirectory, "tests");
+const serverOnlyStubDirectory = resolve(outputDirectory, "node_modules", "server-only");
 const typescriptCli = resolve(projectRoot, "node_modules", "typescript", "bin", "tsc");
 
 function run(command, args) {
@@ -44,6 +45,10 @@ try {
   exitCode = run(process.execPath, [typescriptCli, "-p", "tsconfig.test.json"]);
 
   if (exitCode === 0) {
+    mkdirSync(serverOnlyStubDirectory, { recursive: true });
+    writeFileSync(resolve(serverOnlyStubDirectory, "package.json"), '{"name":"server-only","main":"index.js"}');
+    writeFileSync(resolve(serverOnlyStubDirectory, "index.js"), 'module.exports = {};');
+
     const testFiles = findTestFiles(testDirectory);
 
     if (testFiles.length === 0) {
