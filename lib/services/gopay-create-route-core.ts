@@ -144,9 +144,8 @@ export async function verifySupabaseAccessToken(
   const abortController = new AbortController();
   const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
 
-  let response: Response;
   try {
-    response = await fetchFn(endpoint, {
+    const response = await fetchFn(endpoint, {
       method: 'GET',
       headers: {
         apikey: supabaseAnonKey,
@@ -155,7 +154,36 @@ export async function verifySupabaseAccessToken(
       cache: 'no-store',
       signal: abortController.signal,
     });
-  } catch {
+
+    if (response.status === 401 || response.status === 403) {
+      throw new PaymentRouteAuthenticationError();
+    }
+
+    if (!response.ok) {
+      throw new PaymentRouteAuthServiceError('upstream_error', 'Supabase Auth vrátil neočekávaný stav.', response.status);
+    }
+
+    let data: { id?: unknown };
+    try {
+      data = await response.json() as { id?: unknown };
+    } catch {
+      if (abortController.signal.aborted) {
+        throw new PaymentRouteAuthServiceError('timeout', 'Ověření Supabase Auth vypršelo.');
+      }
+
+      throw new PaymentRouteAuthServiceError('invalid_response', 'Supabase Auth vrátil neplatné JSON tělo.');
+    }
+
+    if (typeof data.id !== 'string' || !UUID_PATTERN.test(data.id)) {
+      throw new PaymentRouteAuthServiceError('invalid_response', 'Supabase Auth vrátil neplatnou identitu uživatele.');
+    }
+
+    return { userId: data.id };
+  } catch (error) {
+    if (error instanceof PaymentRouteAuthenticationError || error instanceof PaymentRouteAuthServiceError) {
+      throw error;
+    }
+
     if (abortController.signal.aborted) {
       throw new PaymentRouteAuthServiceError('timeout', 'Ověření Supabase Auth vypršelo.');
     }
@@ -164,27 +192,6 @@ export async function verifySupabaseAccessToken(
   } finally {
     clearTimeout(timeoutId);
   }
-
-  if (response.status === 401 || response.status === 403) {
-    throw new PaymentRouteAuthenticationError();
-  }
-
-  if (!response.ok) {
-    throw new PaymentRouteAuthServiceError('upstream_error', 'Supabase Auth vrátil neočekávaný stav.', response.status);
-  }
-
-  let data: { id?: unknown };
-  try {
-    data = await response.json() as { id?: unknown };
-  } catch {
-    throw new PaymentRouteAuthServiceError('invalid_response', 'Supabase Auth vrátil neplatné JSON tělo.');
-  }
-
-  if (typeof data.id !== 'string' || !UUID_PATTERN.test(data.id)) {
-    throw new PaymentRouteAuthServiceError('invalid_response', 'Supabase Auth vrátil neplatnou identitu uživatele.');
-  }
-
-  return { userId: data.id };
 }
 
 export async function handleAuthenticatedCreateGoPayPaymentRequest(

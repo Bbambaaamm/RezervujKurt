@@ -151,6 +151,19 @@ test('Supabase auth timeout a síťové selhání mají stabilní service error 
   );
 });
 
+test('Supabase auth timeout zůstává aktivní i během čtení JSON těla', async () => {
+  await assert.rejects(
+    () => verifySupabaseAccessToken('token', authEnv, async (_url, init) => ({
+      ok: true,
+      status: 200,
+      json: async () => {
+        await new Promise((_resolve, reject) => init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError'))));
+      },
+    } as Response), { timeoutMs: 100 }),
+    (error: unknown) => error instanceof PaymentRouteAuthServiceError && error.code === 'timeout',
+  );
+});
+
 test('Supabase auth konfigurace validuje povinné hodnoty, URL a timeout bez úniku tokenu nebo anon key', async () => {
   for (const env of [
     {},
