@@ -839,8 +839,8 @@ Přidat bezpečnou serverovou cestu pro vytvoření platební rezervace nečlena
 ## Konkrétní změny
 
 - [x] Přidat serverový endpoint nebo Edge Function pro vytvoření GoPay platby.
-- [ ] Ověřit session uživatele serverově.
-- [ ] Serverově načíst roli uživatele.
+- [x] Ověřit session uživatele serverově.
+- [x] Serverově načíst roli uživatele.
 - [ ] Pokud je uživatel `member` nebo `admin`, zachovat současné neplatební flow.
 - [ ] Pokud je uživatel `user`, použít platební flow pouze při zapnutém flagu.
 - [ ] Serverově spočítat cenu.
@@ -855,7 +855,7 @@ Přidat bezpečnou serverovou cestu pro vytvoření platební rezervace nečlena
 
 Přípravné bezpečné jádro fáze 4 je připravené v `lib/services/payment-create-core.ts`: role rozhoduje jen o základní větvi flow (`anonymous` vyžaduje login, `member`/`admin` zůstávají bez plateb, `user` pokračuje do budoucí platební větve), cena se počítá z explicitně dodané serverové hodinové sazby v haléřích a délky rezervace, expirace se odvozuje deterministicky z času serveru a TTL a idempotency key vzniká jako konstantně dlouhý SHA-256 hash kanonického payloadu ze serverově ověřených parametrů rezervace, uživatele, částky a měny; samotný klíč proto neobsahuje čitelné UUID uživatele ani detail slotu. Modul zatím nevolá GoPay API, nevytváří endpoint ani nemění současné klientské rezervační flow; jde o malý testovaný stavební blok pro navazující serverový endpoint.
 
-První serverový endpoint fáze 4 je připravený na `POST /api/payments/gopay/create`, ale záměrně zatím funguje pouze jako bezpečná brána: vyžaduje skutečně ověřený Supabase bearer token přes Auth endpoint, validuje úzký rezervační payload bez neznámých polí a před jakýmkoli zápisem kontroluje serverový GoPay create guard. Pokud je platební flow vypnuté nebo guard selže, vrací fail-closed `503`; pokud by bylo zapnuté, vrací `501`, protože databázová transakce a volání GoPay API ještě nejsou implementované. Endpoint proto zatím nemění rezervace, nevytváří platby, nevolá GoPay API a provádí jen read-only načtení feature flagů; nesmí být napojený na klientské flow.
+První serverový endpoint fáze 4 je připravený na `POST /api/payments/gopay/create`, ale záměrně zatím funguje pouze jako bezpečná brána: vyžaduje skutečně ověřený Supabase bearer token přes Auth endpoint, validuje úzký rezervační payload bez neznámých polí a před jakýmkoli zápisem kontroluje serverový GoPay create guard. Po zapnutém guardu serverově načte roli uživatele přes úzký service-role REST dotaz na vlastní profil (`select=id,role`, `id=eq.<ověřené UUID>`, `limit=2`) a platební větev povolí jen při právě jednom profilu s přesnou rolí `user`; `member` a `admin` dostanou obecnou odpověď `409`, protože mají zůstat v současném neplatebním flow. Chybějící profil, více profilů, cizí profil nebo neznámá role jsou fail-closed chyby bez fallbacku na `user`. Pokud je platební flow vypnuté nebo guard či role lookup selže, vrací fail-closed `503`; pokud by bylo zapnuté pro běžného uživatele, vrací `501`, protože databázová transakce a volání GoPay API ještě nejsou implementované. Endpoint proto zatím nemění rezervace, nevytváří platby, nevolá GoPay API a provádí jen read-only načtení feature flagů a role uživatele; nesmí být napojený na klientské flow.
 
 ## Cena
 
