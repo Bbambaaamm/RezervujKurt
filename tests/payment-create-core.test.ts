@@ -244,3 +244,17 @@ test('idempotency payload odmítne neplatné ostatní vstupy před zápisem plat
     /Měna rezervace není platná/,
   );
 });
+
+test('normalizace rezervačního slotu pro platební endpoint používá sdílený kontrakt a kanonický čas', async () => {
+  const { normalizeReservationPaymentSlotInput } = await import('../lib/services/payment-create-core');
+
+  assert.deepEqual(
+    normalizeReservationPaymentSlotInput({ courtId: 2, reservationDate: '2026-08-01', timeFrom: '09:00:00', timeTo: '10:00:00' }),
+    { courtId: 2, reservationDate: '2026-08-01', timeFrom: '09:00', timeTo: '10:00' },
+  );
+
+  assert.throws(
+    () => normalizeReservationPaymentSlotInput({ courtId: 2, reservationDate: '2026-02-30', timeFrom: '09:00', timeTo: '10:00' }),
+    /Datum rezervace není platné/,
+  );
+});

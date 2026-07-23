@@ -4,6 +4,21 @@ export type PaymentReservationUserRole = 'anonymous' | 'user' | 'member' | 'admi
 
 export type ReservationPaymentFlow = 'requires_login' | 'without_payment' | 'gopay_payment';
 
+
+export type ReservationPaymentSlotInput = {
+  courtId?: unknown;
+  reservationDate?: unknown;
+  timeFrom?: unknown;
+  timeTo?: unknown;
+};
+
+export type NormalizedReservationPaymentSlotInput = {
+  courtId: number;
+  reservationDate: string;
+  timeFrom: string;
+  timeTo: string;
+};
+
 type ReservationPriceInput = {
   timeFrom: string;
   timeTo: string;
@@ -62,6 +77,35 @@ function isValidIsoDate(value: string): boolean {
     && date.getUTCMonth() === month - 1
     && date.getUTCDate() === day
   );
+}
+
+
+export function normalizeReservationPaymentSlotInput(input: ReservationPaymentSlotInput): NormalizedReservationPaymentSlotInput {
+  if (!Number.isSafeInteger(input.courtId) || (input.courtId as number) <= 0) {
+    throw new Error('Kurt rezervace není platný.');
+  }
+
+  if (typeof input.reservationDate !== 'string' || !isValidIsoDate(input.reservationDate)) {
+    throw new Error('Datum rezervace není platné.');
+  }
+
+  if (typeof input.timeFrom !== 'string' || typeof input.timeTo !== 'string') {
+    throw new Error('Časový rozsah rezervace není platný.');
+  }
+
+  const fromMinutes = parseReservationTimeToMinutes(input.timeFrom);
+  const toMinutes = parseReservationTimeToMinutes(input.timeTo);
+
+  if (fromMinutes === null || toMinutes === null || toMinutes <= fromMinutes) {
+    throw new Error('Časový rozsah rezervace není platný.');
+  }
+
+  return {
+    courtId: input.courtId as number,
+    reservationDate: input.reservationDate,
+    timeFrom: formatMinutesAsTime(fromMinutes),
+    timeTo: formatMinutesAsTime(toMinutes),
+  };
 }
 
 export function resolveReservationPaymentFlow(role: PaymentReservationUserRole): ReservationPaymentFlow {
