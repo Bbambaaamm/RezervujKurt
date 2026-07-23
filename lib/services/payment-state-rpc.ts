@@ -67,7 +67,7 @@ const PAYMENT_TEXT_LIMITS = {
   lastError: 1000,
 };
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const ISO_TIMESTAMP_WITH_TIMEZONE_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/;
+const ISO_TIMESTAMP_WITH_TIMEZONE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?(Z|[+-]\d{2}:\d{2})$/;
 const PAYMENT_STATE_CHANGE_SOURCES = new Set<PaymentStatusChangeSource>([
   'app_server',
   'gopay_webhook',
@@ -205,6 +205,36 @@ function buildPaymentStateRpcEndpoint(supabaseUrl: string) {
   return new URL('/rest/v1/rpc/record_payment_state_change', supabaseUrl).toString();
 }
 
+
+function isValidCalendarTimestampMatch(match: RegExpExecArray): boolean {
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hours = Number(match[4]);
+  const minutes = Number(match[5]);
+  const seconds = Number(match[6]);
+  const timezone = match[8];
+
+  if (year < 1 || year > 9999) return false;
+  if (month < 1 || month > 12) return false;
+  if (hours > 23 || minutes > 59 || seconds > 59) return false;
+
+  if (timezone !== 'Z') {
+    const offsetHours = Number(timezone.slice(1, 3));
+    const offsetMinutes = Number(timezone.slice(4, 6));
+
+    if (offsetHours > 23 || offsetMinutes > 59) return false;
+  }
+
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  return (
+    date.getUTCFullYear() === year
+    && date.getUTCMonth() === month - 1
+    && date.getUTCDate() === day
+  );
+}
+
 function serializeOptionalTimestamp(value: Date | string | null | undefined, name: string): string | null {
   if (value === undefined || value === null) return null;
 
@@ -216,8 +246,13 @@ function serializeOptionalTimestamp(value: Date | string | null | undefined, nam
     return value.toISOString();
   }
 
-  if (typeof value !== 'string' || !ISO_TIMESTAMP_WITH_TIMEZONE_PATTERN.test(value)) {
+  if (typeof value !== 'string') {
     throw new PaymentStateRpcValidationError(`Časová hodnota ${name} musí být Date nebo ISO timestamp s časovou zónou.`);
+  }
+
+  const timestampMatch = ISO_TIMESTAMP_WITH_TIMEZONE_PATTERN.exec(value);
+  if (!timestampMatch || !isValidCalendarTimestampMatch(timestampMatch)) {
+    throw new PaymentStateRpcValidationError(`Časová hodnota ${name} musí být platný ISO timestamp s časovou zónou.`);
   }
 
   const date = new Date(value);

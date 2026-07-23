@@ -173,7 +173,7 @@ test('serverový payment RPC odmítá metadata mimo bezpečný JSON objekt', asy
 test('serverový payment RPC přijímá pouze Date nebo ISO timestamp s časovou zónou', async () => {
   const { recordPaymentStateChange } = await loadPaymentStateRpcModule();
 
-  for (const expiresAt of ['2026-07-23', 'July 23, 2026', '07/23/2026', '2026-07-23T12:15:00']) {
+  for (const expiresAt of ['2026-07-23', 'July 23, 2026', '07/23/2026', '2026-07-23T12:15:00', '2026-02-30T12:15:00Z', '2026-13-01T12:15:00Z', '2026-07-23T24:00:00Z', '2026-07-23T12:15:00+02:99']) {
     await assert.rejects(
       () => recordPaymentStateChange({ paymentId, newStatus: 'awaiting_payment', source: 'app_server', providerPaymentId: 'GOPAY-1', expiresAt }, env, successfulFetch()),
       /ISO timestamp s časovou zónou/,
