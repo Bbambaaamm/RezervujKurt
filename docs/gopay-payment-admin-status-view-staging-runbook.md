@@ -72,7 +72,7 @@ Očekávání: výsledek je prázdný. Role `authenticated` nemá přímý `SELE
 
 ## Příprava testovacích dat
 
-Spusť přes staging SQL editor nebo jiný kontrolovaný service-role nástroj. Nepoužívej produkční databázi. UUID jsou záměrně pevná, aby byl cleanup jednoznačný a šel bezpečně opakovat.
+Spusť přes staging SQL editor nebo jiný kontrolovaný service-role nástroj. Nepoužívej produkční databázi. Zástupné hodnoty `<REGULAR_USER_UUID>` a `<ADMIN_USER_UUID>` před spuštěním nahraď aktuálními staging identitami mimo verzovaný repozitář. Identifikátory testovací rezervace a plateb jsou záměrně pevné, aby byl cleanup jednoznačný a šel bezpečně opakovat.
 
 ```sql
 begin;
@@ -89,7 +89,7 @@ insert into public.reservations (
 )
 values (
   '00000000-0000-4000-9000-000000000001',
-  'b799f67e-d203-43ef-b0b2-699c2fbd2a33',
+  '<REGULAR_USER_UUID>',
   1,
   '2099-12-31',
   '22:00',
@@ -147,7 +147,7 @@ Simulace identity:
 ```sql
 begin;
 set local role authenticated;
-set local request.jwt.claim.sub = '3737e033-a9f9-4b31-850e-724ea7f8a43d';
+set local request.jwt.claim.sub = '<ADMIN_USER_UUID>';
 
 select
   payment_id,
@@ -173,7 +173,7 @@ Simulace identity vlastníka testovací rezervace:
 ```sql
 begin;
 set local role authenticated;
-set local request.jwt.claim.sub = 'b799f67e-d203-43ef-b0b2-699c2fbd2a33';
+set local request.jwt.claim.sub = '<REGULAR_USER_UUID>';
 
 select auth.uid() as current_user_id;
 
@@ -184,7 +184,7 @@ where reservation_id = '00000000-0000-4000-9000-000000000001';
 rollback;
 ```
 
-Očekávání: `auth.uid()` odpovídá `b799f67e-d203-43ef-b0b2-699c2fbd2a33` a dotaz na admin view vrátí prázdný výsledek. Platí to i přesto, že běžný uživatel je vlastníkem testovací rezervace; vlastnictví rezervace nedává přístup k admin platebnímu view.
+Očekávání: `auth.uid()` odpovídá dosazené hodnotě `<REGULAR_USER_UUID>` a dotaz na admin view vrátí prázdný výsledek. Platí to i přesto, že běžný uživatel je vlastníkem testovací rezervace; vlastnictví rezervace nedává přístup k admin platebnímu view.
 
 ### Anonymní klient
 
@@ -208,7 +208,7 @@ Očekávání: `authenticated` nemá přímý `SELECT` na `public.payments` a do
 
 Nejprve odstraň testovací platby a až následně testovací rezervaci. `payments.reservation_id` má foreign key na `reservations.id` s `ON DELETE RESTRICT`, takže opačné pořadí by mělo selhat.
 
-Cleanup používej výhradně pevná testovací UUID uvedená v tomto runbooku.
+Cleanup používej výhradně pevná testovací UUID uvedená v tomto runbooku a stejnou dosazenou hodnotu `<REGULAR_USER_UUID>`, se kterou byla testovací rezervace vytvořena.
 
 ```sql
 begin;
@@ -222,7 +222,7 @@ and reservation_id = '00000000-0000-4000-9000-000000000001';
 
 delete from public.reservations
 where id = '00000000-0000-4000-9000-000000000001'
-  and user_id = 'b799f67e-d203-43ef-b0b2-699c2fbd2a33'
+  and user_id = '<REGULAR_USER_UUID>'
   and note = 'STAGING TEST – payment_admin_statuses';
 
 commit;
@@ -259,20 +259,20 @@ Před runtime testem bylo na stagingu potvrzeno:
 - view je určeno pouze administrátorům,
 - view záměrně vrací všechny platební pokusy, nikoliv pouze poslední pokus.
 
-Použité staging identity:
+Použité staging identity nebyly záměrně zapsané do repozitáře. Pro audit výsledek ověř proti internímu staging záznamu mimo verzovaný kód:
 
-- admin: `3737e033-a9f9-4b31-850e-724ea7f8a43d`,
-- běžný uživatel: `b799f67e-d203-43ef-b0b2-699c2fbd2a33`, `role = user`.
+- admin: hodnota dosazená za `<ADMIN_USER_UUID>`,
+- běžný uživatel: hodnota dosazená za `<REGULAR_USER_UUID>`, `role = user`.
 
-V testu byla vytvořena rezervace `00000000-0000-4000-9000-000000000001` pro uživatele `b799f67e-d203-43ef-b0b2-699c2fbd2a33`, kurt `1`, datum `2099-12-31`, čas `22:00` až `23:00`, status `waiting_for_payment` a poznámku `STAGING TEST – payment_admin_statuses`.
+V testu byla vytvořena rezervace `00000000-0000-4000-9000-000000000001` pro uživatele `<REGULAR_USER_UUID>`, kurt `1`, datum `2099-12-31`, čas `22:00` až `23:00`, status `waiting_for_payment` a poznámku `STAGING TEST – payment_admin_statuses`.
 
 Ke stejné rezervaci byly vytvořeny dva platební pokusy:
 
 - `00000000-0000-4000-9000-000000000011` s `provider_payment_id = STAGING-FAILED-001`, `idempotency_key = staging-admin-view-failed-001`, `amount_cents = 25000`, `currency = CZK`, `payment_status = failed`, `attempt_count = 1` a `refund_status = not_requested`,
 - `00000000-0000-4000-9000-000000000012` s `provider_payment_id = STAGING-AWAITING-002`, `idempotency_key = staging-admin-view-awaiting-002`, `amount_cents = 25000`, `currency = CZK`, `payment_status = awaiting_payment`, `attempt_count = 2` a `refund_status = not_requested`.
 
-Administrátor při simulaci `set local role authenticated` a `request.jwt.claim.sub = 3737e033-a9f9-4b31-850e-724ea7f8a43d` viděl přesně dva platební řádky pro stejnou rezervaci. Tím bylo potvrzeno, že admin vidí oba platební pokusy a že view neagreguje pouze poslední pokus.
+Administrátor při simulaci `set local role authenticated` a dosazeném `request.jwt.claim.sub` viděl přesně dva platební řádky pro stejnou rezervaci. Tím bylo potvrzeno, že admin vidí oba platební pokusy a že view neagreguje pouze poslední pokus.
 
-Běžný uživatel při simulaci `set local role authenticated` a `request.jwt.claim.sub = b799f67e-d203-43ef-b0b2-699c2fbd2a33` měl potvrzené `auth.uid() = b799f67e-d203-43ef-b0b2-699c2fbd2a33`, ale dotaz na `public.payment_admin_statuses` nevrátil žádný platební řádek. To platilo i přesto, že byl vlastníkem testovací rezervace.
+Běžný uživatel při simulaci `set local role authenticated` a dosazeném `request.jwt.claim.sub` měl potvrzené `auth.uid()` odpovídající dosazené staging identitě, ale dotaz na `public.payment_admin_statuses` nevrátil žádný platební řádek. To platilo i přesto, že byl vlastníkem testovací rezervace.
 
 Celkově bylo potvrzeno, že administrátor vidí platební data, běžný uživatel nevidí žádná data ani platbu vlastní rezervace, view vrací více platebních pokusů ke stejné rezervaci, přímý přístup k `payments` zůstává zakázaný a citlivé interní sloupce nejsou ve view vystavené.
