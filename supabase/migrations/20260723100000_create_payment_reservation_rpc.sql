@@ -98,6 +98,10 @@ begin
       raise exception 'idempotency_key_reused_with_different_payload' using errcode = '22023';
     end if;
 
+    if v_existing_payment.status in ('failed', 'cancelled', 'expired') then
+      raise exception 'idempotency_key_reused_after_terminal_payment' using errcode = '22023';
+    end if;
+
     reservation_id := v_existing_payment.reservation_id;
     payment_id := v_existing_payment.id;
     return next;

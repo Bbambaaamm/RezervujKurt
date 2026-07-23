@@ -63,6 +63,12 @@ test('stejný idempotency_key s odlišným payloadem vrací explicitní chybu', 
   assert.match(migrationSql, /idempotency_key_reused_with_different_payload/i);
 });
 
+test('terminální payment se stejným idempotency_key nevrací mrtvý checkout', () => {
+  assert.match(migrationSql, /v_existing_payment\.status\s+in\s*\('failed',\s*'cancelled',\s*'expired'\)/i);
+  assert.match(migrationSql, /idempotency_key_reused_after_terminal_payment/i);
+  assert.match(migrationSql, /idempotency_key_reused_with_different_payload[\s\S]+idempotency_key_reused_after_terminal_payment/i);
+});
+
 test('payments.idempotency_key zůstává chráněný databázovou unikátností', () => {
   assert.match(paymentsFoundationSql, /unique\s+index\s+payments_idempotency_key_uq[\s\S]+on\s+public\.payments\s*\(idempotency_key\)/i);
 });
