@@ -1,7 +1,12 @@
 import 'server-only';
 
 import { calculateCourtReservationAmount } from './court-payment-price';
-import { normalizeReservationPaymentSlotInput, resolveReservationPaymentFlow, type PaymentReservationUserRole } from './payment-create-core';
+import {
+  calculatePaymentExpiresAt,
+  normalizeReservationPaymentSlotInput,
+  resolveReservationPaymentFlow,
+  type PaymentReservationUserRole,
+} from './payment-create-core';
 import { PaymentFeatureDisabledError } from './payment-flags-core';
 import { normalizeSupabaseServerUrl } from './supabase-server-url';
 
@@ -9,6 +14,7 @@ export type CreateGoPayPaymentRouteEnvironment = {
   NEXT_PUBLIC_SUPABASE_URL?: string;
   NEXT_PUBLIC_SUPABASE_ANON_KEY?: string;
   SUPABASE_SERVICE_ROLE_KEY?: string;
+  PAYMENTS_GOPAY_RESERVATION_TTL_MINUTES?: string;
 };
 
 export type AuthenticatedPaymentUser = {
@@ -21,6 +27,7 @@ export type CreateGoPayPaymentRouteDependencies = {
   requireGoPayCreateEnabled: () => Promise<unknown>;
   readAuthenticatedUserRole?: (user: AuthenticatedPaymentUser) => Promise<PaymentReservationUserRole>;
   calculateReservationAmount?: typeof calculateCourtReservationAmount;
+  calculatePaymentExpiration?: () => Date;
   reportUnexpectedError?: (error: unknown) => void;
 };
 
@@ -51,6 +58,7 @@ const SUPABASE_AUTH_TIMEOUT_MS = 4000;
 const SUPABASE_ROLE_READ_TIMEOUT_MS = 4000;
 const SUPABASE_AUTH_MIN_TIMEOUT_MS = 100;
 const SUPABASE_AUTH_MAX_TIMEOUT_MS = 30_000;
+const MAX_PAYMENT_RESERVATION_TTL_MINUTES = 24 * 60;
 
 export class PaymentRouteAuthenticationError extends Error {
   constructor(message = 'Přihlášení pro platební rezervaci není platné.') {
@@ -87,6 +95,27 @@ export class PaymentRouteConfigurationError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'PaymentRouteConfigurationError';
+  }
+}
+
+export function calculateConfiguredPaymentExpiresAt(
+  env: CreateGoPayPaymentRouteEnvironment = process.env as CreateGoPayPaymentRouteEnvironment,
+  now: Date = new Date(),
+): Date {
+  const rawTtlMinutes = env.PAYMENTS_GOPAY_RESERVATION_TTL_MINUTES?.trim();
+  if (!rawTtlMinutes || !/^\d+$/.test(rawTtlMinutes)) {
+    throw new PaymentRouteConfigurationError('TTL platební rezervace není nakonfigurované.');
+  }
+
+  const ttlMinutes = Number(rawTtlMinutes);
+  if (!Number.isSafeInteger(ttlMinutes) || ttlMinutes <= 0 || ttlMinutes > MAX_PAYMENT_RESERVATION_TTL_MINUTES) {
+    throw new PaymentRouteConfigurationError('TTL platební rezervace musí být celé číslo od 1 do 1440 minut.');
+  }
+
+  try {
+    return calculatePaymentExpiresAt({ now, ttlMinutes });
+  } catch {
+    throw new PaymentRouteConfigurationError('Expiraci platební rezervace se nepodařilo bezpečně určit.');
   }
 }
 
@@ -351,6 +380,13 @@ export async function handleAuthenticatedCreateGoPayPaymentRequest(
   } catch (error) {
     dependencies.reportUnexpectedError?.(error);
     return { status: 503, body: { error: 'Cenu platební rezervace se nepodařilo bezpečně určit.' } };
+  }
+
+  try {
+    (dependencies.calculatePaymentExpiration ?? calculateConfiguredPaymentExpiresAt)();
+  } catch (error) {
+    dependencies.reportUnexpectedError?.(error);
+    return { status: 503, body: { error: 'Expiraci platební rezervace se nepodařilo bezpečně určit.' } };
   }
 
   return { status: 501, body: { error: 'Serverové vytvoření GoPay platby zatím není dokončené.' } };
