@@ -104,6 +104,12 @@ test('create payment reservation RPC odmítá chybnou konfiguraci bez síťovéh
     { NEXT_PUBLIC_SUPABASE_URL: '', SUPABASE_SERVICE_ROLE_KEY: 'key' },
     { NEXT_PUBLIC_SUPABASE_URL: 'not-url', SUPABASE_SERVICE_ROLE_KEY: 'key' },
     { NEXT_PUBLIC_SUPABASE_URL: 'http://example.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'key' },
+    { NEXT_PUBLIC_SUPABASE_URL: 'https://user:password@example.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'key' },
+    { NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co?redirect=attacker', SUPABASE_SERVICE_ROLE_KEY: 'key' },
+    { NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co/?', SUPABASE_SERVICE_ROLE_KEY: 'key' },
+    { NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co#attacker', SUPABASE_SERVICE_ROLE_KEY: 'key' },
+    { NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co/#', SUPABASE_SERVICE_ROLE_KEY: 'key' },
+    { NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co/neco', SUPABASE_SERVICE_ROLE_KEY: 'key' },
     { NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SERVICE_ROLE_KEY: '' },
   ]) {
     await assert.rejects(() => createPaymentReservation(input, invalidEnv, fetchMock), PaymentReservationRpcConfigurationError);
