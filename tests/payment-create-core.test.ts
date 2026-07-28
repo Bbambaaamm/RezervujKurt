@@ -95,9 +95,11 @@ test('výpočet ceny odmítne necelé haléře a výsledek mimo bezpečný rozsa
 });
 
 test('výpočet expirace platby posune čas o zadané TTL', () => {
-  const expiresAt = calculatePaymentExpiresAt({ now: new Date('2026-07-22T10:00:00.000Z'), ttlMinutes: 15 });
+  const now = new Date('2026-07-22T10:00:00.000Z');
+  const expiresAt = calculatePaymentExpiresAt({ now, ttlMinutes: 15 });
 
   assert.equal(expiresAt.toISOString(), '2026-07-22T10:15:00.000Z');
+  assert.ok(expiresAt.getTime() > now.getTime());
 });
 
 test('výpočet expirace platby odmítne neplatný výchozí čas nebo TTL', () => {

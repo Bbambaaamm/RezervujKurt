@@ -169,7 +169,7 @@ export function calculatePaymentExpiresAt(input: PaymentExpirationInput): Date {
 
   const expiresAt = new Date(expiresAtMs);
 
-  if (!Number.isFinite(expiresAt.getTime())) {
+  if (!Number.isFinite(expiresAt.getTime()) || expiresAt.getTime() <= input.now.getTime()) {
     throw new Error('Výsledný čas expirace platby není platný.');
   }
 

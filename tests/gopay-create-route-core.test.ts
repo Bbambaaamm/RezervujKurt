@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  calculateConfiguredPaymentExpiresAt,
   extractBearerToken,
   handleAuthenticatedCreateGoPayPaymentRequest,
   normalizeCreateGoPayPaymentPayload,
@@ -18,6 +19,7 @@ const authenticatedUser = { userId: '123e4567-e89b-42d3-a456-426614174000' };
 const authEnv = { NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'anon-key' };
 const serverEnv = { ...authEnv, SUPABASE_SERVICE_ROLE_KEY: 'service-role-key' };
 const validBody = { courtId: 1, reservationDate: '2026-08-01', timeFrom: '10:00:00', timeTo: '11:00:00' };
+const validPaymentExpiration = () => new Date('2026-07-28T12:15:00.000Z');
 
 test('GoPay create handler validuje payload před read-only feature guardem', async () => {
   let guardCalls = 0;
@@ -67,6 +69,7 @@ test('GoPay create handler mapuje vypnutý guard, neočekávaný guard error a z
     requireGoPayCreateEnabled: async () => undefined,
     readAuthenticatedUserRole: async () => 'user',
     calculateReservationAmount: async () => ({ amountCents: 20000, currency: 'CZK' }),
+    calculatePaymentExpiration: validPaymentExpiration,
   });
   assert.equal(enabled.status, 501);
 });
@@ -88,6 +91,7 @@ test('GoPay create handler po zapnutém guardu rozliší role a členy neposíl�
     requireGoPayCreateEnabled: async () => undefined,
     readAuthenticatedUserRole: async () => 'user',
     calculateReservationAmount: async () => ({ amountCents: 20000, currency: 'CZK' }),
+    calculatePaymentExpiration: validPaymentExpiration,
   });
   assert.equal(user.status, 501);
 });
@@ -101,6 +105,7 @@ test('GoPay create handler počítá cenu serverově jen pro platební větev', 
       capturedSlot = slot;
       return { amountCents: 37500, currency: 'CZK' };
     },
+    calculatePaymentExpiration: validPaymentExpiration,
   });
 
   assert.equal(response.status, 501);
@@ -137,6 +142,59 @@ test('GoPay create handler při chybě serverového ceníku skončí fail-closed
   assert.equal(response.status, 503);
   assert.deepEqual(response.body, { error: 'Cenu platební rezervace se nepodařilo bezpečně určit.' });
   assert.equal(reportedError, pricingError);
+});
+
+test('GoPay create handler odvodí expiraci až po ceně a při chybné TTL skončí fail-closed bez zápisu', async () => {
+  const calls: string[] = [];
+  const expirationError = new PaymentRouteConfigurationError('TTL missing');
+  let reportedError: unknown = null;
+  const response = await handleAuthenticatedCreateGoPayPaymentRequest({ authenticatedUser, body: validBody }, {
+    requireGoPayCreateEnabled: async () => undefined,
+    readAuthenticatedUserRole: async () => 'user',
+    calculateReservationAmount: async () => {
+      calls.push('price');
+      return { amountCents: 20000, currency: 'CZK' };
+    },
+    calculatePaymentExpiration: () => {
+      calls.push('expiration');
+      throw expirationError;
+    },
+    reportUnexpectedError: (error) => { reportedError = error; },
+  });
+
+  assert.deepEqual(calls, ['price', 'expiration']);
+  assert.equal(response.status, 503);
+  assert.deepEqual(response.body, { error: 'Expiraci platební rezervace se nepodařilo bezpečně určit.' });
+  assert.equal(reportedError, expirationError);
+});
+
+test('konfigurace TTL odvodí přesnou expiraci bez skrytého výchozího času', () => {
+  const now = new Date('2026-07-28T12:00:00.000Z');
+  const validValues = [
+    ['1', '2026-07-28T12:01:00.000Z'],
+    [' 15 ', '2026-07-28T12:15:00.000Z'],
+    ['30', '2026-07-28T12:30:00.000Z'],
+    ['1440', '2026-07-29T12:00:00.000Z'],
+  ] as const;
+
+  for (const [value, expectedExpiration] of validValues) {
+    assert.equal(
+      calculateConfiguredPaymentExpiresAt({ PAYMENTS_GOPAY_RESERVATION_TTL_MINUTES: value }, now).toISOString(),
+      expectedExpiration,
+    );
+  }
+
+  for (const value of [undefined, '', '0', '-1', '1441', '15.5', '1e2', '15 minut', 'NaN', 'Infinity']) {
+    assert.throws(
+      () => calculateConfiguredPaymentExpiresAt({ PAYMENTS_GOPAY_RESERVATION_TTL_MINUTES: value }, now),
+      PaymentRouteConfigurationError,
+    );
+  }
+
+  assert.throws(
+    () => calculateConfiguredPaymentExpiresAt({ PAYMENTS_GOPAY_RESERVATION_TTL_MINUTES: '15' }, new Date('neplatné')),
+    PaymentRouteConfigurationError,
+  );
 });
 
 test('GoPay create handler při chybě načtení role fail-closed bez platebního side effectu', async () => {
