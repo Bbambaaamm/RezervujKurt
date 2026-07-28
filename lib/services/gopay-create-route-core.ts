@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { calculateCourtReservationAmount } from './court-payment-price';
 import { normalizeReservationPaymentSlotInput, resolveReservationPaymentFlow, type PaymentReservationUserRole } from './payment-create-core';
 import { PaymentFeatureDisabledError } from './payment-flags-core';
 import { normalizeSupabaseServerUrl } from './supabase-server-url';
@@ -19,6 +20,7 @@ export type PaymentRouteAuthServiceErrorCode = 'timeout' | 'network_error' | 'up
 export type CreateGoPayPaymentRouteDependencies = {
   requireGoPayCreateEnabled: () => Promise<unknown>;
   readAuthenticatedUserRole?: (user: AuthenticatedPaymentUser) => Promise<PaymentReservationUserRole>;
+  calculateReservationAmount?: typeof calculateCourtReservationAmount;
   reportUnexpectedError?: (error: unknown) => void;
 };
 
@@ -342,6 +344,13 @@ export async function handleAuthenticatedCreateGoPayPaymentRequest(
   } catch (error) {
     dependencies.reportUnexpectedError?.(error);
     return { status: 503, body: { error: 'Platební flow je dočasně nedostupné.' } };
+  }
+
+  try {
+    await (dependencies.calculateReservationAmount ?? calculateCourtReservationAmount)(payload);
+  } catch (error) {
+    dependencies.reportUnexpectedError?.(error);
+    return { status: 503, body: { error: 'Cenu platební rezervace se nepodařilo bezpečně určit.' } };
   }
 
   return { status: 501, body: { error: 'Serverové vytvoření GoPay platby zatím není dokončené.' } };

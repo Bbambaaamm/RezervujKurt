@@ -21,16 +21,32 @@ const validBody = { courtId: 1, reservationDate: '2026-08-01', timeFrom: '10:00:
 
 test('GoPay create handler validuje payload před read-only feature guardem', async () => {
   let guardCalls = 0;
-  const response = await handleAuthenticatedCreateGoPayPaymentRequest(
-    {
-      authenticatedUser,
-      body: { courtId: 1, reservationDate: '2026-08-01', timeFrom: '10:00', timeTo: '10:00' },
-    },
-    { requireGoPayCreateEnabled: async () => { guardCalls += 1; } },
-  );
+  let priceReads = 0;
+  const invalidBodies = [
+    { ...validBody, courtId: 0 },
+    { ...validBody, reservationDate: '2026-02-30' },
+    { ...validBody, timeFrom: '10:00', timeTo: '09:00' },
+    { ...validBody, timeFrom: '10.00', timeTo: '11:00' },
+  ];
 
-  assert.equal(response.status, 400);
+  for (const body of invalidBodies) {
+    const response = await handleAuthenticatedCreateGoPayPaymentRequest(
+      { authenticatedUser, body },
+      {
+        requireGoPayCreateEnabled: async () => { guardCalls += 1; },
+        calculateReservationAmount: async () => {
+          priceReads += 1;
+          return { amountCents: 20000, currency: 'CZK' };
+        },
+      },
+    );
+
+    assert.equal(response.status, 400);
+    assert.deepEqual(response.body, { error: 'Neplatný požadavek na vytvoření platební rezervace.' });
+  }
+
   assert.equal(guardCalls, 0);
+  assert.equal(priceReads, 0);
 });
 
 test('GoPay create handler mapuje vypnutý guard, neočekávaný guard error a zapnutý guard bezpečně', async () => {
@@ -50,6 +66,7 @@ test('GoPay create handler mapuje vypnutý guard, neočekávaný guard error a z
   const enabled = await handleAuthenticatedCreateGoPayPaymentRequest({ authenticatedUser, body: validBody }, {
     requireGoPayCreateEnabled: async () => undefined,
     readAuthenticatedUserRole: async () => 'user',
+    calculateReservationAmount: async () => ({ amountCents: 20000, currency: 'CZK' }),
   });
   assert.equal(enabled.status, 501);
 });
@@ -70,8 +87,56 @@ test('GoPay create handler po zapnutém guardu rozliší role a členy neposíl�
   const user = await handleAuthenticatedCreateGoPayPaymentRequest({ authenticatedUser, body: validBody }, {
     requireGoPayCreateEnabled: async () => undefined,
     readAuthenticatedUserRole: async () => 'user',
+    calculateReservationAmount: async () => ({ amountCents: 20000, currency: 'CZK' }),
   });
   assert.equal(user.status, 501);
+});
+
+test('GoPay create handler počítá cenu serverově jen pro platební větev', async () => {
+  let capturedSlot: unknown = null;
+  const response = await handleAuthenticatedCreateGoPayPaymentRequest({ authenticatedUser, body: validBody }, {
+    requireGoPayCreateEnabled: async () => undefined,
+    readAuthenticatedUserRole: async () => 'user',
+    calculateReservationAmount: async (slot) => {
+      capturedSlot = slot;
+      return { amountCents: 37500, currency: 'CZK' };
+    },
+  });
+
+  assert.equal(response.status, 501);
+  assert.deepEqual(capturedSlot, {
+    courtId: 1,
+    reservationDate: '2026-08-01',
+    timeFrom: '10:00',
+    timeTo: '11:00',
+    note: null,
+  });
+
+  let memberPriceReads = 0;
+  await handleAuthenticatedCreateGoPayPaymentRequest({ authenticatedUser, body: validBody }, {
+    requireGoPayCreateEnabled: async () => undefined,
+    readAuthenticatedUserRole: async () => 'member',
+    calculateReservationAmount: async () => {
+      memberPriceReads += 1;
+      return { amountCents: 37500, currency: 'CZK' };
+    },
+  });
+  assert.equal(memberPriceReads, 0);
+});
+
+test('GoPay create handler při chybě serverového ceníku skončí fail-closed bez zápisu', async () => {
+  const pricingError = new Error('price unavailable');
+  let reportedError: unknown = null;
+  const response = await handleAuthenticatedCreateGoPayPaymentRequest({ authenticatedUser, body: validBody }, {
+    requireGoPayCreateEnabled: async () => undefined,
+    readAuthenticatedUserRole: async () => 'user',
+    calculateReservationAmount: async () => { throw pricingError; },
+    reportUnexpectedError: (error) => { reportedError = error; },
+  });
+
+  assert.equal(response.status, 503);
+  assert.deepEqual(response.body, { error: 'Cenu platební rezervace se nepodařilo bezpečně určit.' });
+  assert.equal(reportedError, pricingError);
 });
 
 test('GoPay create handler při chybě načtení role fail-closed bez platebního side effectu', async () => {
