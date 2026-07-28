@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 
 const migrationPath = resolve(
   process.cwd(),
-  'supabase/migrations/20260723100000_create_payment_reservation_rpc.sql',
+  'supabase/migrations/20260728100000_align_payment_reservation_idempotency.sql',
 );
 const migrationSql = readFileSync(migrationPath, 'utf8');
 const paymentsFoundationSql = readFileSync(
@@ -58,6 +58,7 @@ test('stejný idempotency_key s odlišným payloadem vrací explicitní chybu', 
   assert.match(migrationSql, /v_existing_reservation\.reservation_date\s+<>\s+p_reservation_date/i);
   assert.match(migrationSql, /v_existing_reservation\.time_from\s+<>\s+p_time_from/i);
   assert.match(migrationSql, /v_existing_reservation\.time_to\s+<>\s+p_time_to/i);
+  assert.match(migrationSql, /v_existing_reservation\.note\s+is\s+distinct\s+from\s+nullif\(btrim\(p_note\),\s*''\)/i);
   assert.match(migrationSql, /v_existing_payment\.amount_cents\s+<>\s+p_amount_cents/i);
   assert.match(migrationSql, /v_existing_payment\.currency\s+is\s+distinct\s+from\s+p_currency/i);
   assert.match(migrationSql, /idempotency_key_reused_with_different_payload/i);
