@@ -205,6 +205,12 @@ test('Supabase auth konfigurace validuje povinné hodnoty, URL a timeout bez ún
     {},
     { NEXT_PUBLIC_SUPABASE_URL: 'not a url', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'anon-secret' },
     { NEXT_PUBLIC_SUPABASE_URL: 'http://example.supabase.co', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'anon-secret' },
+    { NEXT_PUBLIC_SUPABASE_URL: 'https://user:password@example.supabase.co', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'anon-secret' },
+    { NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co?redirect=attacker', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'anon-secret' },
+    { NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co/?', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'anon-secret' },
+    { NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co#attacker', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'anon-secret' },
+    { NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co/#', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'anon-secret' },
+    { NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co/neco', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'anon-secret' },
   ]) {
     await assert.rejects(
       () => verifySupabaseAccessToken('very-secret-token', env, async () => new Response('{}')),
@@ -272,10 +278,18 @@ test('serverové načtení role platebního uživatele přijme pouze existujíc�
 });
 
 test('serverové načtení role platebního uživatele validuje konfiguraci a HTTP chyby bez úniku těla odpovědi', async () => {
-  await assert.rejects(
-    () => readAuthenticatedPaymentUserRoleFromDatabase(authenticatedUser, { NEXT_PUBLIC_SUPABASE_URL: 'http://example.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'secret' }, async () => new Response('[]')),
-    PaymentRouteConfigurationError,
-  );
+  for (const supabaseUrl of [
+    'http://example.supabase.co',
+    'https://user:password@example.supabase.co',
+    'https://example.supabase.co?redirect=attacker',
+    'https://example.supabase.co#attacker',
+    'https://example.supabase.co/neco',
+  ]) {
+    await assert.rejects(
+      () => readAuthenticatedPaymentUserRoleFromDatabase(authenticatedUser, { NEXT_PUBLIC_SUPABASE_URL: supabaseUrl, SUPABASE_SERVICE_ROLE_KEY: 'secret' }, async () => new Response('[]')),
+      PaymentRouteConfigurationError,
+    );
+  }
 
   await assert.rejects(
     () => readAuthenticatedPaymentUserRoleFromDatabase(authenticatedUser, serverEnv, async () => new Response('secret response body', { status: 403 })),

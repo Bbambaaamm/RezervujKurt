@@ -4,6 +4,7 @@ import {
   buildReservationPaymentIdempotencyKey,
   normalizeReservationPaymentSlotInput,
 } from './payment-create-core';
+import { normalizeSupabaseServerUrl } from './supabase-server-url';
 
 export type CreatePaymentReservationInput = {
   userId: string;
@@ -71,16 +72,9 @@ function normalizeSupabaseUrl(value: string | undefined): string {
   const trimmedUrl = value?.trim();
   if (!trimmedUrl) throw new PaymentReservationRpcConfigurationError('Chybí Supabase URL pro založení platební rezervace.');
 
-  let url: URL;
-  try {
-    url = new URL(trimmedUrl);
-  } catch {
+  const url = normalizeSupabaseServerUrl(trimmedUrl);
+  if (!url) {
     throw new PaymentReservationRpcConfigurationError('Supabase URL pro založení platební rezervace není platná.');
-  }
-
-  const isLocalhost = ['localhost', '127.0.0.1', '::1'].includes(url.hostname);
-  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLocalhost)) {
-    throw new PaymentReservationRpcConfigurationError('Supabase URL musí používat HTTPS; HTTP je povolené pouze pro localhost.');
   }
 
   return url.toString();

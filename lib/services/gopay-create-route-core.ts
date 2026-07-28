@@ -2,6 +2,7 @@ import 'server-only';
 
 import { normalizeReservationPaymentSlotInput, resolveReservationPaymentFlow, type PaymentReservationUserRole } from './payment-create-core';
 import { PaymentFeatureDisabledError } from './payment-flags-core';
+import { normalizeSupabaseServerUrl } from './supabase-server-url';
 
 export type CreateGoPayPaymentRouteEnvironment = {
   NEXT_PUBLIC_SUPABASE_URL?: string;
@@ -130,32 +131,18 @@ function resolveAuthTimeoutMs(timeoutMs: number | undefined) {
 }
 
 function buildSupabaseAuthUserEndpoint(supabaseUrl: string) {
-  let url: URL;
-  try {
-    url = new URL(supabaseUrl);
-  } catch {
+  const url = normalizeSupabaseServerUrl(supabaseUrl);
+  if (!url) {
     throw new PaymentRouteConfigurationError('Supabase URL pro ověření platebního požadavku není platná.');
-  }
-
-  const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '::1';
-  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLocalhost)) {
-    throw new PaymentRouteConfigurationError('Supabase Auth URL musí používat HTTPS mimo lokální vývojové prostředí.');
   }
 
   return new URL('/auth/v1/user', url).toString();
 }
 
 function buildSupabaseRestUrl(supabaseUrl: string, path: string) {
-  let url: URL;
-  try {
-    url = new URL(supabaseUrl);
-  } catch {
+  const url = normalizeSupabaseServerUrl(supabaseUrl);
+  if (!url) {
     throw new PaymentRouteConfigurationError('Supabase URL pro platební serverový dotaz není platná.');
-  }
-
-  const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '::1';
-  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLocalhost)) {
-    throw new PaymentRouteConfigurationError('Supabase REST URL musí používat HTTPS mimo lokální vývojové prostředí.');
   }
 
   return new URL(path, url);
