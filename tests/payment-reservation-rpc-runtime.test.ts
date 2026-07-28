@@ -15,6 +15,7 @@ const input = {
   timeTo: '10:30:00',
   note: '  poznámka  ',
   amountCents: 30000,
+  expiresAt: new Date('2099-08-01T08:15:00.000Z'),
   currency: 'CZK' as const,
   metadata: { correlationId: 'bezpecne-id' },
 };
@@ -49,6 +50,7 @@ test('create payment reservation RPC posílá pouze kanonický serverový payloa
     p_note: 'poznámka',
     p_idempotency_key: 'reservation-payment:v1:98544254f36ed0e0b2564ebe3e566ea329114dcad5f5dd4ae042539a83ca8303',
     p_amount_cents: 30000,
+    p_expires_at: '2099-08-01T08:15:00.000Z',
     p_currency: 'CZK',
     p_metadata: { correlationId: 'bezpecne-id' },
   });
@@ -81,6 +83,8 @@ test('create payment reservation RPC validuje serverové vstupy před síťovým
   for (const invalidInput of [
     { ...input, userId: 'not-uuid' },
     { ...input, amountCents: 0 },
+    { ...input, expiresAt: new Date('invalid') },
+    { ...input, expiresAt: new Date(0) },
     { ...input, currency: 'EUR' as never },
     { ...input, timeTo: '09:00' },
     { ...input, note: 'x'.repeat(501) },

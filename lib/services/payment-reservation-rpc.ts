@@ -14,6 +14,7 @@ export type CreatePaymentReservationInput = {
   timeTo: string;
   note?: string | null;
   amountCents: number;
+  expiresAt: Date;
   currency: 'CZK';
   metadata?: Record<string, unknown>;
 };
@@ -164,6 +165,9 @@ export async function createPaymentReservation(
   if (!Number.isSafeInteger(input.amountCents) || input.amountCents <= 0) {
     throw new PaymentReservationRpcValidationError('amountCents musí být kladná celočíselná hodnota.');
   }
+  if (!(input.expiresAt instanceof Date) || !Number.isFinite(input.expiresAt.getTime()) || input.expiresAt.getTime() <= Date.now()) {
+    throw new PaymentReservationRpcValidationError('expiresAt musí být platný budoucí čas.');
+  }
   if (input.currency !== 'CZK') throw new PaymentReservationRpcValidationError('Podporovaná měna platby je pouze CZK.');
 
   let slot;
@@ -189,6 +193,7 @@ export async function createPaymentReservation(
       currency: input.currency,
     }),
     p_amount_cents: input.amountCents,
+    p_expires_at: input.expiresAt.toISOString(),
     p_currency: input.currency,
     p_metadata: metadata,
   };
