@@ -864,6 +864,8 @@ Navazující aditivní overload RPC v migraci `supabase/migrations/2026072814000
 
 `expires_at` je součástí neměnného idempotentního payloadu. Retry se stejným klíčem a stejnou expirací vrátí původní `reservation_id` a `payment_id`; odlišná expirace skončí stabilním konfliktem `idempotency_key_reused_with_different_payload` a existující platbu nezmění. Stejně fail-closed skončí nový overload nad záznamem vytvořeným starou signaturou s `expires_at = null`.
 
+Stejný invariant zachovává navazující migrace `supabase/migrations/20260728150000_preserve_payment_expiration_on_state_change.sql` také při přechodu `created -> awaiting_payment`. Stavové RPC vyžaduje, aby dodané `p_expires_at` přesně odpovídalo již uloženému snapshotu, a sloupec už v `UPDATE` vůbec nepřepisuje. Recomputed TTL, zkrácení nebo prodloužení blokace i přechod staré platby s `expires_at = null` proto skončí fail-closed před změnou stavu.
+
 ### Odstranění dočasného overloadu bez expirace
 
 - [ ] Nasadit nový databázový overload s `p_expires_at`.
