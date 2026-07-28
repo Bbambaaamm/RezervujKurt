@@ -225,7 +225,8 @@ export async function createPaymentReservation(
     let rows: unknown;
     try {
       rows = await response.json() as unknown;
-    } catch {
+    } catch (error) {
+      if (abortController.signal.aborted) throw error;
       throw new PaymentReservationRpcError('Založení platební rezervace vrátilo neplatnou odpověď.', 'invalid_response', response.status);
     }
 
@@ -236,7 +237,7 @@ export async function createPaymentReservation(
     return { reservationId: row.reservation_id, paymentId: row.payment_id };
   } catch (error) {
     if (error instanceof PaymentReservationRpcError) throw error;
-    if (error instanceof DOMException && error.name === 'AbortError') {
+    if (abortController.signal.aborted) {
       throw new PaymentReservationRpcError('Založení platební rezervace vypršelo na timeout.', 'timeout');
     }
     throw new PaymentReservationRpcError('Založení platební rezervace selhalo na transportní chybě.', 'network_error');

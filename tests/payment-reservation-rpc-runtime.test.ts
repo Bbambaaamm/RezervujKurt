@@ -167,4 +167,14 @@ test('create payment reservation RPC mapuje HTTP, neplatnou odpověď, síť a t
     }), { timeoutMs: 100 }),
     (error: unknown) => error instanceof PaymentReservationRpcError && error.code === 'timeout',
   );
+  await assert.rejects(
+    () => createPaymentReservation(input, env, async (_url, init) => ({
+      ok: true,
+      status: 200,
+      json: async () => new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(new DOMException('abort', 'AbortError')));
+      }),
+    } as Response), { timeoutMs: 100 }),
+    (error: unknown) => error instanceof PaymentReservationRpcError && error.code === 'timeout',
+  );
 });
