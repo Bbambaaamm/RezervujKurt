@@ -847,7 +847,7 @@ Přidat bezpečnou serverovou cestu pro vytvoření platební rezervace nečlena
 - [ ] Ověřit datum, čas, kurt a dostupnost.
 - [x] V DB transakci vytvořit rezervaci `waiting_for_payment`.
 - [x] V DB transakci vytvořit interní payment ve stavu `created`; přechod na `awaiting_payment` nastane až po úspěšném vytvoření provider platby přes samostatný stavový RPC kontrakt.
-- [ ] Nastavit `expires_at`.
+- [x] Nastavit `expires_at`.
 - [ ] Vytvořit GoPay sandbox platbu.
 - [ ] Uložit `provider_payment_id`.
 - [ ] Vrátit klientovi pouze GoPay redirect URL a bezpečné interní identifikátory.
@@ -859,6 +859,18 @@ Přípravné bezpečné jádro fáze 4 je připravené v `lib/services/payment-c
 Navazující serverový DB kontrakt fáze 4 je připravený v migraci `supabase/migrations/20260723100000_create_payment_reservation_rpc.sql`: RPC `create_payment_reservation` je `SECURITY DEFINER`, spustitelný pouze přes `service_role`, validuje slot, poznámku, částku, měnu, metadata i `idempotency_key`, idempotentně vrací už existující pár rezervace/platby podle stejného klíče a při prvním volání atomicky založí rezervaci `waiting_for_payment`, interní platbu `created` a audit `payment_created`. Funkce záměrně nevolá GoPay API a neukládá `provider_payment_id`; externí checkout a přechod platby na `awaiting_payment` zůstávají oddělené, aby databázová transakce nebyla držena během externího HTTP volání. Stejný `idempotency_key` se po terminálním payment stavu `failed`, `cancelled` nebo `expired` nesmí použít k vrácení mrtvého checkoutu; navazující serverový endpoint musí pro nový platební pokus vytvořit nový bezpečný klíč podle explicitně definovaného retry modelu.
 
 Serverový adaptér `lib/services/payment-reservation-rpc.ts` připravuje úzké a testované volání tohoto RPC. Před síťovým požadavkem znovu validuje a kanonizuje identitu, slot, poznámku, částku, měnu a bezpečná metadata, idempotency key vždy počítá interně ze stejné normalizované identity a ostatních serverových hodnot a přijímá pouze přesný současný návratový kontrakt RPC: právě jeden objekt obsahující jen `reservation_id` a `payment_id` jako platná UUID. Service-role klíč neposílá jinam než na validovanou HTTPS Supabase URL (HTTP je povolené pouze pro localhost); společný server-only helper pro RPC, ověření Auth i načtení role navíc fail-closed přijímá pouze čistou origin URL bez vložených přihlašovacích údajů, query, fragmentu nebo neočekávané cesty. Odpověď adaptér čte s timeoutem a z chybové odpovědi zachovává nanejvýš validní pětiznakový SQLSTATE kód; upstream message, details, hint ani ne-JSON text neuchovává. Adaptér zatím není připojený do veřejného endpointu, aby před dokončením GoPay create a idempotentní kompenzace nevytvářel osiřelé blokace slotů. Poznámka je součástí sémantického RPC kontraktu: opakování stejného klíče s odlišnou normalizovanou poznámkou databáze odmítne jako odlišný payload. Metadata zůstávají pouze diagnostická, při idempotentním opakování se nepřepisují a nejsou součástí identity požadavku.
+
+Navazující aditivní overload RPC v migraci `supabase/migrations/20260728140000_set_payment_reservation_expiration.sql` vyžaduje budoucí `expires_at` a ukládá jej do interní platby ve stejné transakci jako rezervaci a cenový snapshot. Původní overload zůstává po dobu blue/green rolloutu dostupný staršímu aplikačnímu kódu; klientské role nemají oprávnění spustit ani novou variantu. Serverový adaptér přijímá pouze platný budoucí `Date` a do RPC odesílá jeho kanonický ISO timestamp. Konkrétní TTL bude endpoint odvozovat serverově existujícím helperem až při bezpečném připojení zápisu; migrace sama žádnou produktovou TTL nedomýšlí.
+
+`expires_at` je součástí neměnného idempotentního payloadu. Retry se stejným klíčem a stejnou expirací vrátí původní `reservation_id` a `payment_id`; odlišná expirace skončí stabilním konfliktem `idempotency_key_reused_with_different_payload` a existující platbu nezmění. Stejně fail-closed skončí nový overload nad záznamem vytvořeným starou signaturou s `expires_at = null`.
+
+### Odstranění dočasného overloadu bez expirace
+
+- [ ] Nasadit nový databázový overload s `p_expires_at`.
+- [ ] Nasadit všechny aplikační instance s novým RPC adaptérem.
+- [ ] Z provozních logů ověřit, že stará signatura už není volána.
+- [ ] Samostatnou dopřednou migrací odebrat `service_role` oprávnění staré signatuře.
+- [ ] Po bezpečném rollout okně samostatnou migrací odstranit starý overload.
 
 Autoritativní základ ceníku je připravený v aditivní migraci `supabase/migrations/20260728120000_court_payment_pricing.sql`. Izolovaná tabulka `court_payment_prices` ukládá právě jednu kladnou hodinovou cenu v haléřích a měnu `CZK` pro kurt; technický horní limit zaručuje, že ani nejdelší jednodenní rezervace nepřeteče `payments.amount_cents`, ale nenahrazuje dosud neschválený nižší produktový limit. Migrace záměrně nevkládá žádné domyšlené produktové ceny. Service-role RPC `get_court_payment_price` vrátí cenu pouze pro existující aktivní kurt a klientské role nemají přístup k tabulce ani funkci. Serverový adaptér `lib/services/court-payment-price.ts` validuje přesný návratový kontrakt, používá timeout a při chybějící konfiguraci nebo ceně selže fail-closed. Složený helper počítá celkovou částku celočíselně výhradně z normalizovaných `timeFrom` a `timeTo`; zlomek haléře bez schváleného pravidla zaokrouhlení odmítne. Endpoint po ověření flagu a role `user` tento ceník read-only používá a při chybě ceny skončí fail-closed ještě před jakýmkoli zápisem. Vypnutý flow ani role `member` a `admin` cenu nenačítají. Endpoint nadále nic nezapisuje: před připojením DB create kroku je nutné dodat schválené ceny, rozhodnout zda první verze účtuje celý kurt nebo podíl nečlena a současně dokončit idempotentní provider create/kompenzační sagu, aby nevznikaly osiřelé blokace slotů.
 
@@ -1035,9 +1047,10 @@ Automaticky uvolnit termíny, které byly dočasně blokované pro platbu, ale n
 
 - [ ] Přidat RPC `expire_unpaid_payments`.
 - [ ] Přidat worker nebo cron pro periodické spouštění.
-- [ ] Vyhledat payments `awaiting_payment` s `expires_at < now()`.
+- [ ] Vyhledat pouze payments ve stavu `created` nebo `awaiting_payment` s `expires_at <= clock_timestamp()`.
 - [ ] Zamknout payment a reservation.
-- [ ] Ověřit, že payment není `paid`.
+- [ ] Po získání zámků znovu atomicky ověřit nezaplacený payment stav a `reservation.status = 'waiting_for_payment'`.
+- [ ] Nikdy neexpirovat payment ve stavu `paid` ani rezervaci, která už není `waiting_for_payment`.
 - [ ] Nastavit payment `expired`.
 - [ ] Nastavit reservation `cancelled`.
 - [ ] Zapsat audit.
