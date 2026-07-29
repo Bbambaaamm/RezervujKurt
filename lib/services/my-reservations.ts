@@ -41,7 +41,7 @@ export function canCancelReservation(status: ReservationLifecycleStatus): boolea
 }
 
 export function isMyReservationUpcoming(reservation: CancelableReservation, now = new Date()) {
-  if (!canCancelReservation(reservation.status)) {
+  if (reservation.status === 'cancelled') {
     return false;
   }
 
@@ -54,7 +54,7 @@ export function isMyReservationUpcoming(reservation: CancelableReservation, now 
 }
 
 export function isMyReservationCancelable(reservation: CancelableReservation, now = new Date()) {
-  return isMyReservationUpcoming(reservation, now);
+  return canCancelReservation(reservation.status) && isMyReservationUpcoming(reservation, now);
 }
 
 export async function cancelMyReservation(input: CancelMyReservationInput): Promise<void> {

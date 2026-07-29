@@ -5,7 +5,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 
 import {
   getPendingReservationsReadOnlyWithSession,
-  getRecentReservationsReadOnlyWithSession,
+  getAdminReservationsReadOnlyWithSession,
   type ReservationOverview,
 } from '@/lib/services/read-only';
 import { ReservationNoLongerPendingError, ReservationUnauthorizedError, ReservationValidationError } from '@/lib/services/supabase-error-mapping';
@@ -61,7 +61,6 @@ function formatReservationNote(note: string | null) {
   return note?.trim() || '—';
 }
 
-const recentReservationsLimit = 50;
 const adminListScrollClassName = 'max-h-[34rem] overflow-y-auto pr-1';
 
 const emptyTournamentForm: TournamentFormInput = {
@@ -97,7 +96,7 @@ export default function AdminPage() {
   const [isActionLoadingById, setIsActionLoadingById] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [reservations, setReservations] = useState<ReservationOverview[]>([]);
-  const [recentReservations, setRecentReservations] = useState<ReservationOverview[]>([]);
+  const [adminReservations, setAdminReservations] = useState<ReservationOverview[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [tournamentForm, setTournamentForm] = useState<TournamentFormInput>(emptyTournamentForm);
   const [editedTournamentId, setEditedTournamentId] = useState<string | null>(null);
@@ -163,9 +162,9 @@ export default function AdminPage() {
           throw new ReservationUnauthorizedError('Pro zobrazení administrace je potřeba přihlášení.');
         }
 
-        const [pendingResult, recentResult, tournamentsResult] = await Promise.allSettled([
+        const [pendingResult, adminReservationsResult, tournamentsResult] = await Promise.allSettled([
           getPendingReservationsReadOnlyWithSession(accessToken),
-          getRecentReservationsReadOnlyWithSession(accessToken, recentReservationsLimit),
+          getAdminReservationsReadOnlyWithSession(accessToken),
           getAdminTournaments(accessToken),
         ]);
         if (!active) return;
@@ -174,12 +173,12 @@ export default function AdminPage() {
           throw pendingResult.reason;
         }
 
-        if (recentResult.status === 'rejected') {
-          throw recentResult.reason;
+        if (adminReservationsResult.status === 'rejected') {
+          throw adminReservationsResult.reason;
         }
 
         setReservations(pendingResult.value);
-        setRecentReservations(recentResult.value);
+        setAdminReservations(adminReservationsResult.value);
 
         if (tournamentsResult.status === 'fulfilled') {
           setTournaments(tournamentsResult.value);
@@ -300,7 +299,7 @@ export default function AdminPage() {
     console.info(startedMessage, { reservationId });
 
     if (action === 'cancel') {
-      const currentReservation = [...reservations, ...recentReservations].find((reservation) => reservation.id === reservationId);
+      const currentReservation = [...reservations, ...adminReservations].find((reservation) => reservation.id === reservationId);
 
       if (currentReservation && !canAdminCancelReservation(currentReservation)) {
         setError('Proběhlou rezervaci už není potřeba rušit.');
@@ -327,12 +326,12 @@ export default function AdminPage() {
         fromStatuses: options?.fromStatuses,
       });
 
-      const [loadedReservations, loadedRecentReservations] = await Promise.all([
+      const [loadedReservations, loadedAdminReservations] = await Promise.all([
         getPendingReservationsReadOnlyWithSession(accessToken),
-        getRecentReservationsReadOnlyWithSession(accessToken, recentReservationsLimit),
+        getAdminReservationsReadOnlyWithSession(accessToken),
       ]);
       setReservations(loadedReservations);
-      setRecentReservations(loadedRecentReservations);
+      setAdminReservations(loadedAdminReservations);
       console.info(successMessage, { reservationId });
     } catch (actionError) {
       console.error('admin action failed', {
@@ -356,12 +355,12 @@ export default function AdminPage() {
           return;
         }
 
-        const [loadedReservations, loadedRecentReservations] = await Promise.all([
+        const [loadedReservations, loadedAdminReservations] = await Promise.all([
           getPendingReservationsReadOnlyWithSession(staleRecovery.token),
-          getRecentReservationsReadOnlyWithSession(staleRecovery.token, recentReservationsLimit),
+          getAdminReservationsReadOnlyWithSession(staleRecovery.token),
         ]);
         setReservations(loadedReservations);
-        setRecentReservations(loadedRecentReservations);
+        setAdminReservations(loadedAdminReservations);
         console.info('admin stale pending refresh', { reservationId, count: loadedReservations.length });
       } else if (actionError instanceof ReservationValidationError) {
         setError('Rezervaci se nepodařilo změnit. Zkontrolujte prosím její aktuální stav.');
@@ -380,8 +379,8 @@ export default function AdminPage() {
   }
 
   const guardState = resolveAdminGuardState(userRole);
-  const upcomingReservations = recentReservations.filter((reservation) => isMyReservationUpcoming(reservation));
-  const reservationHistory = recentReservations.filter((reservation) => !isMyReservationUpcoming(reservation));
+  const upcomingReservations = adminReservations.filter((reservation) => isMyReservationUpcoming(reservation));
+  const reservationHistory = adminReservations.filter((reservation) => !isMyReservationUpcoming(reservation));
 
   if (guardState === 'unauthorized') {
     return (

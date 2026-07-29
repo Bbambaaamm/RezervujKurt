@@ -349,18 +349,17 @@ export async function getPendingReservationsReadOnlyWithSession(accessToken: str
   return loadedReservations;
 }
 
-export async function getRecentReservationsReadOnlyWithSession(accessToken: string, limit = 20) {
+export async function getAdminReservationsReadOnlyWithSession(accessToken: string) {
   if (process.env.NODE_ENV === 'development') {
-    console.info('admin recent reservations request started');
+    console.info('admin reservations request started');
   }
 
-  const safeLimit = Number.isFinite(limit) ? Math.min(Math.max(Math.trunc(limit), 1), 50) : 20;
   const reservationsEndpoint =
-    `reservations?select=id,reservation_date,time_from,time_to,created_at,status,note,court_id,user_id&order=reservation_date.desc,time_from.desc&limit=${safeLimit}`;
+    'reservations?select=id,reservation_date,time_from,time_to,created_at,status,note,court_id,user_id&order=reservation_date.desc,time_from.desc';
   const loadedReservations = await getReservationsOverviewByEndpoint(reservationsEndpoint, accessToken);
 
   if (process.env.NODE_ENV === 'development') {
-    console.info('admin recent reservations loaded', { count: loadedReservations.length, limit: safeLimit });
+    console.info('admin reservations loaded', { count: loadedReservations.length });
   }
 
   return loadedReservations;
