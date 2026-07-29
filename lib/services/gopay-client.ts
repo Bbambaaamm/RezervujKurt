@@ -139,7 +139,7 @@ function normalizePublicOrigin(value: string | undefined): URL {
 
 function normalizeGoId(value: string | undefined): string {
   const goId = value?.trim();
-  if (!goId || goId.length > MAX_GOID_LENGTH || !/^\d+$/.test(goId)) {
+  if (!goId || goId.length > MAX_GOID_LENGTH || !/^\d*[1-9]\d*$/.test(goId)) {
     throw new GoPayClientConfigurationError('GoPay GoID není platně nakonfigurované.');
   }
   return goId;
