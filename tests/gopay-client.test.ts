@@ -6,6 +6,7 @@ import {
   GoPayClientConfigurationError,
   GoPayClientError,
   requestGoPayAccessToken,
+  requestGoPayCreatePayment,
 } from '../lib/services/gopay-client';
 
 const createPaymentInput = {
@@ -269,6 +270,204 @@ test('GoPay OAuth rozlišuje síťovou chybu a timeout', async () => {
       await new Promise((_resolve, reject) => init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError'))));
       return new Response('{}');
     }, { timeoutMs: 100 }),
+    (error: unknown) => error instanceof GoPayClientError && error.code === 'timeout',
+  );
+});
+
+test('GoPay create požadavek používá pevný sandbox endpoint a vrací pouze bezpečný kontrakt', async () => {
+  let capturedUrl = '';
+  let capturedInit: RequestInit | undefined;
+  const result = await requestGoPayCreatePayment(
+    createPaymentInput,
+    'Case-Sensitive_Token-123',
+    { ...createPaymentEnv, PAYMENTS_GOPAY_ENV: 'sandbox' },
+    async (url, init) => {
+      capturedUrl = String(url);
+      capturedInit = init;
+      return new Response(JSON.stringify({
+        id: 3_000_006_542,
+        state: 'CREATED',
+        gw_url: 'https://gw.sandbox.gopay.com/gw/v3/3Mpw5J',
+        sensitive_provider_field: 'ignorovat',
+      }));
+    },
+  );
+
+  const headers = new Headers(capturedInit?.headers);
+  assert.equal(capturedUrl, 'https://gw.sandbox.gopay.com/api/payments/payment');
+  assert.equal(capturedInit?.method, 'POST');
+  assert.equal(capturedInit?.cache, 'no-store');
+  assert.ok(capturedInit?.signal instanceof AbortSignal);
+  assert.equal(headers.get('authorization'), 'Bearer Case-Sensitive_Token-123');
+  assert.equal(headers.get('content-type'), 'application/json');
+  assert.deepEqual(JSON.parse(String(capturedInit?.body)), buildGoPayCreatePaymentPayload(createPaymentInput, createPaymentEnv));
+  assert.deepEqual(result, {
+    providerPaymentId: 3_000_006_542,
+    gatewayUrl: 'https://gw.sandbox.gopay.com/gw/v3/3Mpw5J',
+    state: 'CREATED',
+  });
+});
+
+test('GoPay create požadavek odděluje production endpoint a odpovídající redirect origin', async () => {
+  let capturedUrl = '';
+  const result = await requestGoPayCreatePayment(
+    createPaymentInput,
+    'token',
+    { ...createPaymentEnv, PAYMENTS_GOPAY_ENV: 'production' },
+    async (url) => {
+      capturedUrl = String(url);
+      return new Response(JSON.stringify({ id: 42, state: 'CREATED', gw_url: 'https://gate.gopay.cz/gw/v3/payment' }));
+    },
+  );
+
+  assert.equal(capturedUrl, 'https://gate.gopay.cz/api/payments/payment');
+  assert.equal(result.gatewayUrl, 'https://gate.gopay.cz/gw/v3/payment');
+});
+
+test('GoPay create povolí explicitní standardní HTTPS port 443, ale odmítne jiný port', async () => {
+  const env = { ...createPaymentEnv, PAYMENTS_GOPAY_ENV: 'production' };
+  const standardPortUrl = 'https://gate.gopay.cz:443/gw/v3/payment';
+  const result = await requestGoPayCreatePayment(
+    createPaymentInput,
+    'token',
+    env,
+    async () => new Response(JSON.stringify({ id: 42, state: 'CREATED', gw_url: standardPortUrl })),
+  );
+
+  assert.equal(result.gatewayUrl, standardPortUrl);
+
+  await assert.rejects(
+    () => requestGoPayCreatePayment(
+      createPaymentInput,
+      'token',
+      env,
+      async () => new Response(JSON.stringify({
+        id: 42,
+        state: 'CREATED',
+        gw_url: 'https://gate.gopay.cz:444/gw/v3/payment',
+      })),
+    ),
+    (error: unknown) => error instanceof GoPayClientError && error.code === 'invalid_response',
+  );
+});
+
+test('GoPay create požadavek odmítá neplatný token a odpověď před předáním redirectu', async () => {
+  let calls = 0;
+  for (const token of ['', 'token with whitespace', 'x'.repeat(4_097)]) {
+    await assert.rejects(
+      () => requestGoPayCreatePayment(createPaymentInput, token, { ...createPaymentEnv, PAYMENTS_GOPAY_ENV: 'sandbox' }, async () => {
+        calls += 1;
+        return new Response('{}');
+      }),
+      GoPayClientConfigurationError,
+    );
+  }
+  assert.equal(calls, 0);
+
+  const invalidResponses = [
+    {},
+    [],
+    null,
+    { id: 0, state: 'CREATED', gw_url: 'https://gw.sandbox.gopay.com/gw/payment' },
+    { id: 1.5, state: 'CREATED', gw_url: 'https://gw.sandbox.gopay.com/gw/payment' },
+    { id: Number.MAX_SAFE_INTEGER + 1, state: 'CREATED', gw_url: 'https://gw.sandbox.gopay.com/gw/payment' },
+    { id: 1, state: 'PAID', gw_url: 'https://gw.sandbox.gopay.com/gw/payment' },
+    { id: 1, state: 'CREATED', gw_url: 'http://gw.sandbox.gopay.com/gw/payment' },
+    { id: 1, state: 'CREATED', gw_url: 'https://attacker.example/gw/payment' },
+    { id: 1, state: 'CREATED', gw_url: 'https://gw.sandbox.gopay.com.attacker.cz/gw/payment' },
+    { id: 1, state: 'CREATED', gw_url: 'https://gw.sandbox.gopay.com.evil.cz/gw/payment' },
+    { id: 1, state: 'CREATED', gw_url: 'https://evil.cz/?next=https://gw.sandbox.gopay.com/gw/payment' },
+    { id: 1, state: 'CREATED', gw_url: 'https://user:secret@gw.sandbox.gopay.com/gw/payment' },
+    { id: 1, state: 'CREATED', gw_url: ' https://gw.sandbox.gopay.com/gw/payment' },
+  ];
+
+  for (const body of invalidResponses) {
+    await assert.rejects(
+      () => requestGoPayCreatePayment(
+        createPaymentInput,
+        'token',
+        { ...createPaymentEnv, PAYMENTS_GOPAY_ENV: 'sandbox' },
+        async () => new Response(JSON.stringify(body)),
+      ),
+      (error: unknown) => error instanceof GoPayClientError && error.code === 'invalid_response',
+    );
+  }
+});
+
+test('GoPay create vrací provider ID jako ověřené číslo a redirect URL beze změny', async () => {
+  const providerUrl = 'https://GW.SANDBOX.GOPAY.COM/gw/%7epayment?state=A%2fb&next=https%3A%2F%2Fexample.cz';
+  const result = await requestGoPayCreatePayment(
+    createPaymentInput,
+    'token',
+    { ...createPaymentEnv, PAYMENTS_GOPAY_ENV: 'sandbox' },
+    async () => new Response(JSON.stringify({
+      id: Number.MAX_SAFE_INTEGER,
+      state: 'CREATED',
+      gw_url: providerUrl,
+    })),
+  );
+
+  assert.equal(result.providerPaymentId, Number.MAX_SAFE_INTEGER);
+  assert.equal(typeof result.providerPaymentId, 'number');
+  assert.equal(result.gatewayUrl, providerUrl);
+});
+
+test('GoPay create považuje každý neúspěšný HTTP status za provider chybu i s validním JSON', async () => {
+  for (const status of [401, 403, 404, 429, 500]) {
+    await assert.rejects(
+      () => requestGoPayCreatePayment(
+        createPaymentInput,
+        'token',
+        { ...createPaymentEnv, PAYMENTS_GOPAY_ENV: 'sandbox' },
+        async () => new Response(JSON.stringify({
+          id: 1,
+          state: 'CREATED',
+          gw_url: 'https://gw.sandbox.gopay.com/gw/payment',
+        }), { status }),
+      ),
+      (error: unknown) => error instanceof GoPayClientError
+        && error.code === 'upstream_error'
+        && error.httpStatus === status,
+    );
+  }
+});
+
+test('GoPay create požadavek neprovádí retry a rozlišuje provider chybu, síť a timeout', async () => {
+  const env = { ...createPaymentEnv, PAYMENTS_GOPAY_ENV: 'sandbox' };
+  let calls = 0;
+  await assert.rejects(
+    () => requestGoPayCreatePayment(createPaymentInput, 'token', env, async () => {
+      calls += 1;
+      return new Response('citlivý provider detail', { status: 503 });
+    }),
+    (error: unknown) => error instanceof GoPayClientError
+      && error.code === 'upstream_error'
+      && error.httpStatus === 503
+      && !error.message.includes('citlivý provider detail'),
+  );
+  assert.equal(calls, 1);
+
+  await assert.rejects(
+    () => requestGoPayCreatePayment(createPaymentInput, 'token', env, async () => { throw new TypeError('network'); }),
+    (error: unknown) => error instanceof GoPayClientError && error.code === 'network_error',
+  );
+
+  await assert.rejects(
+    () => requestGoPayCreatePayment(createPaymentInput, 'token', env, async (_url, init) => {
+      await new Promise((_resolve, reject) => init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError'))));
+      return new Response('{}');
+    }, { timeoutMs: 100 }),
+    (error: unknown) => error instanceof GoPayClientError && error.code === 'timeout',
+  );
+
+  await assert.rejects(
+    () => requestGoPayCreatePayment(createPaymentInput, 'token', env, async (_url, init) => ({
+      ok: true,
+      status: 200,
+      json: async () => {
+        await new Promise((_resolve, reject) => init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError'))));
+      },
+    } as Response), { timeoutMs: 100 }),
     (error: unknown) => error instanceof GoPayClientError && error.code === 'timeout',
   );
 });

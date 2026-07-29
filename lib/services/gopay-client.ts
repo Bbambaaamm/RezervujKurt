@@ -33,6 +33,12 @@ export type GoPayAccessToken = {
   expiresInSeconds: number;
 };
 
+export type GoPayCreatedPayment = {
+  providerPaymentId: number;
+  gatewayUrl: string;
+  state: 'CREATED';
+};
+
 export type GoPayClientOptions = {
   timeoutMs?: number;
 };
@@ -197,6 +203,51 @@ function parseAccessTokenResponse(value: unknown): GoPayAccessToken | null {
   };
 }
 
+function requireAccessToken(value: string): string {
+  if (typeof value !== 'string'
+    || value.length === 0
+    || value.length > MAX_ACCESS_TOKEN_LENGTH
+    || /\s/.test(value)) {
+    throw new GoPayClientConfigurationError('GoPay access token není platný.');
+  }
+  return value;
+}
+
+function parseCreatedPaymentResponse(
+  value: unknown,
+  environment: GoPayEnvironment,
+): GoPayCreatedPayment | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
+
+  const response = value as Record<string, unknown>;
+  if (!Number.isSafeInteger(response.id) || (response.id as number) <= 0) return null;
+  if (response.state !== 'CREATED'
+    || typeof response.gw_url !== 'string'
+    || response.gw_url.length === 0
+    || response.gw_url !== response.gw_url.trim()
+    || /[\u0000-\u001f\u007f]/.test(response.gw_url)) return null;
+
+  let gatewayUrl: URL;
+  try {
+    gatewayUrl = new URL(response.gw_url);
+  } catch {
+    return null;
+  }
+
+  const expectedOrigin = new URL(GOPAY_ORIGINS[environment]);
+  if (gatewayUrl.protocol !== 'https:'
+    || gatewayUrl.origin !== expectedOrigin.origin
+    || gatewayUrl.username
+    || gatewayUrl.password
+    || gatewayUrl.hash) return null;
+
+  return {
+    providerPaymentId: response.id as number,
+    gatewayUrl: response.gw_url,
+    state: 'CREATED',
+  };
+}
+
 export async function requestGoPayAccessToken(
   env: GoPayClientEnvironment = process.env as GoPayClientEnvironment,
   fetchFn: typeof fetch = fetch,
@@ -246,6 +297,66 @@ export async function requestGoPayAccessToken(
       throw new GoPayClientError('Požadavek na GoPay token vypršel.', 'timeout');
     }
     throw new GoPayClientError('Požadavek na GoPay token selhal na síti.', 'network_error');
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
+ * Odešle izolovaný provider create požadavek. Funkce sama nemění databázový stav
+ * a nesmí být volána bez nadřazené idempotentní sagy a kompenzačního postupu.
+ */
+export async function requestGoPayCreatePayment(
+  input: GoPayCreatePaymentInput,
+  accessToken: string,
+  env: GoPayClientEnvironment = process.env as GoPayClientEnvironment,
+  fetchFn: typeof fetch = fetch,
+  options: GoPayClientOptions = {},
+): Promise<GoPayCreatedPayment> {
+  const environment = resolveGoPayEnvironment(env.PAYMENTS_GOPAY_ENV);
+  const token = requireAccessToken(accessToken);
+  const payload = buildGoPayCreatePaymentPayload(input, env);
+  const timeoutMs = resolveTimeoutMs(options.timeoutMs);
+  const abortController = new AbortController();
+  const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
+
+  try {
+    const response = await fetchFn(new URL('/api/payments/payment', GOPAY_ORIGINS[environment]), {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(payload),
+      cache: 'no-store',
+      signal: abortController.signal,
+    });
+
+    if (!response.ok) {
+      throw new GoPayClientError('GoPay odmítlo vytvoření platby.', 'upstream_error', response.status);
+    }
+
+    let body: unknown;
+    try {
+      body = await response.json() as unknown;
+    } catch (error) {
+      if (abortController.signal.aborted) throw error;
+      throw new GoPayClientError('GoPay vrátilo neplatnou odpověď create endpointu.', 'invalid_response', response.status);
+    }
+
+    const payment = parseCreatedPaymentResponse(body, environment);
+    if (!payment) {
+      throw new GoPayClientError('GoPay vrátilo neplatnou odpověď create endpointu.', 'invalid_response', response.status);
+    }
+
+    return payment;
+  } catch (error) {
+    if (error instanceof GoPayClientError) throw error;
+    if (abortController.signal.aborted) {
+      throw new GoPayClientError('Požadavek na vytvoření GoPay platby vypršel.', 'timeout');
+    }
+    throw new GoPayClientError('Požadavek na vytvoření GoPay platby selhal na síti.', 'network_error');
   } finally {
     clearTimeout(timeoutId);
   }
