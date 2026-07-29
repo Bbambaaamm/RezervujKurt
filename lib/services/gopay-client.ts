@@ -75,7 +75,7 @@ function parseAccessTokenResponse(value: unknown): GoPayAccessToken | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
 
   const response = value as Record<string, unknown>;
-  if (response.token_type !== 'Bearer') return null;
+  if (typeof response.token_type !== 'string' || response.token_type.toLowerCase() !== 'bearer') return null;
   if (typeof response.access_token !== 'string'
     || response.access_token.length === 0
     || response.access_token.length > MAX_ACCESS_TOKEN_LENGTH

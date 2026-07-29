@@ -87,9 +87,9 @@ test('GoPay OAuth validuje credentials a timeout před síťovým voláním', as
 test('GoPay OAuth odmítá neplatné úspěšné odpovědi bez propouštění payloadu', async () => {
   const invalidResponses = [
     {},
-    { token_type: 'bearer', access_token: 'token', expires_in: 60 },
     { token_type: 'Basic', access_token: 'token', expires_in: 60 },
     { token_type: 'MAC', access_token: 'token', expires_in: 60 },
+    { token_type: ' bearer ', access_token: 'token', expires_in: 60 },
     { token_type: '', access_token: 'token', expires_in: 60 },
     { token_type: null, access_token: 'token', expires_in: 60 },
     { token_type: 'Bearer', access_token: '', expires_in: 60 },
@@ -116,6 +116,18 @@ test('GoPay OAuth odmítá neplatné úspěšné odpovědi bez propouštění pa
       && error.httpStatus === 401
       && !error.message.includes('secret upstream body'),
   );
+});
+
+test('GoPay OAuth přijímá bearer token type bez ohledu na velikost písmen', async () => {
+  for (const tokenType of ['Bearer', 'bearer', 'BEARER', 'bEaReR']) {
+    const token = await requestGoPayAccessToken(sandboxEnv, async () => new Response(JSON.stringify({
+      token_type: tokenType,
+      access_token: 'case-sensitive-token',
+      expires_in: 60,
+    })));
+
+    assert.equal(token.accessToken, 'case-sensitive-token');
+  }
 });
 
 test('GoPay OAuth token zachová přesnou hodnotu provideru a přijme omezenou maximální expiraci', async () => {
