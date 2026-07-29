@@ -15,6 +15,14 @@ create unique index payments_payment_attempt_id_uq
   on public.payments (payment_attempt_id)
   where payment_attempt_id is not null;
 
+-- Původní nepodmíněný index blokoval nový checkout i po zrušení staré rezervace.
+-- Přesná unikátnost zůstává zachovaná pro všechny stavy, které skutečně blokují slot.
+drop index public.reservations_exact_slot_uq;
+
+create unique index reservations_exact_slot_uq
+  on public.reservations (court_id, reservation_date, time_from, time_to)
+  where status in ('waiting_for_payment', 'pending', 'approved');
+
 set local lock_timeout = '0';
 
 create function public.create_or_get_payment_attempt(

@@ -56,7 +56,7 @@ Očekávání: `anon_execute = false`, `authenticated_execute = false`, `service
 
 ## Transakční funkční matice
 
-Použijte existující testovací profil, aktivní kurt s nakonfigurovanou cenou a volný budoucí slot. Testovací UUID a slot nesmí kolidovat s jiným staging testem. Testy 1–9 provádějte v `begin; ... rollback;` a po každém kroku ověřte počet odpovídajících řádků v `reservations`, `payments` a `payment_audit_log`.
+Použijte existující testovací profil, aktivní kurt s nakonfigurovanou cenou a volný budoucí slot. Testovací UUID a slot nesmí kolidovat s jiným staging testem. Testy 1–10 provádějte v `begin; ... rollback;` a po každém kroku ověřte počet odpovídajících řádků v `reservations`, `payments` a `payment_audit_log`.
 
 1. Nové `paymentAttemptId` vytvoří právě jednu rezervaci, jednu platbu a jeden audit.
 2. Identický retry vrátí stejná ID, hodinovou cenu, částku, měnu a přesně stejné `expires_at`; počty řádků se nezmění.
@@ -67,6 +67,7 @@ Použijte existující testovací profil, aktivní kurt s nakonfigurovanou cenou
 7. Po změně ceníku identický retry vrátí původní cenu a částku.
 8. Při jiném `p_ttl_minutes` identický retry vrátí původní `expires_at`.
 9. Stavy `failed`, `cancelled` a `expired` skončí `payment_attempt_terminal`; stav `paid` idempotentně vrátí původní snapshot.
+10. Po zrušení rezervace terminálního pokusu lze se stejným slotem a novým `paymentAttemptId` vytvořit právě jeden nový pokus; původní zrušená rezervace zůstane v historii.
 
 Metadata mezi retry úmyslně neporovnávejte: jsou pouze diagnostická, při retry se nepřepisují a nesmí řídit bezpečnostní rozhodnutí.
 
@@ -78,4 +79,4 @@ Concurrency test neprovádějte pouze sekvenčním SQL skriptem v jedné session
 
 ## Evidence
 
-Do release záznamu uložte datum, staging project ref, SHA migrace, anonymizovaná testovací UUID, výsledky privilege dotazů, matici 1–9 a výsledek dvousession concurrency testu. Neukládejte service-role klíč ani jiné secrets.
+Do release záznamu uložte datum, staging project ref, SHA migrace, anonymizovaná testovací UUID, výsledky privilege dotazů, matici 1–10 a výsledek dvousession concurrency testu. Neukládejte service-role klíč ani jiné secrets.

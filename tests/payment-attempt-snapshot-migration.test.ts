@@ -15,6 +15,18 @@ test('platební pokus používá UUID sloupec s globální unikátností a cenov
   assert.match(migrationSql, /payment_attempt_id\s+is\s+not\s+null\s+and\s+price_per_hour_cents\s*>\s*0/i);
 });
 
+test('nový pokus může po zrušené rezervaci znovu použít uvolněný přesný slot', () => {
+  assert.match(migrationSql, /drop\s+index\s+public\.reservations_exact_slot_uq/i);
+  assert.match(
+    migrationSql,
+    /create\s+unique\s+index\s+reservations_exact_slot_uq[\s\S]+where\s+status\s+in\s*\('waiting_for_payment',\s*'pending',\s*'approved'\)/i,
+  );
+  assert.doesNotMatch(
+    migrationSql,
+    /create\s+unique\s+index\s+reservations_exact_slot_uq[\s\S]+where\s+status\s+in\s*\([^)]*'cancelled'/i,
+  );
+});
+
 test('lock timeout je omezený pouze na transakci migrace a po DDL se obnoví', () => {
   assert.match(migrationSql, /set\s+local\s+lock_timeout\s*=\s*'5s'/i);
   assert.match(migrationSql, /set\s+local\s+lock_timeout\s*=\s*'0'/i);
