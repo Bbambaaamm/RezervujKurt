@@ -356,7 +356,7 @@ export async function getRecentReservationsReadOnlyWithSession(accessToken: stri
 
   const safeLimit = Number.isFinite(limit) ? Math.min(Math.max(Math.trunc(limit), 1), 50) : 20;
   const reservationsEndpoint =
-    `reservations?select=id,reservation_date,time_from,time_to,created_at,status,note,court_id,user_id&order=created_at.desc&limit=${safeLimit}`;
+    `reservations?select=id,reservation_date,time_from,time_to,created_at,status,note,court_id,user_id&order=reservation_date.desc,time_from.desc&limit=${safeLimit}`;
   const loadedReservations = await getReservationsOverviewByEndpoint(reservationsEndpoint, accessToken);
 
   if (process.env.NODE_ENV === 'development') {

@@ -52,7 +52,7 @@ test('getPendingReservationsReadOnlyWithSession: endpoint má pending filtr, ord
   assert.equal(pendingRequestUrl.searchParams.has('user_id'), false);
 });
 
-test('getRecentReservationsReadOnlyWithSession: endpoint obsahuje ordering created_at desc, limit a bez user_id filtru', async () => {
+test('getRecentReservationsReadOnlyWithSession: endpoint řadí podle termínu stejně jako moje rezervace', async () => {
   ensureTestAliasBridge();
 
   const requestedUrls: string[] = [];
@@ -67,7 +67,7 @@ test('getRecentReservationsReadOnlyWithSession: endpoint obsahuje ordering creat
   assert.deepEqual(defaultResult, []);
 
   const defaultRequestUrl = new URL(requestedUrls[0]);
-  assert.equal(defaultRequestUrl.searchParams.get('order'), 'created_at.desc');
+  assert.equal(defaultRequestUrl.searchParams.get('order'), 'reservation_date.desc,time_from.desc');
   assert.equal(defaultRequestUrl.searchParams.get('limit'), '20');
   assert.equal(defaultRequestUrl.searchParams.has('user_id'), false);
 
