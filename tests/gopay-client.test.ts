@@ -2,16 +2,120 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  buildGoPayCreatePaymentPayload,
   GoPayClientConfigurationError,
   GoPayClientError,
   requestGoPayAccessToken,
 } from '../lib/services/gopay-client';
+
+const createPaymentInput = {
+  paymentId: '123e4567-e89b-42d3-a456-426614174000',
+  reservationId: '223e4567-e89b-42d3-a456-426614174001',
+  amountCents: 12_000,
+  currency: 'CZK' as const,
+};
+
+const createPaymentEnv = {
+  GOPAY_GOID: '1234567890',
+  PAYMENTS_PUBLIC_ORIGIN: 'https://rezervujkurt.cz',
+};
 
 const sandboxEnv = {
   PAYMENTS_GOPAY_ENV: 'sandbox',
   GOPAY_CLIENT_ID: 'sandbox-client',
   GOPAY_CLIENT_SECRET: 'sandbox-secret',
 };
+
+test('GoPay create payload obsahuje pouze serverový cenový snapshot a bezpečné reference', () => {
+  assert.deepEqual(buildGoPayCreatePaymentPayload(createPaymentInput, createPaymentEnv), {
+    amount: 12_000,
+    currency: 'CZK',
+    target: { type: 'ACCOUNT', goid: '1234567890' },
+    order_number: '123e4567-e89b-42d3-a456-426614174000',
+    order_description: 'Rezervace kurtu 223e4567-e89b-42d3-a456-426614174001',
+    items: [{ name: 'Rezervace kurtu', amount: 12_000, count: 1 }],
+    callback: {
+      return_url: 'https://rezervujkurt.cz/gopay/return',
+      notification_url: 'https://rezervujkurt.cz/api/payments/gopay/notification',
+    },
+    lang: 'CS',
+  });
+});
+
+test('GoPay create payload fail-closed odmítá neplatné identity, cenu, měnu a callback URL', () => {
+  const invalidInputs = [
+    { ...createPaymentInput, paymentId: 'payment-1' },
+    { ...createPaymentInput, reservationId: 'reservation-1' },
+    { ...createPaymentInput, reservationId: createPaymentInput.paymentId },
+    { ...createPaymentInput, amountCents: 0 },
+    { ...createPaymentInput, amountCents: 1.5 },
+    { ...createPaymentInput, amountCents: 100_000_000 },
+    { ...createPaymentInput, currency: 'EUR' as 'CZK' },
+  ];
+
+  for (const input of invalidInputs) {
+    assert.throws(() => buildGoPayCreatePaymentPayload(input, createPaymentEnv), GoPayClientConfigurationError);
+  }
+});
+
+test('GoPay create payload odvozuje pevné callback cesty pouze z důvěryhodného čistého originu', () => {
+  const payload = buildGoPayCreatePaymentPayload(createPaymentInput, {
+    ...createPaymentEnv,
+    PAYMENTS_PUBLIC_ORIGIN: 'http://localhost:3000',
+  });
+
+  assert.equal(payload.callback.return_url, 'http://localhost:3000/gopay/return');
+  assert.equal(payload.callback.notification_url, 'http://localhost:3000/api/payments/gopay/notification');
+
+  for (const publicOrigin of [
+    undefined,
+    'http://attacker.example',
+    'https://user:secret@example.com',
+    'https://example.com/path',
+    'https://example.com?payment=secret',
+    'https://example.com#secret',
+  ]) {
+    assert.throws(
+      () => buildGoPayCreatePaymentPayload(createPaymentInput, { ...createPaymentEnv, PAYMENTS_PUBLIC_ORIGIN: publicOrigin }),
+      GoPayClientConfigurationError,
+    );
+  }
+});
+
+test('GoPay create payload načítá GoID pouze ze serverové konfigurace', () => {
+  for (const goId of [undefined, '', 'merchant', '-1', '1'.repeat(33)]) {
+    assert.throws(
+      () => buildGoPayCreatePaymentPayload(createPaymentInput, { ...createPaymentEnv, GOPAY_GOID: goId }),
+      GoPayClientConfigurationError,
+    );
+  }
+});
+
+test('GoPay create payload zachová GoID jako číselný řetězec bez převodu přes JavaScript number', () => {
+  const goIdBeyondSafeInteger = '00123456789012345678901234567890';
+  const payload = buildGoPayCreatePaymentPayload(createPaymentInput, {
+    ...createPaymentEnv,
+    GOPAY_GOID: goIdBeyondSafeInteger,
+  });
+
+  assert.equal(payload.target.goid, goIdBeyondSafeInteger);
+  assert.equal(typeof payload.target.goid, 'string');
+});
+
+test('GoPay create payload je stabilní, nemění vstup a nepropouští neočekávaná pole', () => {
+  const input = Object.freeze({ ...createPaymentInput, clientPrice: 1, goid: 'attacker' });
+  const first = buildGoPayCreatePaymentPayload(input, createPaymentEnv);
+  const second = buildGoPayCreatePaymentPayload(input, createPaymentEnv);
+
+  assert.deepEqual(second, first);
+  assert.deepEqual(input, { ...createPaymentInput, clientPrice: 1, goid: 'attacker' });
+  assert.deepEqual(Object.keys(first).sort(), [
+    'amount', 'callback', 'currency', 'items', 'lang', 'order_description', 'order_number', 'target',
+  ]);
+  assert.equal(first.order_number, createPaymentInput.paymentId);
+  assert.match(first.order_description, new RegExp(createPaymentInput.reservationId));
+  assert.equal(JSON.stringify(first).includes('attacker'), false);
+});
 
 test('GoPay OAuth používá přesný formulářový kontrakt bez credentials v URL nebo těle', async () => {
   const calls: Array<{
