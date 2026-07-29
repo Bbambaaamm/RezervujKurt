@@ -57,6 +57,7 @@ const MAX_ACCESS_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_PAYMENT_AMOUNT_CENTS = 99_999_999;
 const MAX_CALLBACK_URL_LENGTH = 2_048;
+const MAX_GATEWAY_URL_LENGTH = 2_048;
 const MAX_GOID_LENGTH = 32;
 const GOPAY_RETURN_PATH = '/gopay/return';
 const GOPAY_NOTIFICATION_PATH = '/api/payments/gopay/notification';
@@ -224,6 +225,7 @@ function parseCreatedPaymentResponse(
   if (response.state !== 'CREATED'
     || typeof response.gw_url !== 'string'
     || response.gw_url.length === 0
+    || response.gw_url.length > MAX_GATEWAY_URL_LENGTH
     || response.gw_url !== response.gw_url.trim()
     || /[\u0000-\u001f\u007f]/.test(response.gw_url)) return null;
 
@@ -237,6 +239,7 @@ function parseCreatedPaymentResponse(
   const expectedOrigin = new URL(GOPAY_ORIGINS[environment]);
   if (gatewayUrl.protocol !== 'https:'
     || gatewayUrl.origin !== expectedOrigin.origin
+    || !gatewayUrl.pathname.startsWith('/gw/')
     || gatewayUrl.username
     || gatewayUrl.password
     || gatewayUrl.hash) return null;

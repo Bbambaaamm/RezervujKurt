@@ -351,6 +351,30 @@ test('GoPay create povolí explicitní standardní HTTPS port 443, ale odmítne 
   );
 });
 
+test('GoPay create předá pouze omezenou checkout URL na očekávané gateway cestě', async () => {
+  const env = { ...createPaymentEnv, PAYMENTS_GOPAY_ENV: 'sandbox' };
+  const invalidGatewayUrls = [
+    'https://gw.sandbox.gopay.com/api/payments/payment/42',
+    'https://gw.sandbox.gopay.com/',
+    'https://gw.sandbox.gopay.com/gw/../api/payments',
+    'https://gw.sandbox.gopay.com/gw/%2e%2e/api/payments',
+    'https://gw.sandbox.gopay.com/gw%2Fv3/token',
+    `https://gw.sandbox.gopay.com/gw/${'x'.repeat(2_048)}`,
+  ];
+
+  for (const gatewayUrl of invalidGatewayUrls) {
+    await assert.rejects(
+      () => requestGoPayCreatePayment(
+        createPaymentInput,
+        'token',
+        env,
+        async () => new Response(JSON.stringify({ id: 42, state: 'CREATED', gw_url: gatewayUrl })),
+      ),
+      (error: unknown) => error instanceof GoPayClientError && error.code === 'invalid_response',
+    );
+  }
+});
+
 test('GoPay create požadavek odmítá neplatný token a odpověď před předáním redirectu', async () => {
   let calls = 0;
   for (const token of ['', 'token with whitespace', 'x'.repeat(4_097)]) {
