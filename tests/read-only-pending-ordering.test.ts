@@ -52,7 +52,7 @@ test('getPendingReservationsReadOnlyWithSession: endpoint má pending filtr, ord
   assert.equal(pendingRequestUrl.searchParams.has('user_id'), false);
 });
 
-test('getRecentReservationsReadOnlyWithSession: endpoint obsahuje ordering created_at desc, limit a bez user_id filtru', async () => {
+test('getAdminReservationsReadOnlyWithSession: endpoint řadí podle termínu a neomezuje data před rozdělením', async () => {
   ensureTestAliasBridge();
 
   const requestedUrls: string[] = [];
@@ -61,53 +61,15 @@ test('getRecentReservationsReadOnlyWithSession: endpoint obsahuje ordering creat
     return createJsonResponse('[]');
   };
 
-  const { getRecentReservationsReadOnlyWithSession } = await import('../lib/services/read-only');
+  const { getAdminReservationsReadOnlyWithSession } = await import('../lib/services/read-only');
 
-  const defaultResult = await getRecentReservationsReadOnlyWithSession('access-token');
+  const defaultResult = await getAdminReservationsReadOnlyWithSession('access-token');
   assert.deepEqual(defaultResult, []);
 
   const defaultRequestUrl = new URL(requestedUrls[0]);
-  assert.equal(defaultRequestUrl.searchParams.get('order'), 'created_at.desc');
-  assert.equal(defaultRequestUrl.searchParams.get('limit'), '20');
+  assert.equal(defaultRequestUrl.searchParams.get('order'), 'reservation_date.desc,time_from.desc');
+  assert.equal(defaultRequestUrl.searchParams.has('limit'), false);
   assert.equal(defaultRequestUrl.searchParams.has('user_id'), false);
-
-  requestedUrls.length = 0;
-
-  const clampedResult = await getRecentReservationsReadOnlyWithSession('access-token', 999);
-  assert.deepEqual(clampedResult, []);
-
-  const clampedRequestUrl = new URL(requestedUrls[0]);
-  assert.equal(clampedRequestUrl.searchParams.get('limit'), '50');
-});
-
-test('getRecentReservationsReadOnlyWithSession: endpoint validuje nevalidní a hraniční limity', async () => {
-  ensureTestAliasBridge();
-
-  const requestedUrls: string[] = [];
-  globalThis.fetch = async (input: RequestInfo | URL) => {
-    requestedUrls.push(String(input));
-    return createJsonResponse('[]');
-  };
-
-  const { getRecentReservationsReadOnlyWithSession } = await import('../lib/services/read-only');
-
-  const cases: Array<{ input: number; expectedLimit: string }> = [
-    { input: Number.NaN, expectedLimit: '20' },
-    { input: Number.POSITIVE_INFINITY, expectedLimit: '20' },
-    { input: 0, expectedLimit: '1' },
-    { input: -5, expectedLimit: '1' },
-  ];
-
-  for (const { input, expectedLimit } of cases) {
-    requestedUrls.length = 0;
-
-    const result = await getRecentReservationsReadOnlyWithSession('access-token', input);
-    assert.deepEqual(result, []);
-    assert.equal(requestedUrls.length, 1);
-
-    const requestUrl = new URL(requestedUrls[0]);
-    assert.equal(requestUrl.searchParams.get('limit'), expectedLimit);
-  }
 });
 
 test('getPendingReservationsReadOnlyWithSession: mapper nezahodí rezervaci bez profilu a použije fallback Uživatel', async () => {

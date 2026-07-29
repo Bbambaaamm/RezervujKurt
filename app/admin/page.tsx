@@ -5,7 +5,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 
 import {
   getPendingReservationsReadOnlyWithSession,
-  getRecentReservationsReadOnlyWithSession,
+  getAdminReservationsReadOnlyWithSession,
   type ReservationOverview,
 } from '@/lib/services/read-only';
 import { ReservationNoLongerPendingError, ReservationUnauthorizedError, ReservationValidationError } from '@/lib/services/supabase-error-mapping';
@@ -15,7 +15,7 @@ import { updateReservationStatus } from '@/lib/services/reservations';
 import { createTournament, deleteTournament, getAdminTournaments, updateTournament, type Tournament, type TournamentFormInput } from '@/lib/tournaments';
 import { supabaseAuthClient } from '@/lib/supabase/auth-client';
 import { SupabaseRequestError } from '@/lib/supabase/client';
-import { isMyReservationCancelable } from '@/lib/services/my-reservations';
+import { isMyReservationCancelable, isMyReservationUpcoming } from '@/lib/services/my-reservations';
 import {
   getAriaBusy,
   getAriaDisabled,
@@ -61,7 +61,6 @@ function formatReservationNote(note: string | null) {
   return note?.trim() || '—';
 }
 
-const recentReservationsLimit = 50;
 const adminListScrollClassName = 'max-h-[34rem] overflow-y-auto pr-1';
 
 const emptyTournamentForm: TournamentFormInput = {
@@ -97,7 +96,7 @@ export default function AdminPage() {
   const [isActionLoadingById, setIsActionLoadingById] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [reservations, setReservations] = useState<ReservationOverview[]>([]);
-  const [recentReservations, setRecentReservations] = useState<ReservationOverview[]>([]);
+  const [adminReservations, setAdminReservations] = useState<ReservationOverview[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [tournamentForm, setTournamentForm] = useState<TournamentFormInput>(emptyTournamentForm);
   const [editedTournamentId, setEditedTournamentId] = useState<string | null>(null);
@@ -163,9 +162,9 @@ export default function AdminPage() {
           throw new ReservationUnauthorizedError('Pro zobrazení administrace je potřeba přihlášení.');
         }
 
-        const [pendingResult, recentResult, tournamentsResult] = await Promise.allSettled([
+        const [pendingResult, adminReservationsResult, tournamentsResult] = await Promise.allSettled([
           getPendingReservationsReadOnlyWithSession(accessToken),
-          getRecentReservationsReadOnlyWithSession(accessToken, recentReservationsLimit),
+          getAdminReservationsReadOnlyWithSession(accessToken),
           getAdminTournaments(accessToken),
         ]);
         if (!active) return;
@@ -174,12 +173,12 @@ export default function AdminPage() {
           throw pendingResult.reason;
         }
 
-        if (recentResult.status === 'rejected') {
-          throw recentResult.reason;
+        if (adminReservationsResult.status === 'rejected') {
+          throw adminReservationsResult.reason;
         }
 
         setReservations(pendingResult.value);
-        setRecentReservations(recentResult.value);
+        setAdminReservations(adminReservationsResult.value);
 
         if (tournamentsResult.status === 'fulfilled') {
           setTournaments(tournamentsResult.value);
@@ -300,7 +299,7 @@ export default function AdminPage() {
     console.info(startedMessage, { reservationId });
 
     if (action === 'cancel') {
-      const currentReservation = [...reservations, ...recentReservations].find((reservation) => reservation.id === reservationId);
+      const currentReservation = [...reservations, ...adminReservations].find((reservation) => reservation.id === reservationId);
 
       if (currentReservation && !canAdminCancelReservation(currentReservation)) {
         setError('Proběhlou rezervaci už není potřeba rušit.');
@@ -327,12 +326,12 @@ export default function AdminPage() {
         fromStatuses: options?.fromStatuses,
       });
 
-      const [loadedReservations, loadedRecentReservations] = await Promise.all([
+      const [loadedReservations, loadedAdminReservations] = await Promise.all([
         getPendingReservationsReadOnlyWithSession(accessToken),
-        getRecentReservationsReadOnlyWithSession(accessToken, recentReservationsLimit),
+        getAdminReservationsReadOnlyWithSession(accessToken),
       ]);
       setReservations(loadedReservations);
-      setRecentReservations(loadedRecentReservations);
+      setAdminReservations(loadedAdminReservations);
       console.info(successMessage, { reservationId });
     } catch (actionError) {
       console.error('admin action failed', {
@@ -356,12 +355,12 @@ export default function AdminPage() {
           return;
         }
 
-        const [loadedReservations, loadedRecentReservations] = await Promise.all([
+        const [loadedReservations, loadedAdminReservations] = await Promise.all([
           getPendingReservationsReadOnlyWithSession(staleRecovery.token),
-          getRecentReservationsReadOnlyWithSession(staleRecovery.token, recentReservationsLimit),
+          getAdminReservationsReadOnlyWithSession(staleRecovery.token),
         ]);
         setReservations(loadedReservations);
-        setRecentReservations(loadedRecentReservations);
+        setAdminReservations(loadedAdminReservations);
         console.info('admin stale pending refresh', { reservationId, count: loadedReservations.length });
       } else if (actionError instanceof ReservationValidationError) {
         setError('Rezervaci se nepodařilo změnit. Zkontrolujte prosím její aktuální stav.');
@@ -380,6 +379,8 @@ export default function AdminPage() {
   }
 
   const guardState = resolveAdminGuardState(userRole);
+  const upcomingReservations = adminReservations.filter((reservation) => isMyReservationUpcoming(reservation));
+  const reservationHistory = adminReservations.filter((reservation) => !isMyReservationUpcoming(reservation));
 
   if (guardState === 'unauthorized') {
     return (
@@ -595,13 +596,16 @@ export default function AdminPage() {
 
       {!isLoading && !error ? (
         <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
-          <h2 className="text-lg font-semibold text-slate-900">Poslední rezervace</h2>
-          {recentReservations.length === 0 ? (
-            <p className="text-sm text-slate-600">Historie rezervací je prázdná.</p>
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Nadcházející rezervace</h2>
+            <p className="text-sm text-slate-600">Schválené a čekající rezervace, které teprve proběhnou.</p>
+          </div>
+          {upcomingReservations.length === 0 ? (
+            <p className="text-sm text-slate-600">Žádné nadcházející rezervace.</p>
           ) : (
             <>
             <div className={`${adminListScrollClassName} divide-y divide-slate-100 lg:hidden`}>
-              {recentReservations.map((reservation) => (
+              {upcomingReservations.map((reservation) => (
                 <article key={`mobile-recent-${reservation.id}`} className="space-y-3 py-4 first:pt-1 last:pb-1">
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -661,7 +665,7 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {recentReservations.map((reservation) => {
+                  {upcomingReservations.map((reservation) => {
                     if (process.env.NODE_ENV === 'development') {
                       console.info('admin reservation history timestamp rendered', { reservationId: reservation.id });
                     }
@@ -699,6 +703,89 @@ export default function AdminPage() {
                 </tbody>
               </table>
             </div>
+            </>
+          )}
+        </section>
+      ) : null}
+
+      {!isLoading && !error ? (
+        <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Historie rezervací</h2>
+            <p className="text-sm text-slate-600">Uplynulé nebo zrušené rezervace pro rychlou kontrolu zpětně.</p>
+          </div>
+          {reservationHistory.length === 0 ? (
+            <p className="text-sm text-slate-600">Historie rezervací je prázdná.</p>
+          ) : (
+            <>
+              <div className={`${adminListScrollClassName} divide-y divide-slate-100 lg:hidden`}>
+                {reservationHistory.map((reservation) => (
+                  <article key={`mobile-history-${reservation.id}`} className="space-y-3 py-4 first:pt-1 last:pb-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-slate-900">{formatDate(reservation.reservationDate)}</p>
+                        <p className="text-sm text-slate-600">{reservation.timeFrom}–{reservation.timeTo}</p>
+                      </div>
+                      <span className={`inline-flex shrink-0 rounded-full border px-2 py-1 text-xs font-medium ${getStatusBadgeClass(reservation.status)}`}>
+                        {getReservationStatusLabel(reservation.status)}
+                      </span>
+                    </div>
+                    <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                      <div>
+                        <dt className="text-slate-500">Kurt</dt>
+                        <dd className="mt-0.5 min-w-0 break-words font-medium text-slate-900">{reservation.courtName}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-slate-500">Vytvořeno</dt>
+                        <dd className="mt-0.5 text-slate-900">{formatCreatedAt(reservation.createdAt)}</dd>
+                      </div>
+                      <div className="col-span-2 min-w-0">
+                        <dt className="text-slate-500">Uživatel</dt>
+                        <dd className="mt-0.5 break-words text-slate-900">{getReservationUserLabel(reservation)} · {getReservationUserRoleLabel(reservation)}</dd>
+                      </div>
+                      <div className="col-span-2 min-w-0">
+                        <dt className="text-slate-500">Poznámka</dt>
+                        <dd className="mt-0.5 break-words text-slate-900">{formatReservationNote(reservation.note)}</dd>
+                      </div>
+                    </dl>
+                  </article>
+                ))}
+              </div>
+
+              <div className="hidden max-h-[32rem] overflow-auto lg:block">
+                <table className="min-w-full text-sm">
+                  <thead className="sticky top-0 z-10 bg-slate-50 text-left text-slate-600">
+                    <tr>
+                      <th className="px-4 py-3 font-medium">Datum</th>
+                      <th className="px-4 py-3 font-medium">Čas od</th>
+                      <th className="px-4 py-3 font-medium">Čas do</th>
+                      <th className="px-4 py-3 font-medium">Vytvořeno</th>
+                      <th className="px-4 py-3 font-medium">Kurt</th>
+                      <th className="px-4 py-3 font-medium">Uživatel</th>
+                      <th className="px-4 py-3 font-medium">Poznámka</th>
+                      <th className="px-4 py-3 font-medium">Stav</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reservationHistory.map((reservation) => (
+                      <tr key={`history-${reservation.id}`} className="border-t border-slate-100">
+                        <td className="px-4 py-3">{formatDate(reservation.reservationDate)}</td>
+                        <td className="px-4 py-3">{reservation.timeFrom}</td>
+                        <td className="px-4 py-3">{reservation.timeTo}</td>
+                        <td className="px-4 py-3">{formatCreatedAt(reservation.createdAt)}</td>
+                        <td className="px-4 py-3">{reservation.courtName}</td>
+                        <td className="px-4 py-3">{getReservationUserLabel(reservation)} · {getReservationUserRoleLabel(reservation)}</td>
+                        <td className="max-w-[18rem] px-4 py-3"><span className="block truncate" title={formatReservationNote(reservation.note)}>{formatReservationNote(reservation.note)}</span></td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-medium ${getStatusBadgeClass(reservation.status)}`}>
+                            {getReservationStatusLabel(reservation.status)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </>
           )}
         </section>
