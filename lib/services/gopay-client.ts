@@ -6,6 +6,26 @@ export type GoPayClientEnvironment = {
   PAYMENTS_GOPAY_ENV?: string;
   GOPAY_CLIENT_ID?: string;
   GOPAY_CLIENT_SECRET?: string;
+  GOPAY_GOID?: string;
+  PAYMENTS_PUBLIC_ORIGIN?: string;
+};
+
+export type GoPayCreatePaymentInput = {
+  paymentId: string;
+  reservationId: string;
+  amountCents: number;
+  currency: 'CZK';
+};
+
+export type GoPayCreatePaymentPayload = {
+  amount: number;
+  currency: 'CZK';
+  target: { type: 'ACCOUNT'; goid: string };
+  order_number: string;
+  order_description: string;
+  items: Array<{ name: string; amount: number; count: 1 }>;
+  callback: { return_url: string; notification_url: string };
+  lang: 'CS';
 };
 
 export type GoPayAccessToken = {
@@ -28,6 +48,12 @@ const MIN_TIMEOUT_MS = 100;
 const MAX_TIMEOUT_MS = 30_000;
 const MAX_ACCESS_TOKEN_LENGTH = 4_096;
 const MAX_ACCESS_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const MAX_PAYMENT_AMOUNT_CENTS = 99_999_999;
+const MAX_CALLBACK_URL_LENGTH = 2_048;
+const MAX_GOID_LENGTH = 32;
+const GOPAY_RETURN_PATH = '/gopay/return';
+const GOPAY_NOTIFICATION_PATH = '/api/payments/gopay/notification';
 
 export class GoPayClientConfigurationError extends Error {
   constructor(message: string) {
@@ -69,6 +95,87 @@ function resolveTimeoutMs(value: number | undefined): number {
     throw new GoPayClientConfigurationError('GoPay timeout musí být celé číslo v rozsahu 100 až 30000 ms.');
   }
   return value;
+}
+
+function normalizePaymentUuid(name: string, value: string): string {
+  if (typeof value !== 'string' || !UUID_PATTERN.test(value)) {
+    throw new GoPayClientConfigurationError(`${name} pro GoPay platbu není platné UUID.`);
+  }
+  return value.toLowerCase();
+}
+
+function normalizePublicOrigin(value: string | undefined): URL {
+  const publicOrigin = value?.trim();
+  if (!publicOrigin || publicOrigin.length > MAX_CALLBACK_URL_LENGTH) {
+    throw new GoPayClientConfigurationError('Veřejný origin platebních callbacků není platný.');
+  }
+
+  let url: URL;
+  try {
+    url = new URL(publicOrigin);
+  } catch {
+    throw new GoPayClientConfigurationError('Veřejný origin platebních callbacků není platný.');
+  }
+
+  const isLocalHttp = url.protocol === 'http:' && (url.hostname === 'localhost' || url.hostname === '127.0.0.1');
+  if ((url.protocol !== 'https:' && !isLocalHttp)
+    || url.username
+    || url.password
+    || url.pathname !== '/'
+    || url.search
+    || url.hash) {
+    throw new GoPayClientConfigurationError('Veřejný origin platebních callbacků není bezpečný čistý origin.');
+  }
+  return url;
+}
+
+function normalizeGoId(value: string | undefined): string {
+  const goId = value?.trim();
+  if (!goId || goId.length > MAX_GOID_LENGTH || !/^\d+$/.test(goId)) {
+    throw new GoPayClientConfigurationError('GoPay GoID není platně nakonfigurované.');
+  }
+  return goId;
+}
+
+/**
+ * Sestaví pouze minimální, serverově odvozený payload. Kontaktní údaje plátce se
+ * záměrně neposílají, dokud pro ně nebude schválený produktový a GDPR kontrakt.
+ */
+export function buildGoPayCreatePaymentPayload(
+  input: GoPayCreatePaymentInput,
+  env: GoPayClientEnvironment = process.env as GoPayClientEnvironment,
+): GoPayCreatePaymentPayload {
+  const paymentId = normalizePaymentUuid('Interní payment ID', input.paymentId);
+  const reservationId = normalizePaymentUuid('Interní reservation ID', input.reservationId);
+  if (paymentId === reservationId) {
+    throw new GoPayClientConfigurationError('Interní payment ID a reservation ID musí být odlišné.');
+  }
+
+  if (!Number.isSafeInteger(input.amountCents)
+    || input.amountCents <= 0
+    || input.amountCents > MAX_PAYMENT_AMOUNT_CENTS) {
+    throw new GoPayClientConfigurationError('Částka GoPay platby není platná.');
+  }
+  if (input.currency !== 'CZK') {
+    throw new GoPayClientConfigurationError('Měna GoPay platby musí být CZK.');
+  }
+
+  const publicOrigin = normalizePublicOrigin(env.PAYMENTS_PUBLIC_ORIGIN);
+  const goId = normalizeGoId(env.GOPAY_GOID);
+
+  return {
+    amount: input.amountCents,
+    currency: 'CZK',
+    target: { type: 'ACCOUNT', goid: goId },
+    order_number: paymentId,
+    order_description: `Rezervace kurtu ${reservationId}`,
+    items: [{ name: 'Rezervace kurtu', amount: input.amountCents, count: 1 }],
+    callback: {
+      return_url: new URL(GOPAY_RETURN_PATH, publicOrigin).toString(),
+      notification_url: new URL(GOPAY_NOTIFICATION_PATH, publicOrigin).toString(),
+    },
+    lang: 'CS',
+  };
 }
 
 function parseAccessTokenResponse(value: unknown): GoPayAccessToken | null {
