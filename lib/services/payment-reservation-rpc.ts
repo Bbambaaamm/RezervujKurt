@@ -24,6 +24,28 @@ export type CreatedPaymentReservation = {
   paymentId: string;
 };
 
+export type CreateOrGetPaymentAttemptInput = {
+  paymentAttemptId: string;
+  userId: string;
+  courtId: number;
+  reservationDate: string;
+  timeFrom: string;
+  timeTo: string;
+  note?: string | null;
+  ttlMinutes: number;
+  metadata?: Record<string, unknown>;
+};
+
+export type PaymentAttemptSnapshot = {
+  reservationId: string;
+  paymentId: string;
+  attemptCreated: boolean;
+  pricePerHourCents: number;
+  amountCents: number;
+  currency: 'CZK';
+  expiresAt: Date;
+};
+
 export type PaymentReservationRpcEnvironment = {
   NEXT_PUBLIC_SUPABASE_URL?: string;
   SUPABASE_SERVICE_ROLE_KEY?: string;
@@ -36,10 +58,21 @@ export type PaymentReservationRpcOptions = {
 export type PaymentReservationRpcErrorCode = 'timeout' | 'network_error' | 'http_error' | 'invalid_response';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const ISO_TIMESTAMP_WITH_TIMEZONE_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 const DEFAULT_TIMEOUT_MS = 5_000;
 const MIN_TIMEOUT_MS = 100;
 const MAX_TIMEOUT_MS = 30_000;
 const MAX_METADATA_BYTES = 8_192;
+
+function isValidIsoTimestampWithTimezone(value: unknown): value is string {
+  if (typeof value !== 'string' || !ISO_TIMESTAMP_WITH_TIMEZONE_PATTERN.test(value)) return false;
+
+  const calendarPart = value.slice(0, 19);
+  const calendarDate = new Date(`${calendarPart}Z`);
+  return Number.isFinite(calendarDate.getTime())
+    && calendarDate.toISOString().slice(0, 19) === calendarPart
+    && Number.isFinite(Date.parse(value));
+}
 
 export class PaymentReservationRpcValidationError extends Error {
   constructor(message: string) {
@@ -153,6 +186,119 @@ function isCreatedPaymentReservationRow(value: unknown): value is { reservation_
     && Object.hasOwn(value, 'payment_id')
     && typeof (value as Record<string, unknown>).reservation_id === 'string'
     && typeof (value as Record<string, unknown>).payment_id === 'string';
+}
+
+function isPaymentAttemptSnapshotRow(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+
+  const row = value as Record<string, unknown>;
+  return Object.hasOwn(row, 'reservation_id')
+    && typeof row.reservation_id === 'string'
+    && UUID_PATTERN.test(row.reservation_id)
+    && Object.hasOwn(row, 'payment_id')
+    && typeof row.payment_id === 'string'
+    && UUID_PATTERN.test(row.payment_id)
+    && Object.hasOwn(row, 'attempt_created')
+    && typeof row.attempt_created === 'boolean'
+    && Object.hasOwn(row, 'price_per_hour_cents')
+    && Number.isSafeInteger(row.price_per_hour_cents)
+    && (row.price_per_hour_cents as number) > 0
+    && Object.hasOwn(row, 'amount_cents')
+    && Number.isSafeInteger(row.amount_cents)
+    && (row.amount_cents as number) > 0
+    && Object.hasOwn(row, 'currency')
+    && row.currency === 'CZK'
+    && Object.hasOwn(row, 'expires_at')
+    && isValidIsoTimestampWithTimezone(row.expires_at);
+}
+
+export async function createOrGetPaymentAttempt(
+  input: CreateOrGetPaymentAttemptInput,
+  env: PaymentReservationRpcEnvironment = process.env as PaymentReservationRpcEnvironment,
+  fetchFn: typeof fetch = fetch,
+  options: PaymentReservationRpcOptions = {},
+): Promise<PaymentAttemptSnapshot> {
+  if (!UUID_PATTERN.test(input.paymentAttemptId)) {
+    throw new PaymentReservationRpcValidationError('paymentAttemptId není platné UUID.');
+  }
+  if (!UUID_PATTERN.test(input.userId)) throw new PaymentReservationRpcValidationError('userId není platné UUID.');
+  if (!Number.isSafeInteger(input.ttlMinutes) || input.ttlMinutes < 1 || input.ttlMinutes > 1440) {
+    throw new PaymentReservationRpcValidationError('ttlMinutes musí být celé číslo v rozsahu 1 až 1440.');
+  }
+
+  let slot;
+  try {
+    slot = normalizeReservationPaymentSlotInput(input);
+  } catch (error) {
+    throw new PaymentReservationRpcValidationError(error instanceof Error ? error.message : 'Slot rezervace není platný.');
+  }
+
+  const payload = {
+    p_payment_attempt_id: input.paymentAttemptId.toLowerCase(),
+    p_user_id: input.userId.toLowerCase(),
+    p_court_id: slot.courtId,
+    p_reservation_date: slot.reservationDate,
+    p_time_from: slot.timeFrom,
+    p_time_to: slot.timeTo,
+    p_note: normalizeNote(input.note),
+    p_ttl_minutes: input.ttlMinutes,
+    p_metadata: normalizeMetadata(input.metadata),
+  };
+  const timeoutMs = resolveTimeoutMs(options.timeoutMs);
+  const supabaseUrl = normalizeSupabaseUrl(env.NEXT_PUBLIC_SUPABASE_URL);
+  const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!serviceRoleKey) throw new PaymentReservationRpcConfigurationError('Chybí service-role klíč pro založení platebního pokusu.');
+
+  const abortController = new AbortController();
+  const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
+  try {
+    const response = await fetchFn(new URL('/rest/v1/rpc/create_or_get_payment_attempt', supabaseUrl), {
+      method: 'POST',
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      cache: 'no-store',
+      signal: abortController.signal,
+    });
+
+    if (!response.ok) {
+      throw new PaymentReservationRpcError('Založení platebního pokusu selhalo.', 'http_error', response.status, readSafePostgresCode(await response.text()));
+    }
+
+    let rows: unknown;
+    try {
+      rows = await response.json() as unknown;
+    } catch (error) {
+      if (abortController.signal.aborted) throw error;
+      throw new PaymentReservationRpcError('Založení platebního pokusu vrátilo neplatnou odpověď.', 'invalid_response', response.status);
+    }
+
+    const row = Array.isArray(rows) && rows.length === 1 ? rows[0] : null;
+    if (!isPaymentAttemptSnapshotRow(row)) {
+      throw new PaymentReservationRpcError('Založení platebního pokusu vrátilo neplatnou odpověď.', 'invalid_response', response.status);
+    }
+
+    return {
+      reservationId: row.reservation_id as string,
+      paymentId: row.payment_id as string,
+      attemptCreated: row.attempt_created as boolean,
+      pricePerHourCents: row.price_per_hour_cents as number,
+      amountCents: row.amount_cents as number,
+      currency: 'CZK',
+      expiresAt: new Date(row.expires_at as string),
+    };
+  } catch (error) {
+    if (error instanceof PaymentReservationRpcError) throw error;
+    if (abortController.signal.aborted) {
+      throw new PaymentReservationRpcError('Založení platebního pokusu vypršelo na timeout.', 'timeout');
+    }
+    throw new PaymentReservationRpcError('Založení platebního pokusu selhalo na transportní chybě.', 'network_error');
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 export async function createPaymentReservation(
