@@ -58,6 +58,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 const MAX_PAYMENT_AMOUNT_CENTS = 99_999_999;
 const MAX_CALLBACK_URL_LENGTH = 2_048;
 const MAX_GATEWAY_URL_LENGTH = 2_048;
+const MAX_GOPAY_RESPONSE_BYTES = 64 * 1_024;
 const MAX_GOID_LENGTH = 32;
 const GOPAY_RETURN_PATH = '/gopay/return';
 const GOPAY_NOTIFICATION_PATH = '/api/payments/gopay/notification';
@@ -214,6 +215,47 @@ function requireAccessToken(value: string): string {
   return value;
 }
 
+async function readBoundedJsonResponse(response: Response): Promise<unknown> {
+  const declaredLength = response.headers.get('content-length');
+  if (declaredLength !== null) {
+    const contentLength = Number(declaredLength);
+    if (!Number.isSafeInteger(contentLength) || contentLength < 0 || contentLength > MAX_GOPAY_RESPONSE_BYTES) {
+      throw new Error('GoPay odpověď překročila povolenou velikost.');
+    }
+  }
+
+  if (!response.body) throw new Error('GoPay odpověď nemá tělo.');
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let receivedBytes = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      receivedBytes += value.byteLength;
+      if (receivedBytes > MAX_GOPAY_RESPONSE_BYTES) {
+        await reader.cancel();
+        throw new Error('GoPay odpověď překročila povolenou velikost.');
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const body = new Uint8Array(receivedBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(body)) as unknown;
+}
+
 function parseCreatedPaymentResponse(
   value: unknown,
   environment: GoPayEnvironment,
@@ -282,7 +324,7 @@ export async function requestGoPayAccessToken(
 
     let body: unknown;
     try {
-      body = await response.json() as unknown;
+      body = await readBoundedJsonResponse(response);
     } catch (error) {
       if (abortController.signal.aborted) throw error;
       throw new GoPayClientError('GoPay vrátilo neplatnou odpověď token endpointu.', 'invalid_response', response.status);
@@ -342,7 +384,7 @@ export async function requestGoPayCreatePayment(
 
     let body: unknown;
     try {
-      body = await response.json() as unknown;
+      body = await readBoundedJsonResponse(response);
     } catch (error) {
       if (abortController.signal.aborted) throw error;
       throw new GoPayClientError('GoPay vrátilo neplatnou odpověď create endpointu.', 'invalid_response', response.status);

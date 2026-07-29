@@ -27,6 +27,17 @@ const sandboxEnv = {
   GOPAY_CLIENT_SECRET: 'sandbox-secret',
 };
 
+function buildExactSizeOAuthBody(sizeBytes: number) {
+  const baseBody = JSON.stringify({ token_type: 'Bearer', access_token: 'token', expires_in: 60, padding: '' });
+  assert.ok(sizeBytes >= Buffer.byteLength(baseBody));
+  return JSON.stringify({
+    token_type: 'Bearer',
+    access_token: 'token',
+    expires_in: 60,
+    padding: 'x'.repeat(sizeBytes - Buffer.byteLength(baseBody)),
+  });
+}
+
 test('GoPay create payload obsahuje pouze serverový cenový snapshot a bezpečné reference', () => {
   assert.deepEqual(buildGoPayCreatePaymentPayload(createPaymentInput, createPaymentEnv), {
     amount: 12_000,
@@ -221,6 +232,135 @@ test('GoPay OAuth odmítá neplatné úspěšné odpovědi bez propouštění pa
       && error.httpStatus === 401
       && !error.message.includes('secret upstream body'),
   );
+});
+
+test('GoPay OAuth odmítne nadlimitní odpověď podle hlavičky i skutečně přijatých dat', async () => {
+  const oversizedBody = buildExactSizeOAuthBody(65_537);
+
+  for (const response of [
+    new Response('{}', { headers: { 'Content-Length': String(64 * 1_024 + 1) } }),
+    new Response(oversizedBody),
+  ]) {
+    await assert.rejects(
+      () => requestGoPayAccessToken(sandboxEnv, async () => response),
+      (error: unknown) => error instanceof GoPayClientError && error.code === 'invalid_response',
+    );
+  }
+});
+
+test('GoPay OAuth limit odpovědi je včetně přesně 65536 bajtů', async () => {
+  for (const sizeBytes of [65_535, 65_536]) {
+    const body = buildExactSizeOAuthBody(sizeBytes);
+    assert.equal(Buffer.byteLength(body), sizeBytes);
+    const token = await requestGoPayAccessToken(sandboxEnv, async () => new Response(body));
+    assert.equal(token.accessToken, 'token');
+  }
+
+  const oversizedBody = buildExactSizeOAuthBody(65_537);
+  assert.equal(Buffer.byteLength(oversizedBody), 65_537);
+  await assert.rejects(
+    () => requestGoPayAccessToken(sandboxEnv, async () => new Response(oversizedBody)),
+    (error: unknown) => error instanceof GoPayClientError && error.code === 'invalid_response',
+  );
+});
+
+test('GoPay OAuth po překročení limitu zruší stream a nepokračuje ve čtení', async () => {
+  let cancelCalls = 0;
+  let pullCalls = 0;
+  const response = new Response(new ReadableStream<Uint8Array>({
+    pull(controller) {
+      pullCalls += 1;
+      controller.enqueue(new Uint8Array(65_537));
+    },
+    cancel() {
+      cancelCalls += 1;
+    },
+  }, { highWaterMark: 0 }));
+
+  await assert.rejects(
+    () => requestGoPayAccessToken(sandboxEnv, async () => response),
+    (error: unknown) => error instanceof GoPayClientError && error.code === 'invalid_response',
+  );
+  assert.equal(cancelCalls, 1);
+  assert.equal(pullCalls, 1);
+});
+
+test('GoPay OAuth mapuje chybějící tělo a neplatné UTF-8 na invalid_response', async () => {
+  const responseWithoutBody = { ok: true, status: 200, headers: new Headers(), body: null } as Response;
+
+  for (const response of [responseWithoutBody, new Response(Uint8Array.from([0xc3, 0x28]))]) {
+    await assert.rejects(
+      () => requestGoPayAccessToken(sandboxEnv, async () => response),
+      (error: unknown) => error instanceof GoPayClientError && error.code === 'invalid_response',
+    );
+  }
+});
+
+test('GoPay OAuth měří stream po dekompresi bez spoléhání na komprimovaný Content-Length', async () => {
+  const response = new Response(buildExactSizeOAuthBody(65_537), {
+    headers: { 'Content-Encoding': 'gzip', 'Content-Length': '512' },
+  });
+
+  await assert.rejects(
+    () => requestGoPayAccessToken(sandboxEnv, async () => response),
+    (error: unknown) => error instanceof GoPayClientError && error.code === 'invalid_response',
+  );
+});
+
+test('GoPay OAuth zachovává jednotný chybový kontrakt pro budoucí platební ságu', async () => {
+  const responseWithoutBody = { ok: true, status: 200, headers: new Headers(), body: null } as Response;
+  const scenarios: Array<{
+    name: string;
+    expectedCode: 'invalid_response' | 'upstream_error' | 'timeout';
+    request: () => ReturnType<typeof requestGoPayAccessToken>;
+  }> = [
+    {
+      name: 'překročený limit',
+      expectedCode: 'invalid_response',
+      request: () => requestGoPayAccessToken(sandboxEnv, async () => new Response('{}', {
+        headers: { 'Content-Length': '65537' },
+      })),
+    },
+    {
+      name: 'neplatné UTF-8',
+      expectedCode: 'invalid_response',
+      request: () => requestGoPayAccessToken(sandboxEnv, async () => new Response(Uint8Array.from([0xc3, 0x28]))),
+    },
+    {
+      name: 'neplatné JSON',
+      expectedCode: 'invalid_response',
+      request: () => requestGoPayAccessToken(sandboxEnv, async () => new Response('{')),
+    },
+    {
+      name: 'chybějící body',
+      expectedCode: 'invalid_response',
+      request: () => requestGoPayAccessToken(sandboxEnv, async () => responseWithoutBody),
+    },
+    {
+      name: 'HTTP 500',
+      expectedCode: 'upstream_error',
+      request: () => requestGoPayAccessToken(sandboxEnv, async () => new Response('{}', { status: 500 })),
+    },
+    {
+      name: 'timeout',
+      expectedCode: 'timeout',
+      request: () => requestGoPayAccessToken(sandboxEnv, async (_url, init) => {
+        await new Promise((_resolve, reject) => init?.signal?.addEventListener(
+          'abort',
+          () => reject(new DOMException('aborted', 'AbortError')),
+        ));
+        return new Response('{}');
+      }, { timeoutMs: 100 }),
+    },
+  ];
+
+  for (const scenario of scenarios) {
+    await assert.rejects(
+      scenario.request,
+      (error: unknown) => error instanceof GoPayClientError && error.code === scenario.expectedCode,
+      scenario.name,
+    );
+  }
 });
 
 test('GoPay OAuth přijímá bearer token type bez ohledu na velikost písmen', async () => {
@@ -418,6 +558,25 @@ test('GoPay create požadavek odmítá neplatný token a odpověď před předá
   }
 });
 
+test('GoPay create odmítne nadlimitní odpověď bez předání checkout URL', async () => {
+  const oversizedBody = JSON.stringify({
+    id: 42,
+    state: 'CREATED',
+    gw_url: 'https://gw.sandbox.gopay.com/gw/payment',
+    padding: 'x'.repeat(64 * 1_024),
+  });
+
+  await assert.rejects(
+    () => requestGoPayCreatePayment(
+      createPaymentInput,
+      'token',
+      { ...createPaymentEnv, PAYMENTS_GOPAY_ENV: 'sandbox' },
+      async () => new Response(oversizedBody),
+    ),
+    (error: unknown) => error instanceof GoPayClientError && error.code === 'invalid_response',
+  );
+});
+
 test('GoPay create vrací provider ID jako ověřené číslo a redirect URL beze změny', async () => {
   const providerUrl = 'https://GW.SANDBOX.GOPAY.COM/gw/%7epayment?state=A%2fb&next=https%3A%2F%2Fexample.cz';
   const result = await requestGoPayCreatePayment(
@@ -485,13 +644,11 @@ test('GoPay create požadavek neprovádí retry a rozlišuje provider chybu, sí
   );
 
   await assert.rejects(
-    () => requestGoPayCreatePayment(createPaymentInput, 'token', env, async (_url, init) => ({
-      ok: true,
-      status: 200,
-      json: async () => {
-        await new Promise((_resolve, reject) => init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError'))));
+    () => requestGoPayCreatePayment(createPaymentInput, 'token', env, async (_url, init) => new Response(new ReadableStream({
+      start(controller) {
+        init?.signal?.addEventListener('abort', () => controller.error(new DOMException('aborted', 'AbortError')));
       },
-    } as Response), { timeoutMs: 100 }),
+    })), { timeoutMs: 100 }),
     (error: unknown) => error instanceof GoPayClientError && error.code === 'timeout',
   );
 });
