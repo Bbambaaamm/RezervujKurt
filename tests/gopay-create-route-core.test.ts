@@ -18,7 +18,13 @@ import { PaymentFeatureDisabledError } from '../lib/services/payment-flags-core'
 const authenticatedUser = { userId: '123e4567-e89b-42d3-a456-426614174000' };
 const authEnv = { NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'anon-key' };
 const serverEnv = { ...authEnv, SUPABASE_SERVICE_ROLE_KEY: 'service-role-key' };
-const validBody = { courtId: 1, reservationDate: '2026-08-01', timeFrom: '10:00:00', timeTo: '11:00:00' };
+const validBody = {
+  paymentAttemptId: '423e4567-e89b-42d3-a456-426614174000',
+  courtId: 1,
+  reservationDate: '2026-08-01',
+  timeFrom: '10:00:00',
+  timeTo: '11:00:00',
+};
 const validPaymentExpiration = () => new Date('2026-07-28T12:15:00.000Z');
 
 test('GoPay create handler validuje payload před read-only feature guardem', async () => {
@@ -49,6 +55,27 @@ test('GoPay create handler validuje payload před read-only feature guardem', as
 
   assert.equal(guardCalls, 0);
   assert.equal(priceReads, 0);
+});
+
+test('GoPay create payload vyžaduje kanonizovatelnou identitu platebního pokusu UUID v4', () => {
+  assert.deepEqual(
+    normalizeCreateGoPayPaymentPayload({
+      ...validBody,
+      paymentAttemptId: validBody.paymentAttemptId.toUpperCase(),
+    }),
+    {
+      paymentAttemptId: validBody.paymentAttemptId,
+      courtId: 1,
+      reservationDate: '2026-08-01',
+      timeFrom: '10:00',
+      timeTo: '11:00',
+      note: null,
+    },
+  );
+
+  for (const paymentAttemptId of [undefined, null, '', 'not-uuid', '123e4567-e89b-12d3-a456-426614174000']) {
+    assert.equal(normalizeCreateGoPayPaymentPayload({ ...validBody, paymentAttemptId }), null);
+  }
 });
 
 test('GoPay create handler mapuje vypnutý guard, neočekávaný guard error a zapnutý guard bezpečně', async () => {
@@ -110,6 +137,7 @@ test('GoPay create handler počítá cenu serverově jen pro platební větev', 
 
   assert.equal(response.status, 501);
   assert.deepEqual(capturedSlot, {
+    paymentAttemptId: validBody.paymentAttemptId,
     courtId: 1,
     reservationDate: '2026-08-01',
     timeFrom: '10:00',
@@ -222,8 +250,8 @@ test('GoPay create payload odmítá neznámá pole a kanonizuje čas na HH:MM', 
   );
 
   assert.deepEqual(
-    normalizeCreateGoPayPaymentPayload({ courtId: 1, reservationDate: '2026-08-01', timeFrom: '10:00:00', timeTo: '11:00:00' }),
-    { courtId: 1, reservationDate: '2026-08-01', timeFrom: '10:00', timeTo: '11:00', note: null },
+    normalizeCreateGoPayPaymentPayload(validBody),
+    { paymentAttemptId: validBody.paymentAttemptId, courtId: 1, reservationDate: '2026-08-01', timeFrom: '10:00', timeTo: '11:00', note: null },
   );
 });
 
@@ -233,7 +261,7 @@ test('GoPay create payload limituje poznámku až po trimu', () => {
       ...validBody,
       note: `   ${'a'.repeat(500)}   `,
     }),
-    { courtId: 1, reservationDate: '2026-08-01', timeFrom: '10:00', timeTo: '11:00', note: 'a'.repeat(500) },
+    { paymentAttemptId: validBody.paymentAttemptId, courtId: 1, reservationDate: '2026-08-01', timeFrom: '10:00', timeTo: '11:00', note: 'a'.repeat(500) },
   );
 
   assert.equal(normalizeCreateGoPayPaymentPayload({ ...validBody, note: 'a'.repeat(501) }), null);
