@@ -80,3 +80,11 @@ Concurrency test neprovádějte pouze sekvenčním SQL skriptem v jedné session
 ## Evidence
 
 Do release záznamu uložte datum, staging project ref, SHA migrace, anonymizovaná testovací UUID, výsledky privilege dotazů, matici 1–10 a výsledek dvousession concurrency testu. Neukládejte service-role klíč ani jiné secrets.
+
+### Průběžné ověření 29. 7. 2026
+
+Na stagingu bylo po merge ověřeno, že oba nové nullable sloupce, parciální unikátní index, snapshot constraint, signatura RPC, `SECURITY DEFINER`, pevný `search_path` a oprávnění pouze pro `service_role` odpovídají kontraktu. Tři historické platby zůstaly konzistentní bez doplněného snapshotu. Kontrola nasazené definice potvrdila advisory lock před rozhodujícím čtením i jedno zachycení `clock_timestamp()` pro nový pokus.
+
+Po nastavení autoritativní ceny kurtu 3 na 25 000 haléřů prošel v transakci scénář nového pokusu a identického retry: dvě volání vytvořila právě jednu rezervaci, jednu platbu a jeden audit `payment_created`, retry vrátil původní ID, cenu, částku, měnu a expiraci a nepřepsal metadata prvního volání. Před nastavením ceny nový pokus správně selhal fail-closed. Po `ROLLBACK` nezůstal žádný testovací payment.
+
+Toto ověření uzavírá základ scénářů 1 a 2, nenahrazuje však dosud neprovedené konfliktní, terminální a dvousession concurrency scénáře 3–10. Produkční release gate proto zůstává otevřený.
