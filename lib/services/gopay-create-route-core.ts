@@ -45,6 +45,7 @@ export type CreateGoPayPaymentRouteResponse = {
 };
 
 type CreateGoPayPaymentPayload = {
+  paymentAttemptId?: unknown;
   courtId?: unknown;
   reservationDate?: unknown;
   timeFrom?: unknown;
@@ -52,8 +53,9 @@ type CreateGoPayPaymentPayload = {
   note?: unknown;
 };
 
-const ALLOWED_CREATE_PAYLOAD_KEYS = new Set(['courtId', 'reservationDate', 'timeFrom', 'timeTo', 'note']);
+const ALLOWED_CREATE_PAYLOAD_KEYS = new Set(['paymentAttemptId', 'courtId', 'reservationDate', 'timeFrom', 'timeTo', 'note']);
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_V4_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SUPABASE_AUTH_TIMEOUT_MS = 4000;
 const SUPABASE_ROLE_READ_TIMEOUT_MS = 4000;
 const SUPABASE_AUTH_MIN_TIMEOUT_MS = 100;
@@ -136,6 +138,7 @@ export function normalizeCreateGoPayPaymentPayload(body: unknown) {
   if (!isRecord(body) || !hasOnlyAllowedPayloadKeys(body)) return null;
 
   const payload = body as CreateGoPayPaymentPayload;
+  if (typeof payload.paymentAttemptId !== 'string' || !UUID_V4_PATTERN.test(payload.paymentAttemptId)) return null;
   if (typeof payload.note !== 'undefined' && payload.note !== null && typeof payload.note !== 'string') return null;
 
   const normalizedNote = payload.note?.trim() || null;
@@ -144,6 +147,7 @@ export function normalizeCreateGoPayPaymentPayload(body: unknown) {
   try {
     return {
       ...normalizeReservationPaymentSlotInput(payload),
+      paymentAttemptId: payload.paymentAttemptId.toLowerCase(),
       note: normalizedNote,
     };
   } catch {

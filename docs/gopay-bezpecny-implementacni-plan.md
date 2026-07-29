@@ -880,18 +880,24 @@ První serverový endpoint fáze 4 je připravený na `POST /api/payments/gopay/
 
 Endpoint nyní před budoucím zápisem také fail-closed odvozuje expiraci z explicitní serverové proměnné `PAYMENTS_GOPAY_RESERVATION_TTL_MINUTES`. Konfigurace nemá skrytou produktovou výchozí hodnotu, přijímá pouze celé minuty v technickém rozsahu 1–1440 a chybějící či neplatná hodnota vrací bezpečné `503`. Výpočet probíhá až po ověření flagu, role a ceny; při vypnutém flow ani pro členy a administrátory se TTL nevyhodnocuje. Vypočtený čas se zatím neukládá, protože endpoint zůstává bez side effectu do dokončení retry modelu a kompenzační sagy.
 
+Pro identitu retry je zvolený explicitní `paymentAttemptId`. Klient jej musí vytvořit jako náhodné UUID v4 před prvním odesláním a při technickém opakování stejného pokusu zachovat; po terminálním stavu nebo po vědomém zahájení nového checkoutu musí použít nové UUID. Endpoint hodnotu povinně validuje a kanonizuje, ale zatím ji nepoužívá pro zápis. Samotná znalost UUID není důkaz vlastnictví ani oprávnění a nesmí umožnit načíst cizí checkout.
+
+Databázové svázání připravuje aditivní migrace `supabase/migrations/20260728160000_bind_payment_attempt_snapshot.sql`. `payments.payment_attempt_id` používá databázový typ `uuid` a globální unikátní index; nový service-role RPC `create_or_get_payment_attempt` pod advisory zámkem atomicky rozliší první použití od retry. Při prvním použití načte cenu aktivního kurtu, jednou zachytí databázový čas a společně s rezervací uloží hodinovou cenu, výslednou částku, měnu, expiraci a konzistentní timestampy rezervace, platby a platebního auditu. Při retry nejprve ověří stejného uživatele a celý neměnný rezervační payload a vrátí pouze původní snapshoty, aniž by znovu četl ceník nebo prodlužoval expiraci. Cizí uživatel i změněný payload končí stejným stabilním konfliktem, aby UUID neposkytovalo oracle vlastnictví. Neúspěšné terminální stavy `failed`, `cancelled` a `expired` vyžadují nové `paymentAttemptId`; retry stavu `paid` naopak idempotentně vrátí původní výsledek. Starší RPC overloady zůstávají během blue/green rolloutu dostupné. Veřejný endpoint zůstává bez side effectu a odpovídá `501`, dokud nebude nový RPC kontrakt napojen spolu s bezpečnou provider sagou.
+
+Povinné staging runtime ověření databázového chování, přesných oprávnění a dvousession concurrency scénáře popisuje `docs/gopay-payment-attempt-staging-runbook.md`. Source-level testy migrace zůstávají regresní ochranou, ale samy nepotvrzují skutečné chování PostgreSQL ani stav nasazených oprávnění.
+
 ## Cena
 
 - [x] Cenu nikdy nepřebírat důvěryhodně z klienta.
 - [x] Cenu počítat serverově z kurtu, data, času, délky rezervace a aktuálních pravidel.
-- [ ] Uložit očekávanou částku do `payments.amount_cents`.
-- [ ] Uložit očekávanou měnu do `payments.currency`.
+- [x] Uložit očekávanou částku do `payments.amount_cents` v atomickém create-or-get RPC; endpoint jej zatím nevolá.
+- [x] Uložit očekávanou měnu do `payments.currency` v atomickém create-or-get RPC; endpoint jej zatím nevolá.
 
 ### Cenový snapshot a idempotence budoucího zápisu
 
-Pro navazující připojení `create_payment_reservation` je zvolený kontrakt cenového snapshotu: endpoint načte cenu výhradně ze serverového ceníku, vypočte částku a atomické create RPC ji uloží do `payments.amount_cents` společně s měnou. Pozdější změna ceníku nesmí měnit již založenou platbu. Toto řešení je preferované před druhým výpočtem ceny v SQL, protože zachová jeden výpočetní kontrakt a zabrání postupnému rozcházení TypeScript a SQL implementace.
+Pro navazující připojení `create_or_get_payment_attempt` je zvolený atomický kontrakt cenového snapshotu: databázové RPC až po vyloučení retry načte cenu z autoritativního ceníku, vypočte částku a uloží ji do `payments.amount_cents` společně s hodinovou cenou a měnou. Pozdější změna ceníku nesmí měnit již založenou platbu. Výpočet v RPC je záměrný: oddělený aplikační SELECT ceny následovaný INSERTem by neuměl atomicky rozhodnout nový versus existující pokus a při retry by zbytečně pracoval s novou cenou.
 
-Před připojením zápisu je ale nutné dořešit identitu opakovaného požadavku. Současný deterministický `idempotency_key` zahrnuje částku, takže nové načtení změněné ceny vytvoří jiný klíč. Endpoint proto nesmí pouze znovu načíst aktuální cenu a zavolat create RPC, pokud jde o retry již založeného checkoutu. Navazující implementace musí nejprve bezpečně rozpoznat existující idempotentní operaci a vrátit původní payment s původním cenovým snapshotem, nebo zavést jiný explicitní serverově ověřený identifikátor operace. Nový platební pokus smí použít aktuální cenu až s novou identitou operace. Konkrétní retry model zůstává blokující podmínkou před zápisem; tento read-only krok jej záměrně nemění.
+Identita opakovaného požadavku je na HTTP hranici zvolená pomocí `paymentAttemptId` a databázový create-or-get kontrakt ji váže na ověřenou identitu uživatele a normalizovaný rezervační payload. Rozhodnutí nový versus existující pokus probíhá pod databázovým zámkem před čtením ceny: nový pokus dostane aktuální cenu a novou expiraci, retry vrátí původní payment se snapshotem. Endpoint proto při budoucím napojení nesmí před RPC bezpodmínečně načíst cenu ani vypočítat novou expiraci. Nový pokus po terminálním stavu musí použít nové `paymentAttemptId`; původní UUID nelze recyklovat ani jeho expiraci prodloužit. Připojení RPC do endpointu zůstává blokované dokončením idempotentní provider create a kompenzační sagy, aby databázový zápis nezanechal osiřelou blokaci slotu.
 
 ## Neatomický vztah databáze a GoPay API
 
