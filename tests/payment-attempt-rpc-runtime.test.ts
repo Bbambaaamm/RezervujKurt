@@ -176,6 +176,8 @@ test('create-or-get adaptér validuje povinná pole a ignoruje neznámá návrat
     { ...rpcRow, amount_cents: 1.5 },
     { ...rpcRow, currency: 'EUR' },
     { ...rpcRow, expires_at: 'neplatné' },
+    { ...rpcRow, expires_at: '2026-02-30T08:15:00Z' },
+    { ...rpcRow, expires_at: '2026-08-01T24:15:00Z' },
     ...rowsWithMissingRequiredField,
   ]) {
     await assert.rejects(
@@ -198,6 +200,12 @@ test('create-or-get adaptér validuje povinná pole a ignoruje neznámá návrat
     'pricePerHourCents',
     'reservationId',
   ]);
+
+  const offsetResult = await createOrGetPaymentAttempt(input, env, async () => new Response(JSON.stringify([{
+    ...rpcRow,
+    expires_at: '2026-08-01T10:15:00+02:00',
+  }])));
+  assert.deepEqual(offsetResult.expiresAt, new Date(rpcRow.expires_at));
 });
 
 test('create-or-get adaptér metadata vstupu nemění a návratová metadata nekopíruje', async () => {

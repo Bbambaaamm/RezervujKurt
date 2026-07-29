@@ -64,6 +64,16 @@ const MIN_TIMEOUT_MS = 100;
 const MAX_TIMEOUT_MS = 30_000;
 const MAX_METADATA_BYTES = 8_192;
 
+function isValidIsoTimestampWithTimezone(value: unknown): value is string {
+  if (typeof value !== 'string' || !ISO_TIMESTAMP_WITH_TIMEZONE_PATTERN.test(value)) return false;
+
+  const calendarPart = value.slice(0, 19);
+  const calendarDate = new Date(`${calendarPart}Z`);
+  return Number.isFinite(calendarDate.getTime())
+    && calendarDate.toISOString().slice(0, 19) === calendarPart
+    && Number.isFinite(Date.parse(value));
+}
+
 export class PaymentReservationRpcValidationError extends Error {
   constructor(message: string) {
     super(message);
@@ -199,9 +209,7 @@ function isPaymentAttemptSnapshotRow(value: unknown): value is Record<string, un
     && Object.hasOwn(row, 'currency')
     && row.currency === 'CZK'
     && Object.hasOwn(row, 'expires_at')
-    && typeof row.expires_at === 'string'
-    && ISO_TIMESTAMP_WITH_TIMEZONE_PATTERN.test(row.expires_at)
-    && Number.isFinite(Date.parse(row.expires_at));
+    && isValidIsoTimestampWithTimezone(row.expires_at);
 }
 
 export async function createOrGetPaymentAttempt(
