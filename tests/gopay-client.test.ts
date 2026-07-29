@@ -94,8 +94,8 @@ test('GoPay create payload odvozuje pevné callback cesty pouze z důvěryhodné
   }
 });
 
-test('GoPay create payload načítá GoID pouze ze serverové konfigurace', () => {
-  for (const goId of [undefined, '', 'merchant', '-1', '1'.repeat(33)]) {
+test('GoPay create payload načítá pouze kladné číselné GoID ze serverové konfigurace', () => {
+  for (const goId of [undefined, '', 'merchant', '-1', '0', '0000', '1'.repeat(33)]) {
     assert.throws(
       () => buildGoPayCreatePaymentPayload(createPaymentInput, { ...createPaymentEnv, GOPAY_GOID: goId }),
       GoPayClientConfigurationError,
