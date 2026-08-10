@@ -599,6 +599,27 @@ test('GoPay create požadavek odmítá neplatný token a odpověď před předá
   }
 });
 
+test('GoPay create přijme access token dlouhý přesně 4096 znaků', async () => {
+  const maximumLengthToken = 't'.repeat(4_096);
+  let authorization = '';
+
+  await requestGoPayCreatePayment(
+    createPaymentInput,
+    maximumLengthToken,
+    { ...createPaymentEnv, PAYMENTS_GOPAY_ENV: 'sandbox' },
+    async (_url, init) => {
+      authorization = new Headers(init?.headers).get('authorization') ?? '';
+      return new Response(JSON.stringify({
+        id: 42,
+        state: 'CREATED',
+        gw_url: 'https://gw.sandbox.gopay.com/gw/payment',
+      }));
+    },
+  );
+
+  assert.equal(authorization, `Bearer ${maximumLengthToken}`);
+});
+
 test('GoPay create odmítne nadlimitní odpověď bez předání checkout URL', async () => {
   const oversizedBody = JSON.stringify({
     id: 42,
