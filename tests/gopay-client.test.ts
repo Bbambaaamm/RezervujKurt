@@ -221,6 +221,26 @@ test('GoPay OAuth přijme credentials dlouhé přesně 4096 znaků', async () =>
   assert.equal(calls, 1);
 });
 
+test('GoPay OAuth přijme access token na hranici 4096 znaků a delší odmítne', async () => {
+  const maximumLengthToken = 't'.repeat(4_096);
+  const token = await requestGoPayAccessToken(sandboxEnv, async () => new Response(JSON.stringify({
+    token_type: 'Bearer',
+    access_token: maximumLengthToken,
+    expires_in: 60,
+  })));
+
+  assert.deepEqual(token, { accessToken: maximumLengthToken, expiresInSeconds: 60 });
+
+  await assert.rejects(
+    () => requestGoPayAccessToken(sandboxEnv, async () => new Response(JSON.stringify({
+      token_type: 'Bearer',
+      access_token: 't'.repeat(4_097),
+      expires_in: 60,
+    }))),
+    (error: unknown) => error instanceof GoPayClientError && error.code === 'invalid_response',
+  );
+});
+
 test('GoPay OAuth odmítá neplatné úspěšné odpovědi bez propouštění payloadu', async () => {
   const invalidResponses = [
     {},
