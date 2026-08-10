@@ -191,6 +191,8 @@ test('GoPay OAuth validuje credentials a timeout před síťovým voláním', as
   for (const env of [
     { ...sandboxEnv, GOPAY_CLIENT_ID: '' },
     { ...sandboxEnv, GOPAY_CLIENT_SECRET: 'secret\nheader' },
+    { ...sandboxEnv, GOPAY_CLIENT_ID: 'x'.repeat(4_097) },
+    { ...sandboxEnv, GOPAY_CLIENT_SECRET: 'x'.repeat(4_097) },
   ]) {
     await assert.rejects(() => requestGoPayAccessToken(env, fetchMock), GoPayClientConfigurationError);
   }
@@ -198,6 +200,25 @@ test('GoPay OAuth validuje credentials a timeout před síťovým voláním', as
     await assert.rejects(() => requestGoPayAccessToken(sandboxEnv, fetchMock, { timeoutMs }), GoPayClientConfigurationError);
   }
   assert.equal(calls, 0);
+});
+
+test('GoPay OAuth přijme credentials dlouhé přesně 4096 znaků', async () => {
+  let calls = 0;
+  const token = await requestGoPayAccessToken({
+    ...sandboxEnv,
+    GOPAY_CLIENT_ID: 'i'.repeat(4_096),
+    GOPAY_CLIENT_SECRET: 's'.repeat(4_096),
+  }, async () => {
+    calls += 1;
+    return new Response(JSON.stringify({
+      token_type: 'Bearer',
+      access_token: 'token',
+      expires_in: 60,
+    }));
+  });
+
+  assert.deepEqual(token, { accessToken: 'token', expiresInSeconds: 60 });
+  assert.equal(calls, 1);
 });
 
 test('GoPay OAuth odmítá neplatné úspěšné odpovědi bez propouštění payloadu', async () => {
