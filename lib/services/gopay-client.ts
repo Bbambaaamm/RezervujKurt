@@ -52,6 +52,7 @@ const GOPAY_ORIGINS: Record<GoPayEnvironment, string> = {
 const DEFAULT_TIMEOUT_MS = 5_000;
 const MIN_TIMEOUT_MS = 100;
 const MAX_TIMEOUT_MS = 30_000;
+const MAX_CREDENTIAL_LENGTH = 4_096;
 const MAX_ACCESS_TOKEN_LENGTH = 4_096;
 const MAX_ACCESS_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -91,7 +92,7 @@ function resolveGoPayEnvironment(value: string | undefined): GoPayEnvironment {
 
 function requireCredential(name: string, value: string | undefined): string {
   const credential = value?.trim();
-  if (!credential || /[\r\n]/.test(credential)) {
+  if (!credential || credential.length > MAX_CREDENTIAL_LENGTH || /[\r\n]/.test(credential)) {
     throw new GoPayClientConfigurationError(`Chybí nebo není platná konfigurace ${name}.`);
   }
   return credential;
