@@ -1,11 +1,12 @@
--- Produkční plánovač pro automatické schvalování rezervací členů a administrátorů.
+-- Produkční plánovač pro automatické schvalování rezervací přihlášených uživatelů.
 --
 -- Před spuštěním:
 -- 1. V Supabase Dashboardu povol rozšíření pg_cron.
--- 2. Aplikuj migraci 20260622120000_auto_approve_member_reservations.sql.
+-- 2. Aplikuj migrace včetně 20260810120000_auto_approve_user_reservations.sql.
 --
 -- Job běží každou minutu a schvaluje pouze pending rezervace uživatelů s rolí
--- member nebo admin, které jsou staré alespoň 1 minutu.
+-- user, member nebo admin, které jsou staré alespoň 1 minutu. Historický název
+-- jobu a funkce zůstává zachovaný kvůli kompatibilitě s existujícím nasazením.
 
 select cron.schedule(
   'auto-approve-member-reservations-every-minute',
