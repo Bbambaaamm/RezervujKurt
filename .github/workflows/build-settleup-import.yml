@@ -8,6 +8,12 @@ on:
     paths:
       - 'tmp-settleup-import/**'
       - '.github/workflows/build-settleup-import.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'tmp-settleup-import/**'
+      - '.github/workflows/build-settleup-import.yml'
 
 jobs:
   build:
