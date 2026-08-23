@@ -51,6 +51,10 @@ jobs:
         with:
           gradle-version: '8.7'
 
+      - name: Set up Android SDK
+        if: github.head_ref == 'tmp/settleup-import-20260823'
+        uses: android-actions/setup-android@v3
+
       - name: Install Android SDK 35
         if: github.head_ref == 'tmp/settleup-import-20260823'
         run: |
