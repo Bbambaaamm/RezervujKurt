@@ -16,7 +16,6 @@ export type ReservationNotificationDetail = {
   courtName: string;
   userName: string;
   userEmail: string | null;
-  userPhone: string | null;
   userRole: 'user' | 'member' | 'admin' | null;
 };
 
@@ -101,7 +100,6 @@ export function buildReservationNotificationEmail(
 ): EmailMessage {
   const note = detail.note?.trim() || 'Bez poznámky';
   const userContact = detail.userEmail?.trim() || 'E-mail neuveden';
-  const phone = detail.userPhone?.trim() || 'Telefon neuveden';
   const adminUrl = `${safeSiteUrl(siteUrl)}/admin`;
   const subject = `Nová rezervace čeká na schválení – ${detail.courtName}`;
 
@@ -113,7 +111,6 @@ export function buildReservationNotificationEmail(
     `Čas: ${formatTime(detail.timeFrom)}–${formatTime(detail.timeTo)}`,
     `Uživatel: ${detail.userName}`,
     `E-mail: ${userContact}`,
-    `Telefon: ${phone}`,
     `Poznámka: ${note}`,
     '',
     `Rezervaci zkontrolujete v administraci: ${adminUrl}`,
@@ -129,7 +126,6 @@ export function buildReservationNotificationEmail(
         <tr><th align="left">Čas</th><td>${escapeHtml(formatTime(detail.timeFrom))}–${escapeHtml(formatTime(detail.timeTo))}</td></tr>
         <tr><th align="left">Uživatel</th><td>${escapeHtml(detail.userName)}</td></tr>
         <tr><th align="left">E-mail</th><td>${escapeHtml(userContact)}</td></tr>
-        <tr><th align="left">Telefon</th><td>${escapeHtml(phone)}</td></tr>
         <tr><th align="left">Poznámka</th><td>${escapeHtml(note)}</td></tr>
       </tbody>
     </table>
