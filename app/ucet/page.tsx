@@ -166,10 +166,6 @@ export default function AccountPage() {
 
       {successMessage && <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{successMessage}</p>}
       {error && <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">{error}</p>}
-      <p className="text-xs text-slate-500">
-        Informace o zpracování údajů najdete v{' '}
-        <Link href="/ochrana-osobnich-udaju" className="text-court underline underline-offset-2">Ochraně osobních údajů</Link>.
-      </p>
     </div>
   );
 }

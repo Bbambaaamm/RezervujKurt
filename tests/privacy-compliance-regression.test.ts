@@ -46,19 +46,34 @@ test('login informuje o zpracování e-mailu bez GDPR checkboxu', () => {
   assert.doesNotMatch(page, /type="checkbox"|Souhlasím s GDPR/i);
 });
 
-test('neúplná privacy route není odkazovaná z patičky ani sitemap', () => {
+test('neúplná privacy route vrací 404 a není veřejně odkazovaná', () => {
   const privacyPage = read('app/ochrana-osobnich-udaju/page.tsx');
-  const rulesPage = read('app/pravidla-rezervaci/page.tsx');
-  const footer = read('components/footer.tsx');
+  const publicLinkSources = [
+    read('app/prihlaseni/page.tsx'),
+    read('app/pravidla-rezervaci/page.tsx'),
+    read('app/ucet/page.tsx'),
+    read('components/footer.tsx'),
+  ].join('\n');
   const sitemap = read('app/sitemap.ts');
 
+  assert.match(privacyPage, /import\s*\{\s*notFound\s*\}\s*from\s*'next\/navigation'/);
+  assert.match(privacyPage, /function\s+PrivacyPage\(\)\s*\{\s*notFound\(\);\s*return\s*\(/);
   assert.match(privacyPage, /Ochrana osobních údajů/);
-  assert.match(rulesPage, /Pravidla rezervací/);
-  assert.doesNotMatch(footer, /\/ochrana-osobnich-udaju|DOPLNIT KONTAKT/);
-  assert.match(footer, /\/pravidla-rezervaci/);
+  assert.doesNotMatch(publicLinkSources, /href="\/ochrana-osobnich-udaju"/);
   assert.doesNotMatch(sitemap, /\/ochrana-osobnich-udaju/);
   assert.match(privacyPage, /robots:\s*\{\s*index:\s*false,\s*follow:\s*false\s*\}/);
-  assert.doesNotMatch(privacyPage, /\[DOPLNIT|musí provozovatel doplnit/i);
+});
+
+test('veřejné UI neobsahuje pracovní privacy placeholdery', () => {
+  const publicUi = [
+    read('app/ochrana-osobnich-udaju/page.tsx'),
+    read('app/prihlaseni/page.tsx'),
+    read('app/pravidla-rezervaci/page.tsx'),
+    read('app/ucet/page.tsx'),
+    read('components/footer.tsx'),
+  ].join('\n');
+
+  assert.doesNotMatch(publicUi, /\[DOPLNIT|musí provozovatel doplnit|DOPLNIT KONTAKT/i);
 });
 
 test('veřejné právní texty popisují aktuální stav bez implementační historie', () => {

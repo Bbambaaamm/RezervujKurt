@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 
 export const metadata: Metadata = {
   title: 'Ochrana osobních údajů',
@@ -11,6 +12,8 @@ export const metadata: Metadata = {
 const sectionClassName = 'space-y-2';
 
 export default function PrivacyPage() {
+  notFound();
+
   return (
     <article className="mx-auto max-w-3xl space-y-7 rounded-2xl border border-slate-200 bg-white p-5 leading-relaxed shadow-sm sm:p-8">
       <header className="space-y-2">
