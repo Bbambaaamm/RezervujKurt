@@ -22,7 +22,6 @@ const detail: ReservationNotificationDetail = {
   courtName: 'Kurt 1',
   userName: 'Jan Novák',
   userEmail: 'jan@example.com',
-  userPhone: '+420 123 456 789',
   userRole: 'user',
 };
 

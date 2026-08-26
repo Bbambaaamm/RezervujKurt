@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Header } from '@/components/header';
 import { AuthSessionSync } from '@/components/auth-session-sync';
+import { Footer } from '@/components/footer';
 
 const siteUrl = new URL('https://rezervuj-kurt.vercel.app');
 
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <AuthSessionSync />
         <Header />
         <main className="mx-auto max-w-6xl px-4 py-5">{children}</main>
+        <Footer />
       </body>
     </html>
   );

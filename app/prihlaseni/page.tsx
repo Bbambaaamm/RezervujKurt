@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { supabaseAuthClient, type AuthSession } from '@/lib/supabase/auth-client';
 import { buildEmailRedirectTo } from '@/lib/supabase/auth-redirect';
 import { reportClientOperationalEvent } from '@/lib/services/client-observability';
+import Link from 'next/link';
 
 const MAGIC_LINK_COOLDOWN_SECONDS = 60;
 
@@ -168,6 +169,13 @@ export default function LoginPage() {
               placeholder="jmeno@domena.cz"
             />
           </label>
+          <p className="text-xs leading-relaxed text-slate-600">
+            E-mail používáme pro přihlášení, správu účtu a rezervací a související provozní zprávy. Více v{' '}
+            <Link href="/ochrana-osobnich-udaju" className="text-court underline underline-offset-2">
+              Ochraně osobních údajů
+            </Link>
+            .
+          </p>
           <button disabled={isLoginDisabled} className="w-full rounded-md border border-slate-300 px-4 py-2 text-left disabled:opacity-60">
             {loginButtonLabel}
           </button>

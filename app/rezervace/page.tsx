@@ -419,6 +419,7 @@ export default function ReservationPage() {
               onChange={(event) => setNote(event.target.value)}
               className="mt-2 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-normal tracking-normal text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-300"
             />
+            <span className="mt-1 block font-normal tracking-normal">Nevkládejte sem citlivé osobní údaje.</span>
           </details>
           <label className="hidden min-w-0 flex-col text-xs font-semibold tracking-wide text-slate-500 md:flex">
             <span className="mb-1">Poznámka</span>
@@ -427,6 +428,7 @@ export default function ReservationPage() {
               onChange={(event) => setNote(event.target.value)}
               className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-300"
             />
+            <span className="mt-1 font-normal normal-case tracking-normal">Nevkládejte sem citlivé osobní údaje.</span>
           </label>
         </>
       ) : (
