@@ -6,7 +6,7 @@
 
 Repozitář má rozumný bezpečnostní základ: rezervace vyžaduje Magic Link účet, vlastnictví a administrace jsou vynuceny RLS i sloupcovými granty a veřejnost čte samostatný minimální occupancy view. Nejvýznamnější nalezený problém byl nadbytečný obsah auditního logu (poznámka a celé snapshoty rezervace). Připravená migrace jej minimalizuje a jednorázově odstraní tyto duplicity; do produkce nebyla spuštěna.
 
-Doplněny byly transparentní veřejné texty, informace přímo u přihlášení, pravidla, patička a testy privacy hranic. Provozovatel rozhodl, že historické provozní údaje rezervací zůstávají dlouhodobě zachované pro statistické vyhodnocování. Před zveřejněním právních textů musí doplnit svou identitu a kontakt a interně stanovit retenční pravidla pro osobní vazby, volné texty, notifikační data a technické záznamy.
+Návrh privacy notice je připravený, ale čeká na schválení identity správce, kontaktních údajů a finálního znění. Veřejná privacy route je proto dočasně znepřístupněná a přihlášení obsahuje pouze stručnou informaci o účelu e-mailu. Po schválení bude privacy notice zveřejněna samostatným PR. Provozovatel rozhodl, že historické provozní údaje rezervací zůstávají dlouhodobě zachované pro statistické vyhodnocování a ještě musí interně stanovit retenční pravidla pro osobní vazby, volné texty, notifikační data a technické záznamy.
 
 Právní posouzení vychází zejména z čl. 5, 6, 12, 13, 15–22, 25 a 32 [GDPR (EUR-Lex)](https://eur-lex.europa.eu/eli/reg/2016/679/oj), zákona č. 110/2019 Sb. a § 89 zákona č. 127/2005 Sb. Pro účet a rezervaci je s vysokou mírou jistoty vhodný čl. 6 odst. 1 písm. b); pro přiměřené bezpečnostní záznamy čl. 6 odst. 1 písm. f). Konkrétní vyvážení oprávněného zájmu musí potvrdit správce.
 
@@ -56,10 +56,10 @@ U Supabase, Vercelu a Resendu: **[VYŽADUJE OVĚŘENÍ PROVOZOVATELE]** — DPA,
 
 ## F. Co bylo změněno
 
-- `app/ochrana-osobnich-udaju/page.tsx`: konkrétní informace podle čl. 13 a povinné identifikační placeholdery; veřejný text popisuje pouze aktuální stav, ne auditní nebo implementační historii.
+- `app/ochrana-osobnich-udaju/page.tsx`: návrh informací podle čl. 13 je zachovaný ve zdrojovém souboru, ale route do schválení identity správce, kontaktu a finálního znění vrací 404.
 - `app/pravidla-rezervaci/page.tsx`: pouze technicky potvrzená pravidla a jednoduchý bezplatný charakter služby; nepotvrzené podmínky ani interní úkoly se veřejně nezobrazují.
-- `components/footer.tsx`, `app/layout.tsx`, `app/sitemap.ts`: přístupné odkazy a indexovatelné veřejné route; soukromé route zůstávají v `robots.ts` zakázané.
-- `app/prihlaseni/page.tsx`, `app/ucet/page.tsx`: transparentní informace bez checkboxu a vysvětlení jména.
+- `components/footer.tsx`, `app/layout.tsx`, `app/sitemap.ts`: neaktivní privacy route není veřejně odkazovaná ani uvedená v sitemapě; soukromé route zůstávají v `robots.ts` zakázané.
+- `app/prihlaseni/page.tsx`, `app/ucet/page.tsx`: login obsahuje stručnou informaci o účelu e-mailu bez checkboxu a účet zachovává vysvětlení jména.
 - `app/rezervace/page.tsx`: upozornění, aby poznámka neobsahovala citlivé údaje.
 - `supabase/functions/process-notification-outbox/{index,notification}.ts`: telefon se už zbytečně nenačítá ani neposílá jako prázdné pole.
 - `supabase/migrations/20260826120000_minimize_reservation_audit_payload.sql`: minimalizace auditu.
@@ -131,7 +131,7 @@ Výsledky příkazů jsou uvedeny v závěrečném výstupu commitu/PR. Live e-m
 - Může user změnit svou roli? **NE** podle sloupcového grantu.
 
 ### GDPR UX
-- Existuje privacy route a odkaz u loginu? **ANO**.
+- Je neúplná privacy route veřejně znepřístupněná a login bez odkazu? **ANO**; route vrací 404 a login obsahuje pouze stručnou informaci o účelu e-mailu.
 - Vznikl checkbox nebo cookie banner? **NE**.
 
 ### Reservation UX

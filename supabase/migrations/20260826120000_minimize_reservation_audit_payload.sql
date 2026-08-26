@@ -43,18 +43,26 @@ as $$
 declare
   v_action text;
   v_changed_by uuid;
+  v_is_auto_approval boolean;
 begin
   if new is not distinct from old then
     return new;
   end if;
 
-  if new.status = 'cancelled' and old.status is distinct from new.status then
+  v_is_auto_approval := current_setting('app.reservation_auto_approval', true) = 'true'
+    and old.status = 'pending'
+    and new.status = 'approved';
+
+  if v_is_auto_approval then
+    v_action := 'auto_approve';
+    v_changed_by := null;
+  elsif new.status = 'cancelled' and old.status is distinct from new.status then
     v_action := 'cancel';
+    v_changed_by := coalesce(auth.uid(), new.user_id);
   else
     v_action := 'update';
+    v_changed_by := coalesce(auth.uid(), new.user_id);
   end if;
-
-  v_changed_by := coalesce(auth.uid(), new.user_id);
 
   insert into public.reservation_audit_log (
     reservation_id,

@@ -25,12 +25,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.3,
     },
     {
-      url: `${siteUrl}/ochrana-osobnich-udaju`,
-      lastModified: now,
-      changeFrequency: 'yearly',
-      priority: 0.2,
-    },
-    {
       url: `${siteUrl}/pravidla-rezervaci`,
       lastModified: now,
       changeFrequency: 'yearly',

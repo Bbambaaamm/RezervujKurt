@@ -2,7 +2,6 @@ import Link from 'next/link';
 
 const footerLinks = [
   { href: '/pravidla-rezervaci', label: 'Pravidla rezervací' },
-  { href: '/ochrana-osobnich-udaju', label: 'Ochrana osobních údajů' },
 ];
 
 export function Footer() {
@@ -16,7 +15,6 @@ export function Footer() {
               {link.label}
             </Link>
           ))}
-          <span>Kontakt: [DOPLNIT KONTAKT]</span>
         </nav>
       </div>
     </footer>

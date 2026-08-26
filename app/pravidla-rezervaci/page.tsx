@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Pravidla rezervací',
@@ -31,7 +30,6 @@ export default function ReservationRulesPage() {
           <li>Správce může rezervace spravovat v rozsahu potřebném pro provoz kurtů.</li>
         </ul>
       </section>
-      <p className="text-sm text-slate-600">Jak pracujeme s údaji, vysvětluje stránka <Link href="/ochrana-osobnich-udaju" className="text-court underline underline-offset-2">Ochrana osobních údajů</Link>.</p>
     </article>
   );
 }

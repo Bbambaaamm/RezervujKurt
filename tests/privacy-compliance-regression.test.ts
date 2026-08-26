@@ -27,23 +27,53 @@ test('auditní trigger nekopíruje poznámku ani celý reservation objekt', () =
   assert.doesNotMatch(sql, /update\s+public\.reservations/i);
 });
 
+test('minimalizovaný audit zachovává systémové auto approve a ruční změny', () => {
+  const sql = read('supabase/migrations/20260826120000_minimize_reservation_audit_payload.sql');
+  const updateTrigger = sql.match(/create or replace function public\.log_reservation_update_audit\(\)[\s\S]*?\$\$;/i)?.[0] ?? '';
+
+  assert.match(updateTrigger, /current_setting\(\s*'app\.reservation_auto_approval'\s*,\s*true\s*\)\s*=\s*'true'/i);
+  assert.match(updateTrigger, /if\s+v_is_auto_approval\s+then[\s\S]*v_action\s*:=\s*'auto_approve'[\s\S]*v_changed_by\s*:=\s*null/i);
+  assert.match(updateTrigger, /elsif\s+new\.status\s*=\s*'cancelled'[\s\S]*v_action\s*:=\s*'cancel'[\s\S]*v_changed_by\s*:=\s*coalesce\(auth\.uid\(\),\s*new\.user_id\)/i);
+  assert.match(updateTrigger, /else[\s\S]*v_action\s*:=\s*'update'[\s\S]*v_changed_by\s*:=\s*coalesce\(auth\.uid\(\),\s*new\.user_id\)/i);
+  assert.doesNotMatch(updateTrigger, /new\.note|to_jsonb\s*\(\s*(?:new|old)\s*\)|'old'\s*,|'new'\s*,/i);
+});
+
 test('login informuje o zpracování e-mailu bez GDPR checkboxu', () => {
   const page = read('app/prihlaseni/page.tsx');
 
-  assert.match(page, /href="\/ochrana-osobnich-udaju"/);
   assert.match(page, /E-mail používáme pro přihlášení/);
+  assert.doesNotMatch(page, /href="\/ochrana-osobnich-udaju"/);
   assert.doesNotMatch(page, /type="checkbox"|Souhlasím s GDPR/i);
 });
 
-test('právní route a odkazy v patičce existují', () => {
+test('neúplná privacy route vrací 404 a není veřejně odkazovaná', () => {
   const privacyPage = read('app/ochrana-osobnich-udaju/page.tsx');
-  const rulesPage = read('app/pravidla-rezervaci/page.tsx');
-  const footer = read('components/footer.tsx');
+  const publicLinkSources = [
+    read('app/prihlaseni/page.tsx'),
+    read('app/pravidla-rezervaci/page.tsx'),
+    read('app/ucet/page.tsx'),
+    read('components/footer.tsx'),
+  ].join('\n');
+  const sitemap = read('app/sitemap.ts');
 
+  assert.match(privacyPage, /import\s*\{\s*notFound\s*\}\s*from\s*'next\/navigation'/);
+  assert.match(privacyPage, /function\s+PrivacyPage\(\)\s*\{\s*notFound\(\);\s*return\s*\(/);
   assert.match(privacyPage, /Ochrana osobních údajů/);
-  assert.match(rulesPage, /Pravidla rezervací/);
-  assert.match(footer, /\/ochrana-osobnich-udaju/);
-  assert.match(footer, /\/pravidla-rezervaci/);
+  assert.doesNotMatch(publicLinkSources, /href="\/ochrana-osobnich-udaju"/);
+  assert.doesNotMatch(sitemap, /\/ochrana-osobnich-udaju/);
+  assert.match(privacyPage, /robots:\s*\{\s*index:\s*false,\s*follow:\s*false\s*\}/);
+});
+
+test('veřejné UI neobsahuje pracovní privacy placeholdery', () => {
+  const publicUi = [
+    read('app/ochrana-osobnich-udaju/page.tsx'),
+    read('app/prihlaseni/page.tsx'),
+    read('app/pravidla-rezervaci/page.tsx'),
+    read('app/ucet/page.tsx'),
+    read('components/footer.tsx'),
+  ].join('\n');
+
+  assert.doesNotMatch(publicUi, /\[DOPLNIT|musí provozovatel doplnit|DOPLNIT KONTAKT/i);
 });
 
 test('veřejné právní texty popisují aktuální stav bez implementační historie', () => {

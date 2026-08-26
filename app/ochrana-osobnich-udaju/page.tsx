@@ -1,27 +1,25 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 
 export const metadata: Metadata = {
   title: 'Ochrana osobních údajů',
   description: 'Informace o zpracování osobních údajů v rezervačním systému RezervujKurt.',
   alternates: { canonical: '/ochrana-osobnich-udaju' },
+  robots: { index: false, follow: false },
 };
 
 const sectionClassName = 'space-y-2';
 
 export default function PrivacyPage() {
+  notFound();
+
   return (
     <article className="mx-auto max-w-3xl space-y-7 rounded-2xl border border-slate-200 bg-white p-5 leading-relaxed shadow-sm sm:p-8">
       <header className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight text-slate-950">Ochrana osobních údajů</h1>
         <p className="text-sm text-slate-600">RezervujKurt je bezplatný systém pro rezervaci tenisových kurtů a zobrazení jejich obsazenosti.</p>
       </header>
-
-      <section className={sectionClassName}>
-        <h2 className="text-xl font-semibold">Kdo je správcem</h2>
-        <p>[DOPLNIT SPRÁVCE / PROVOZOVATELE]</p>
-        <p>[DOPLNIT SÍDLO] · [DOPLNIT IČO, POKUD RELEVANTNÍ] · [DOPLNIT KONTAKTNÍ E-MAIL]</p>
-      </section>
 
       <section className={sectionClassName}>
         <h2 className="text-xl font-semibold">Jaké údaje používáme a proč</h2>
@@ -60,7 +58,7 @@ export default function PrivacyPage() {
 
       <section className={sectionClassName}>
         <h2 className="text-xl font-semibold">Vaše práva</h2>
-        <p>Můžete požádat o přístup k údajům, opravu, výmaz při splnění podmínek, omezení zpracování nebo přenositelnost tam, kde se uplatní. Proti zpracování založenému na oprávněném zájmu můžete vznést námitku. Stížnost lze podat u Úřadu pro ochranu osobních údajů. Žádost pošlete na kontaktní e-mail správce, který musí provozovatel doplnit výše.</p>
+        <p>Můžete požádat o přístup k údajům, opravu, výmaz při splnění podmínek, omezení zpracování nebo přenositelnost tam, kde se uplatní. Proti zpracování založenému na oprávněném zájmu můžete vznést námitku. Stížnost lze podat u Úřadu pro ochranu osobních údajů.</p>
       </section>
 
       <p className="border-t border-slate-200 pt-5 text-sm text-slate-600">Pro provoz rezervací platí také <Link href="/pravidla-rezervaci" className="text-court underline underline-offset-2">Pravidla rezervací</Link>.</p>
