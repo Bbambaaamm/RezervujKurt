@@ -18,7 +18,7 @@ export default function ReservationRulesPage() {
         <ul className="list-disc space-y-2 pl-5">
           <li>Rezervaci vytváří přihlášený uživatel pro konkrétní kurt, datum a čas.</li>
           <li>Obsazené termíny a dny blokované turnajem nelze rezervovat.</li>
-          <li>Rezervace vzniká ve stavu čekajícím na schválení; podle role účtu ji může systém následně automaticky schválit.</li>
+          <li>Rezervace vzniká ve stavu čekajícím na schválení a je platná až po schválení.</li>
           <li>Poznámku používejte jen pro nezbytnou provozní informaci a nevkládejte do ní citlivé osobní údaje.</li>
         </ul>
       </section>
