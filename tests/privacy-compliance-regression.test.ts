@@ -53,6 +53,8 @@ test('neúplná privacy route vrací 404 a není veřejně odkazovaná', () => {
     read('app/pravidla-rezervaci/page.tsx'),
     read('app/ucet/page.tsx'),
     read('components/footer.tsx'),
+    read('supabase/templates/confirmation.html'),
+    read('supabase/templates/magic_link.html'),
   ].join('\n');
   const sitemap = read('app/sitemap.ts');
 
