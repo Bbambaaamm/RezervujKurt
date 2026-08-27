@@ -1,5 +1,7 @@
 "use client";
 
+import { developmentConsole } from '@/lib/services/development-console';
+
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { supabaseAuthClient, type AuthSession } from '@/lib/supabase/auth-client';
@@ -29,7 +31,7 @@ export default function AccountPage() {
     supabaseAuthClient.auth.getSession().then(async ({ data }) => {
       const nextSession = data.session ?? null;
       setSession(nextSession);
-      console.info(nextSession ? '[auth] account page: session found' : '[auth] account page: session missing');
+      developmentConsole.info(nextSession ? '[auth] account page: session found' : '[auth] account page: session missing');
 
       if (nextSession?.access_token && nextSession.user.id) {
         const profileRows = await supabaseSelectWithAccessToken<ProfileRow>(

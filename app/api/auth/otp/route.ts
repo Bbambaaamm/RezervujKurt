@@ -1,3 +1,4 @@
+import { developmentConsole } from '@/lib/services/development-console';
 import { NextRequest, NextResponse } from 'next/server';
 import { buildOtpPayload, buildSupabaseOtpEndpoint, getSupabaseOtpRequestConfig, isValidOtpEmail } from '@/lib/supabase/otp-proxy';
 import { resolveOtpRouteRedirectTo } from '@/lib/supabase/otp-route-payload';
@@ -26,13 +27,13 @@ export async function POST(request: NextRequest) {
     const otpEndpoint = buildSupabaseOtpEndpoint(endpoint, supabasePayload.redirect_to);
 
     if (process.env.NODE_ENV === 'development') {
-      console.info('[auth] otp proxy redirect_to:', {
+      developmentConsole.info('[auth] otp proxy redirect_to:', {
         redirect_to: supabasePayload.redirect_to ?? null,
       });
     }
 
     if (process.env.NODE_ENV === 'development') {
-      console.info('[auth] otp proxy supabase payload:', supabasePayload);
+      developmentConsole.info('[auth] otp proxy supabase payload:', supabasePayload);
     }
 
     const response = await fetch(otpEndpoint, {
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
     const responseBody = await response.text();
 
     if (process.env.NODE_ENV === 'development') {
-      console.info('[auth] OTP proxy response:', {
+      developmentConsole.info('[auth] OTP proxy response:', {
         status: response.status,
         statusText: response.statusText,
         body: responseBody || null,

@@ -1,3 +1,4 @@
+import { developmentConsole } from '@/lib/services/development-console';
 import { buildOtpPayload, buildSupabaseOtpEndpoint, getOtpFailureMessage, getSupabaseOtpRequestConfig, resolveOtpEndpoint } from '@/lib/supabase/otp-proxy';
 
 export type AuthSession = {
@@ -29,7 +30,7 @@ function getSupabaseConfig(): { url: string; anonKey: string } | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (process.env.NODE_ENV === 'development') {
-    console.info('[auth] Supabase runtime env:', {
+    developmentConsole.info('[auth] Supabase runtime env:', {
       has_url: Boolean(url),
       url_preview: url ? `${url.slice(0, 48)}${url.length > 48 ? '…' : ''}` : null,
       has_anon_key: Boolean(anonKey),
@@ -126,7 +127,7 @@ function redirectToLoginIfNeeded(): void {
 
 function invalidateSession(options?: { redirectToLogin?: boolean; reason?: 'expired' | 'refresh_failed' }): void {
   if (options?.reason === 'expired' && process.env.NODE_ENV === 'development') {
-    console.info('[auth] session expired');
+    developmentConsole.info('[auth] session expired');
   }
   setStoredSession(null);
   clearRefreshTimeout();
@@ -147,7 +148,7 @@ async function refreshSession(currentSession: AuthSession, options?: { allowRedi
   if (!config) return currentSession;
 
   if (process.env.NODE_ENV === 'development') {
-    console.info('[auth] session refresh started');
+    developmentConsole.info('[auth] session refresh started');
   }
 
   const endpoint = `${config.url}/auth/v1/token?grant_type=refresh_token`;
@@ -164,7 +165,7 @@ async function refreshSession(currentSession: AuthSession, options?: { allowRedi
 
     if (!response.ok) {
       if (process.env.NODE_ENV === 'development') {
-        console.info('[auth] session refresh failed');
+        developmentConsole.info('[auth] session refresh failed');
       }
       invalidateSession({ redirectToLogin: options?.allowRedirect ?? true, reason: 'refresh_failed' });
       return null;
@@ -173,7 +174,7 @@ async function refreshSession(currentSession: AuthSession, options?: { allowRedi
     const responseData = (await response.json()) as { access_token?: string; refresh_token?: string; user?: { id?: string; email?: string } };
     if (!responseData.access_token) {
       if (process.env.NODE_ENV === 'development') {
-        console.info('[auth] session refresh failed');
+        developmentConsole.info('[auth] session refresh failed');
       }
       invalidateSession({ redirectToLogin: options?.allowRedirect ?? true, reason: 'refresh_failed' });
       return null;
@@ -185,7 +186,7 @@ async function refreshSession(currentSession: AuthSession, options?: { allowRedi
 
     if (!userId) {
       if (process.env.NODE_ENV === 'development') {
-        console.info('[auth] session refresh failed');
+        developmentConsole.info('[auth] session refresh failed');
       }
       invalidateSession({ redirectToLogin: options?.allowRedirect ?? true, reason: 'refresh_failed' });
       return null;
@@ -202,13 +203,13 @@ async function refreshSession(currentSession: AuthSession, options?: { allowRedi
     emitAuthChange('TOKEN_REFRESHED', nextSession);
 
     if (process.env.NODE_ENV === 'development') {
-      console.info('[auth] session refresh success');
+      developmentConsole.info('[auth] session refresh success');
     }
 
     return nextSession;
   } catch {
     if (process.env.NODE_ENV === 'development') {
-      console.info('[auth] session refresh failed');
+      developmentConsole.info('[auth] session refresh failed');
     }
     invalidateSession({ redirectToLogin: options?.allowRedirect ?? true, reason: 'refresh_failed' });
     return null;
@@ -255,7 +256,7 @@ function readSessionFromUrl(): AuthSession | null {
   const refreshToken = params.get('refresh_token');
   if (!accessToken) return null;
   if (process.env.NODE_ENV === 'development') {
-    console.info('[auth] auth hash detected');
+    developmentConsole.info('[auth] auth hash detected');
   }
   window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
 
@@ -271,7 +272,7 @@ function readSessionFromUrl(): AuthSession | null {
   setStoredSession(session);
   scheduleRefresh(session);
   if (process.env.NODE_ENV === 'development') {
-    console.info('[auth] session stored from magic link hash');
+    developmentConsole.info('[auth] session stored from magic link hash');
   }
   emitAuthChange('SIGNED_IN', session);
   return session;
@@ -302,8 +303,8 @@ export const supabaseAuthClient = {
       const useProxy = endpoint === '/api/auth/otp';
 
       if (process.env.NODE_ENV === 'development') {
-        console.info('[auth] Supabase OTP endpoint:', endpoint);
-        console.info('[auth] Supabase OTP payload:', {
+        developmentConsole.info('[auth] Supabase OTP endpoint:', endpoint);
+        developmentConsole.info('[auth] Supabase OTP payload:', {
           email_domain: email.includes('@') ? email.split('@')[1] : null,
           create_user: payload.create_user,
           redirect_to: 'redirect_to' in payload ? payload.redirect_to : null,
@@ -319,7 +320,7 @@ export const supabaseAuthClient = {
         if (!response.ok) {
           const responseBody = await response.text();
           if (process.env.NODE_ENV === 'development') {
-            console.info('[auth] Supabase OTP failed response:', {
+            developmentConsole.info('[auth] Supabase OTP failed response:', {
               status: response.status,
               statusText: response.statusText,
               body: responseBody,
@@ -329,7 +330,7 @@ export const supabaseAuthClient = {
         }
         if (process.env.NODE_ENV === 'development') {
           const responseBody = await response.text();
-          console.info('[auth] Supabase OTP success response:', {
+          developmentConsole.info('[auth] Supabase OTP success response:', {
             status: response.status,
             statusText: response.statusText,
             body: responseBody || null,

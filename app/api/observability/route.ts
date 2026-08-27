@@ -1,34 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { reportOperationalEvent } from '../../../lib/services/observability';
+import { reportOperationalEvent, type ObservabilityEventInput } from '../../../lib/services/observability';
 
-type ClientObservabilityPayload = {
-  level?: unknown;
-  operation?: unknown;
-  message?: unknown;
-  metadata?: unknown;
-};
-
-const ALLOWED_LEVELS = new Set(['info', 'warn', 'error']);
-const ALLOWED_OPERATIONS = new Set(['auth.magic_link', 'auth.sign_out']);
+const ALLOWED_CLIENT_EVENTS = {
+  'auth.magic_link': {
+    level: 'warn',
+    errorCode: 'AUTH_MAGIC_LINK_FAILED',
+  },
+  'auth.sign_out': {
+    level: 'warn',
+    errorCode: 'AUTH_SIGN_OUT_FAILED',
+  },
+} as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function normalizePayload(body: unknown) {
+function normalizePayload(body: unknown): ObservabilityEventInput | null {
   if (!isRecord(body)) return null;
 
-  const payload = body as ClientObservabilityPayload;
-  if (typeof payload.level !== 'string' || !ALLOWED_LEVELS.has(payload.level)) return null;
-  if (typeof payload.operation !== 'string' || !ALLOWED_OPERATIONS.has(payload.operation)) return null;
-  if (typeof payload.message !== 'string' || payload.message.length === 0 || payload.message.length > 200) return null;
+  // Klientský endpoint přijímá pouze tři explicitně povolená pole.
+  const keys = Object.keys(body);
+  if (keys.length !== 3 || keys.some((key) => !['level', 'operation', 'errorCode'].includes(key))) {
+    return null;
+  }
 
-  return {
-    level: payload.level as 'info' | 'warn' | 'error',
-    operation: payload.operation,
-    message: payload.message,
-    metadata: isRecord(payload.metadata) ? payload.metadata : undefined,
-  };
+  if (typeof body.operation !== 'string' || !(body.operation in ALLOWED_CLIENT_EVENTS)) return null;
+  const operation = body.operation as keyof typeof ALLOWED_CLIENT_EVENTS;
+  const allowedEvent = ALLOWED_CLIENT_EVENTS[operation];
+
+  if (body.level !== allowedEvent.level || body.errorCode !== allowedEvent.errorCode) return null;
+
+  if (operation === 'auth.magic_link') {
+    return { level: 'warn', operation, errorCode: 'AUTH_MAGIC_LINK_FAILED' };
+  }
+
+  return { level: 'warn', operation, errorCode: 'AUTH_SIGN_OUT_FAILED' };
 }
 
 export async function POST(request: NextRequest) {

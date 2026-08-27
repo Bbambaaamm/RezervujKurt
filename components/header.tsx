@@ -1,5 +1,7 @@
 "use client";
 
+import { developmentConsole } from '@/lib/services/development-console';
+
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -59,7 +61,7 @@ export function Header() {
         }
 
         setCurrentUserRole(role);
-        console.info(role === 'admin' ? 'header admin link visible' : 'header admin link hidden');
+        developmentConsole.info(role === 'admin' ? 'header admin link visible' : 'header admin link hidden');
       })
       .catch(() => {
         if (!isMounted) {
@@ -67,7 +69,7 @@ export function Header() {
         }
 
         setCurrentUserRole('anonymous');
-        console.info('header admin link hidden');
+        developmentConsole.info('header admin link hidden');
       });
 
     return () => {
@@ -80,7 +82,7 @@ export function Header() {
   }, [pathname]);
 
   async function handleMenuLogout() {
-    console.info('[auth] header logout clicked');
+    developmentConsole.info('[auth] header logout clicked');
     setIsLoggingOut(true);
 
     const { error } = await supabaseAuthClient.auth.signOut();

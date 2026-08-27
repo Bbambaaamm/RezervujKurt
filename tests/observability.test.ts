@@ -3,39 +3,33 @@ import assert from 'node:assert/strict';
 
 import { buildObservabilityEvent } from '../lib/services/observability';
 
-test('observability event rozlišuje prostředí a typ operace', () => {
+test('observability event uchová pouze povolené technické údaje', () => {
   const event = buildObservabilityEvent({
     level: 'error',
     environment: 'preview',
     operation: 'reservation.create',
-    message: 'Vytvoření rezervace selhalo.',
+    errorCode: 'RESERVATION_WRITE_FAILED',
     metadata: { status: 500 },
   });
 
   assert.equal(event.environment, 'staging');
   assert.equal(event.operation, 'reservation.create');
   assert.equal(event.level, 'error');
-  assert.equal(event.metadata.status, 500);
+  assert.equal(event.errorCode, 'RESERVATION_WRITE_FAILED');
+  assert.deepEqual(event.metadata, { status: 500 });
+  assert.equal('message' in event, false);
 });
 
-test('observability event rediguje citlivé hodnoty podle názvu klíče', () => {
+test('observability event nemá obecná metadata pro citlivé hodnoty', () => {
   const event = buildObservabilityEvent({
     level: 'warn',
     environment: 'production',
     operation: 'auth.magic_link',
-    message: 'Magic link selhal.',
-    metadata: {
-      accessToken: 'secret-token',
-      authorizationHeader: 'Bearer secret-token',
-      email: 'uzivatel@example.com',
-      userId: 'safe-user-id',
-      status: 429,
-    },
+    errorCode: 'AUTH_MAGIC_LINK_FAILED',
   });
 
-  assert.equal(event.metadata.accessToken, '[redacted]');
-  assert.equal(event.metadata.authorizationHeader, '[redacted]');
-  assert.equal(event.metadata.email, '[redacted]');
-  assert.equal(event.metadata.userId, 'safe-user-id');
-  assert.equal(event.metadata.status, 429);
+  const serialized = JSON.stringify(event);
+  assert.equal(serialized.includes('uzivatel@example.cz'), false);
+  assert.equal(serialized.includes('Bearer secret-access-token'), false);
+  assert.equal('metadata' in event, false);
 });

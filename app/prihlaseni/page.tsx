@@ -1,5 +1,7 @@
 "use client";
 
+import { developmentConsole } from '@/lib/services/development-console';
+
 import { FormEvent, useEffect, useState } from 'react';
 import { supabaseAuthClient, type AuthSession } from '@/lib/supabase/auth-client';
 import { buildEmailRedirectTo } from '@/lib/supabase/auth-redirect';
@@ -66,7 +68,7 @@ export default function LoginPage() {
     });
 
     if (process.env.NODE_ENV === 'development') {
-      console.info('[auth] Redirect base source:', {
+      developmentConsole.info('[auth] Redirect base source:', {
         from_env_redirect_url: Boolean(process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL?.trim()),
         from_env_auth_redirect_url: Boolean(process.env.NEXT_PUBLIC_SUPABASE_AUTH_REDIRECT_URL?.trim()),
         from_window_origin: !(process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL?.trim() || process.env.NEXT_PUBLIC_SUPABASE_AUTH_REDIRECT_URL?.trim()) && Boolean(typeof window !== 'undefined' ? window.location.origin : ''),
@@ -88,7 +90,7 @@ export default function LoginPage() {
     const emailRedirectTo = getMagicLinkRedirectUrl();
 
     if (process.env.NODE_ENV === 'development') {
-      console.info('[auth] Magic link redirect URL:', emailRedirectTo);
+      developmentConsole.info('[auth] Magic link redirect URL:', emailRedirectTo);
     }
 
     const { error: signInError } = await supabaseAuthClient.auth.signInWithOtp({
@@ -104,8 +106,7 @@ export default function LoginPage() {
       reportClientOperationalEvent({
         level: 'warn',
         operation: 'auth.magic_link',
-        message: 'Odeslání magic linku selhalo.',
-        metadata: { errorMessage: signInError.message },
+        errorCode: 'AUTH_MAGIC_LINK_FAILED',
       });
       setError(signInError.message || 'Přihlášení se nepodařilo. Zkontrolujte e-mail a zkuste to znovu.');
       return;
@@ -125,7 +126,7 @@ export default function LoginPage() {
       reportClientOperationalEvent({
         level: 'warn',
         operation: 'auth.sign_out',
-        message: 'Odhlášení uživatele selhalo.',
+        errorCode: 'AUTH_SIGN_OUT_FAILED',
       });
       setError('Odhlášení se nepodařilo. Zkuste to znovu.');
       return;

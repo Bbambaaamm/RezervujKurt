@@ -1,3 +1,4 @@
+import { developmentConsole } from '@/lib/services/development-console';
 import type { AuthSession } from '../supabase/auth-client';
 import { reportOperationalEvent } from './observability';
 import { getPragueReservationStartMs } from './reservation-time';
@@ -69,14 +70,13 @@ export async function cancelMyReservation(input: CancelMyReservationInput): Prom
     reportOperationalEvent({
       level: 'warn',
       operation: 'reservation.cancel',
-      message: 'Zrušení rezervace bylo odmítnuto kvůli chybějící session.',
-      metadata: { reservationId: input.reservationId },
+      errorCode: 'RESERVATION_SESSION_MISSING',
     });
     throw new ReservationUnauthorizedError('Nemáte oprávnění zrušit tuto rezervaci.');
   }
 
   if (process.env.NODE_ENV === 'development') {
-    console.info('my reservation cancel started', { reservationId: input.reservationId, userId });
+    developmentConsole.info('my reservation cancel started', { reservationId: input.reservationId, userId });
   }
 
   const endpoint = `${supabaseUrl}/rest/v1/reservations?id=eq.${input.reservationId}&user_id=eq.${userId}&status=in.(pending,approved)`;
@@ -100,7 +100,7 @@ export async function cancelMyReservation(input: CancelMyReservationInput): Prom
 
     if (!responseBody || isZeroAffectedByRange) {
       if (process.env.NODE_ENV === 'development') {
-        console.info('my reservation cancel stale', { reservationId: input.reservationId, userId });
+        developmentConsole.info('my reservation cancel stale', { reservationId: input.reservationId, userId });
       }
       throw new ReservationNoLongerPendingError('Rezervaci už není možné zrušit.');
     }
@@ -109,7 +109,7 @@ export async function cancelMyReservation(input: CancelMyReservationInput): Prom
       const parsed = JSON.parse(responseBody) as unknown;
       if (Array.isArray(parsed) && parsed.length === 0) {
         if (process.env.NODE_ENV === 'development') {
-          console.info('my reservation cancel stale', { reservationId: input.reservationId, userId });
+          developmentConsole.info('my reservation cancel stale', { reservationId: input.reservationId, userId });
         }
         throw new ReservationNoLongerPendingError('Rezervaci už není možné zrušit.');
       }
@@ -120,7 +120,7 @@ export async function cancelMyReservation(input: CancelMyReservationInput): Prom
     }
 
     if (process.env.NODE_ENV === 'development') {
-      console.info('my reservation cancel success', { reservationId: input.reservationId, userId });
+      developmentConsole.info('my reservation cancel success', { reservationId: input.reservationId, userId });
     }
 
     return;
@@ -136,14 +136,14 @@ export async function cancelMyReservation(input: CancelMyReservationInput): Prom
   });
 
   if (process.env.NODE_ENV === 'development') {
-    console.info('my reservation cancel failed', { reservationId: input.reservationId, userId, status: response.status });
+    developmentConsole.info('my reservation cancel failed', { reservationId: input.reservationId, userId, status: response.status });
   }
 
   reportOperationalEvent({
     level: 'error',
     operation: 'reservation.cancel',
-    message: 'Zrušení rezervace uživatelem selhalo.',
-    metadata: { reservationId: input.reservationId, userId, status: response.status },
+    errorCode: 'RESERVATION_CANCEL_FAILED',
+    metadata: { status: response.status },
   });
 
   if (mappedError instanceof ReservationUnauthorizedError) {

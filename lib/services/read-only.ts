@@ -1,3 +1,4 @@
+import { developmentConsole } from '@/lib/services/development-console';
 import type { Court, Reservation, ReservationStatus } from '@/lib/types/domain';
 import type { AuthSession } from '../supabase/auth-client';
 import { ReservationUnauthorizedError } from './supabase-error-mapping';
@@ -92,7 +93,7 @@ async function getPrivateReservationNotes(date: string, accessToken: string) {
   const endpoint = `reservation_member_occupancy_notes?select=court_id,reservation_date,time_from,time_to,status,note&reservation_date=eq.${date}&status=in.(waiting_for_payment,pending,approved)&order=time_from.asc`;
 
   if (process.env.NODE_ENV === 'development') {
-    console.info('getPrivateReservationNotes request', { date, endpoint });
+    developmentConsole.info('getPrivateReservationNotes request', { date, endpoint });
   }
 
   return supabaseSelectWithAccessToken<ReservationRow>(endpoint, accessToken);
@@ -169,7 +170,7 @@ function mapReservationOverview(row: ReservationOverviewRow): ReservationOvervie
 
 function logSupabaseRequestFailure(error: unknown) {
   if (error instanceof SupabaseNetworkError) {
-    console.error('admin reservations read network failure', {
+    developmentConsole.error('admin reservations read network failure', {
       endpoint: error.endpoint,
       cause: error.causeError,
     });
@@ -177,7 +178,7 @@ function logSupabaseRequestFailure(error: unknown) {
   }
 
   if (error instanceof SupabaseRequestError) {
-    console.error('admin reservations read failed', {
+    developmentConsole.error('admin reservations read failed', {
       endpoint: error.endpoint,
       status: error.status,
       responseBody: error.responseBody,
@@ -185,7 +186,7 @@ function logSupabaseRequestFailure(error: unknown) {
     return;
   }
 
-  console.error('admin reservations read failed', {
+  developmentConsole.error('admin reservations read failed', {
     error,
   });
 }
@@ -194,13 +195,13 @@ export async function getCourtsReadOnly() {
   const endpoint = 'courts?select=id,name,surface,is_active&is_active=eq.true&order=id.asc';
 
   if (process.env.NODE_ENV === 'development') {
-    console.info('getCourtsReadOnly request', { endpoint });
+    developmentConsole.info('getCourtsReadOnly request', { endpoint });
   }
 
   const rows = await supabaseSelect<CourtRow>(endpoint);
 
   if (process.env.NODE_ENV === 'development') {
-    console.info('getCourtsReadOnly loaded', { rawCount: rows.length, mappedCount: rows.length });
+    developmentConsole.info('getCourtsReadOnly loaded', { rawCount: rows.length, mappedCount: rows.length });
   }
 
   return rows.map(mapCourt);
@@ -210,7 +211,7 @@ export async function getReservationsReadOnly(date: string, accessToken?: string
   const endpoint = `reservation_public_occupancy?select=court_id,reservation_date,time_from,time_to,status&reservation_date=eq.${date}&status=in.(waiting_for_payment,pending,approved)&order=time_from.asc`;
 
   if (process.env.NODE_ENV === 'development') {
-    console.info('getReservationsReadOnly request', { date, endpoint });
+    developmentConsole.info('getReservationsReadOnly request', { date, endpoint });
   }
 
   const publicRows = await supabaseSelect<ReservationRow>(endpoint);
@@ -221,13 +222,13 @@ export async function getReservationsReadOnly(date: string, accessToken?: string
       rows = mergeReservationNotes(publicRows, await getPrivateReservationNotes(date, accessToken));
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        console.warn('private reservation notes unavailable, rendering public occupancy without notes', { date, error });
+        developmentConsole.warn('private reservation notes unavailable, rendering public occupancy without notes', { date, error });
       }
     }
   }
 
   if (process.env.NODE_ENV === 'development') {
-    console.info('getReservationsReadOnly loaded', { date, rawCount: rows.length, mappedCount: rows.length });
+    developmentConsole.info('getReservationsReadOnly loaded', { date, rawCount: rows.length, mappedCount: rows.length });
   }
 
   return rows.map(mapReservation);
@@ -243,7 +244,7 @@ async function getReservationsOverviewByEndpoint(endpoint: string, accessToken: 
     const courtRows = courtIds.length
       ? await (async () => {
           const courtsEndpoint = `courts?select=id,name&id=in.(${courtIds.join(',')})`;
-          console.info('Admin courts lookup request.', { endpoint: courtsEndpoint });
+          developmentConsole.info('Admin courts lookup request.', { endpoint: courtsEndpoint });
           return supabaseSelectWithAccessToken<PendingCourtRow>(courtsEndpoint, accessToken);
         })()
       : [];
@@ -252,7 +253,7 @@ async function getReservationsOverviewByEndpoint(endpoint: string, accessToken: 
       ? await (async () => {
           const quotedUserIds = userIds.map((id) => `"${id}"`).join(',');
           const profilesEndpoint = `profiles?select=id,full_name,email,role&id=in.(${quotedUserIds})`;
-          console.info('Admin profiles lookup request.', { endpoint: profilesEndpoint });
+          developmentConsole.info('Admin profiles lookup request.', { endpoint: profilesEndpoint });
           return supabaseSelectWithAccessToken<PendingProfileRow>(profilesEndpoint, accessToken);
         })()
       : [];
@@ -288,7 +289,7 @@ async function getCourtNamesByIdsWithSession(courtIds: number[], accessToken: st
   const endpoint = `courts?select=id,name&id=in.(${courtIds.join(',')})`;
 
   if (process.env.NODE_ENV === 'development') {
-    console.info('my reservations courts lookup request', { endpoint });
+    developmentConsole.info('my reservations courts lookup request', { endpoint });
   }
 
   const rows = await supabaseSelectWithAccessToken<CourtNameRow>(endpoint, accessToken);
@@ -298,12 +299,12 @@ async function getCourtNamesByIdsWithSession(courtIds: number[], accessToken: st
 
 export async function getMyReservationsReadOnly(session: AuthSession | null) {
   if (process.env.NODE_ENV === 'development') {
-    console.info('my reservations loading');
+    developmentConsole.info('my reservations loading');
   }
 
   if (!session?.user?.id || !session.access_token) {
     if (process.env.NODE_ENV === 'development') {
-      console.info('my reservations unauthorized');
+      developmentConsole.info('my reservations unauthorized');
     }
     throw new ReservationUnauthorizedError('Pro zobrazení rezervací je potřeba přihlášení.');
   }
@@ -318,13 +319,13 @@ export async function getMyReservationsReadOnly(session: AuthSession | null) {
       courtsById = await getCourtNamesByIdsWithSession(courtIds, session.access_token);
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        console.warn('my reservations courts lookup unavailable, rendering fallback court names', { error });
+        developmentConsole.warn('my reservations courts lookup unavailable, rendering fallback court names', { error });
       }
     }
   }
 
   if (process.env.NODE_ENV === 'development') {
-    console.info('my reservations loaded', { count: rows.length });
+    developmentConsole.info('my reservations loaded', { count: rows.length });
   }
 
   return rows.map((row) => ({
@@ -335,7 +336,7 @@ export async function getMyReservationsReadOnly(session: AuthSession | null) {
 
 export async function getPendingReservationsReadOnlyWithSession(accessToken: string) {
   if (process.env.NODE_ENV === 'development') {
-    console.info('admin pending reservations request started');
+    developmentConsole.info('admin pending reservations request started');
   }
 
   const reservationsEndpoint =
@@ -343,7 +344,7 @@ export async function getPendingReservationsReadOnlyWithSession(accessToken: str
   const loadedReservations = await getReservationsOverviewByEndpoint(reservationsEndpoint, accessToken);
 
   if (process.env.NODE_ENV === 'development') {
-    console.info('admin pending reservations loaded', { count: loadedReservations.length });
+    developmentConsole.info('admin pending reservations loaded', { count: loadedReservations.length });
   }
 
   return loadedReservations;
@@ -351,7 +352,7 @@ export async function getPendingReservationsReadOnlyWithSession(accessToken: str
 
 export async function getAdminReservationsReadOnlyWithSession(accessToken: string) {
   if (process.env.NODE_ENV === 'development') {
-    console.info('admin reservations request started');
+    developmentConsole.info('admin reservations request started');
   }
 
   const reservationsEndpoint =
@@ -359,7 +360,7 @@ export async function getAdminReservationsReadOnlyWithSession(accessToken: strin
   const loadedReservations = await getReservationsOverviewByEndpoint(reservationsEndpoint, accessToken);
 
   if (process.env.NODE_ENV === 'development') {
-    console.info('admin reservations loaded', { count: loadedReservations.length });
+    developmentConsole.info('admin reservations loaded', { count: loadedReservations.length });
   }
 
   return loadedReservations;

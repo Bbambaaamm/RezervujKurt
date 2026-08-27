@@ -1,3 +1,4 @@
+import { developmentConsole } from '@/lib/services/development-console';
 import { NextRequest, NextResponse } from 'next/server';
 import {
   extractBearerToken,
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Přihlášení pro platební rezervaci není platné.' }, { status: 401 });
     }
 
-    console.error('GoPay create endpoint selhal bezpečně fail-closed.', { error });
+    developmentConsole.error('GoPay create endpoint selhal bezpečně fail-closed.', { error });
     return NextResponse.json({ error: 'Platební flow je dočasně nedostupné.' }, { status: 503 });
   }
 
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
     { authenticatedUser, body },
     {
       requireGoPayCreateEnabled: requireGoPayCreateEnabledFromDatabase,
-      reportUnexpectedError: (error) => console.error('GoPay create endpoint selhal bezpečně fail-closed.', { error }),
+      reportUnexpectedError: (error) => developmentConsole.error('GoPay create endpoint selhal bezpečně fail-closed.', { error }),
     },
   );
 

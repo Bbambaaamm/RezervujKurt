@@ -1,5 +1,7 @@
 "use client";
 
+import { developmentConsole } from '@/lib/services/development-console';
+
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -152,7 +154,7 @@ export function HomePage() {
       } catch (error) {
         if (!active) return;
 
-        console.warn('homepage quick reservation status unavailable', error);
+        developmentConsole.warn('homepage quick reservation status unavailable', error);
         setQuickStatus([]);
         setQuickStatusError('Rychlý stav se teď nepodařilo načíst. Rezervace samotné jsou dostupné v detailním přehledu.');
       } finally {
@@ -183,7 +185,7 @@ export function HomePage() {
         setTournamentsError(null);
       } catch (error) {
         if (!active) return;
-        console.warn('homepage tournaments unavailable', error);
+        developmentConsole.warn('homepage tournaments unavailable', error);
         setTournaments([]);
         setTournamentsError('Turnaje se teď nepodařilo načíst. Zkuste to prosím později.');
       } finally {
