@@ -22,11 +22,11 @@ test("signup větev používá českou potvrzovací šablonu", () => {
   assert.match(confirmationTemplate, /Vytvořit účet a přihlásit se/);
 });
 
-test("signup šablona vysvětluje zpracování e-mailu a odkazuje na ochranu osobních údajů", () => {
+test("signup šablona vysvětluje použití e-mailu bez odkazu na neaktivní privacy route", () => {
   assert.match(confirmationTemplate, /e-mail používáme pouze pro přihlášení, správu účtu a rezervací/);
   assert.match(confirmationTemplate, /Nepoužíváme jej k marketingu/);
-  assert.match(confirmationTemplate, /href="\{\{ \.SiteURL \}\}\/ochrana-osobnich-udaju"/);
-  assert.match(confirmationTemplate, /Kliknutím na odkaz potvrzujete, že jste se seznámili/);
+  assert.match(confirmationTemplate, /Kliknutím na odkaz potvrzujete, že jste se seznámili s výše uvedenými informacemi o použití e-mailu/);
+  assert.doesNotMatch(confirmationTemplate, /ochrana-osobnich-udaju|\.SiteURL/);
   assert.doesNotMatch(confirmationTemplate, /souhlasíte se zpracováním/i);
   assert.match(confirmationTemplate, /tento e-mail můžete ignorovat/);
 });
