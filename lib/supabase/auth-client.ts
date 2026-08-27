@@ -1,4 +1,4 @@
-import { developmentConsole } from '@/lib/services/development-console';
+import { developmentConsole } from '../services/development-console';
 import { buildOtpPayload, buildSupabaseOtpEndpoint, getOtpFailureMessage, getSupabaseOtpRequestConfig, resolveOtpEndpoint } from '@/lib/supabase/otp-proxy';
 
 export type AuthSession = {

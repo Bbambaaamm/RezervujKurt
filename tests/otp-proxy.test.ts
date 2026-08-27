@@ -57,14 +57,14 @@ test('diagnostika non-2xx čte status a body response', async () => {
 });
 
 test('v Codespaces development runtime se aktivuje OTP proxy', () => {
-  Object.defineProperty(process.env, 'NODE_ENV', { value: 'development', configurable: true, writable: true });
+  (process.env as { NODE_ENV?: string }).NODE_ENV = 'development';
 
   assert.equal(shouldUseOtpProxyForRuntime('https://space-3000.app.github.dev'), true);
   assert.equal(shouldUseOtpProxyForRuntime('http://localhost:3000'), false);
 });
 
 test('klient v Codespaces dev nepoužije cross-origin endpoint přímo', () => {
-  Object.defineProperty(process.env, 'NODE_ENV', { value: 'development', configurable: true, writable: true });
+  (process.env as { NODE_ENV?: string }).NODE_ENV = 'development';
   const endpoint = resolveOtpEndpoint('https://example.supabase.local/auth/v1/otp', 'https://space-3000.app.github.dev');
   assert.equal(endpoint, '/api/auth/otp');
 });

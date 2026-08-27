@@ -8,7 +8,7 @@ test('vývojový logger nepropustí e-mail, token, Authorization ani Error.messa
   const originalError = console.error;
   const loggedValues: unknown[][] = [];
 
-  Object.defineProperty(process.env, 'NODE_ENV', { value: 'development', configurable: true, writable: true });
+  (process.env as { NODE_ENV?: string }).NODE_ENV = 'development';
   console.error = (...values: unknown[]) => loggedValues.push(values);
 
   try {
@@ -28,6 +28,6 @@ test('vývojový logger nepropustí e-mail, token, Authorization ani Error.messa
     assert.equal(serialized.includes('401'), true);
   } finally {
     console.error = originalError;
-    Object.defineProperty(process.env, 'NODE_ENV', { value: originalEnvironment, configurable: true, writable: true });
+    (process.env as { NODE_ENV?: string }).NODE_ENV = originalEnvironment;
   }
 });

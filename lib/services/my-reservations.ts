@@ -1,4 +1,4 @@
-import { developmentConsole } from '@/lib/services/development-console';
+import { developmentConsole } from './development-console';
 import type { AuthSession } from '../supabase/auth-client';
 import { reportOperationalEvent } from './observability';
 import { getPragueReservationStartMs } from './reservation-time';

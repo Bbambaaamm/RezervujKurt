@@ -1,4 +1,4 @@
-import { developmentConsole } from '@/lib/services/development-console';
+import { developmentConsole } from '../services/development-console';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 

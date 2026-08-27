@@ -1,4 +1,4 @@
-import { developmentConsole } from '@/lib/services/development-console';
+import { developmentConsole } from './development-console';
 import type { Court, Reservation, ReservationStatus } from '@/lib/types/domain';
 import type { AuthSession } from '../supabase/auth-client';
 import { ReservationUnauthorizedError } from './supabase-error-mapping';

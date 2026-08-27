@@ -1,4 +1,4 @@
-import { developmentConsole } from '@/lib/services/development-console';
+import { developmentConsole } from './development-console';
 import { mapReservationWriteError, ReservationNoLongerPendingError } from './supabase-error-mapping';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

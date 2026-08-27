@@ -1,4 +1,4 @@
-import { developmentConsole } from '@/lib/services/development-console';
+import { developmentConsole } from './development-console';
 import { SupabaseRequestError } from '../supabase/client';
 import { reportOperationalEvent } from './observability';
 
