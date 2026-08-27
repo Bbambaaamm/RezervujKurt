@@ -22,5 +22,11 @@ enable_confirmations = false
 subject = "Přihlášení do RezervujKurt"
 content_path = "./supabase/templates/magic_link.html"
 
+# Nový uživatel prochází signup větví Auth ještě před vytvořením public.profiles.
+# Proto musí být česky i potvrzovací šablona, nejen šablona pro existující účet.
+[auth.email.template.confirmation]
+subject = "Přihlášení do RezervujKurt"
+content_path = "./supabase/templates/confirmation.html"
+
 [functions.process-notification-outbox]
 verify_jwt = true
