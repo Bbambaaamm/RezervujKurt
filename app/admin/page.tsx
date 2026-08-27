@@ -1,5 +1,7 @@
 "use client";
 
+import { developmentConsole } from '@/lib/services/development-console';
+
 import Link from 'next/link';
 import { useEffect, useState, type FormEvent } from 'react';
 
@@ -116,23 +118,23 @@ export default function AdminPage() {
         setUserRole(nextRole);
 
         if (nextRole === 'anonymous') {
-          console.info('admin guard: anonymous');
+          developmentConsole.info('admin guard: anonymous');
         } else if (nextRole === 'admin') {
-          console.info('admin guard: admin');
+          developmentConsole.info('admin guard: admin');
         } else if (nextRole === 'member') {
-          console.info('admin guard: member');
+          developmentConsole.info('admin guard: member');
         } else {
-          console.info('admin guard: user');
+          developmentConsole.info('admin guard: user');
         }
 
         if (process.env.NODE_ENV === 'development') {
-          console.info('admin authorization verification passed', { state: resolveAdminGuardState(nextRole) });
+          developmentConsole.info('admin authorization verification passed', { state: resolveAdminGuardState(nextRole) });
         }
       } catch (guardError) {
         if (!active) return;
         setUserRole('anonymous');
         setError('Ověření přístupu do administrace selhalo. Zkuste to prosím znovu.');
-        console.error('Admin guard check failed.', guardError);
+        developmentConsole.error('Admin guard check failed.', guardError);
       } finally {
         if (active) setIsSessionChecked(true);
       }
@@ -186,18 +188,18 @@ export default function AdminPage() {
         } else {
           setTournaments([]);
           setTournamentMessage('Turnaje se nepodařilo načíst. Rezervace v administraci zůstávají dostupné.');
-          console.warn('Admin tournaments load failed.', tournamentsResult.reason);
+          developmentConsole.warn('Admin tournaments load failed.', tournamentsResult.reason);
         }
 
         if (process.env.NODE_ENV === 'development') {
-          console.info('admin reservations loaded', { count: pendingResult.value.length });
+          developmentConsole.info('admin reservations loaded', { count: pendingResult.value.length });
         }
       } catch (loadError) {
         if (!active) return;
         setError('Načtení čekajících rezervací se nepodařilo. Zkuste to prosím později.');
 
         if (loadError instanceof SupabaseRequestError) {
-          console.error('Admin pending reservations load failed.', {
+          developmentConsole.error('Admin pending reservations load failed.', {
             endpoint: loadError.endpoint,
             status: loadError.status,
             responseBody: loadError.responseBody,
@@ -207,7 +209,7 @@ export default function AdminPage() {
           return;
         }
 
-        console.error('Admin pending reservations load failed.', {
+        developmentConsole.error('Admin pending reservations load failed.', {
           endpoint: 'n/a',
           status: 'n/a',
           responseBody: 'n/a',
@@ -269,7 +271,7 @@ export default function AdminPage() {
       setEditedTournamentId(null);
       setTournamentMessage(editedTournamentId ? 'Turnaj byl upraven.' : 'Turnaj byl vytvořen.');
     } catch (tournamentError) {
-      console.error('tournament save failed', tournamentError);
+      developmentConsole.error('tournament save failed', tournamentError);
       setTournamentMessage(tournamentError instanceof Error ? tournamentError.message : 'Uložení turnaje se nepodařilo.');
     } finally {
       setIsTournamentSaving(false);
@@ -286,7 +288,7 @@ export default function AdminPage() {
       await reloadTournaments(accessToken);
       setTournamentMessage('Turnaj byl zrušen.');
     } catch (tournamentError) {
-      console.error('tournament delete failed', tournamentError);
+      developmentConsole.error('tournament delete failed', tournamentError);
       setTournamentMessage('Zrušení turnaje se nepodařilo.');
     }
   }
@@ -296,14 +298,14 @@ export default function AdminPage() {
     const startedMessage = action === 'approve' ? 'admin approve started' : 'admin cancel started';
     const successMessage = action === 'approve' ? 'admin approve success' : 'admin cancel success';
 
-    console.info(startedMessage, { reservationId });
+    developmentConsole.info(startedMessage, { reservationId });
 
     if (action === 'cancel') {
       const currentReservation = [...reservations, ...adminReservations].find((reservation) => reservation.id === reservationId);
 
       if (currentReservation && !canAdminCancelReservation(currentReservation)) {
         setError('Proběhlou rezervaci už není potřeba rušit.');
-        console.info('admin cancel skipped for past reservation', { reservationId });
+        developmentConsole.info('admin cancel skipped for past reservation', { reservationId });
         return;
       }
     }
@@ -332,9 +334,9 @@ export default function AdminPage() {
       ]);
       setReservations(loadedReservations);
       setAdminReservations(loadedAdminReservations);
-      console.info(successMessage, { reservationId });
+      developmentConsole.info(successMessage, { reservationId });
     } catch (actionError) {
-      console.error('admin action failed', {
+      developmentConsole.error('admin action failed', {
         reservationId,
         action,
         errorName: getErrorName(actionError),
@@ -345,7 +347,7 @@ export default function AdminPage() {
         setError('Nemáte oprávnění provést tuto admin akci.');
       } else if (actionError instanceof ReservationNoLongerPendingError) {
         setError('Rezervace už není ve stavu, který lze změnit.');
-        console.info('admin stale pending detected', { reservationId, action });
+        developmentConsole.info('admin stale pending detected', { reservationId, action });
         const { data } = await supabaseAuthClient.auth.getSession();
         const refreshedAccessToken = data.session?.access_token;
 
@@ -361,7 +363,7 @@ export default function AdminPage() {
         ]);
         setReservations(loadedReservations);
         setAdminReservations(loadedAdminReservations);
-        console.info('admin stale pending refresh', { reservationId, count: loadedReservations.length });
+        developmentConsole.info('admin stale pending refresh', { reservationId, count: loadedReservations.length });
       } else if (actionError instanceof ReservationValidationError) {
         setError('Rezervaci se nepodařilo změnit. Zkontrolujte prosím její aktuální stav.');
       } else if (actionError instanceof SupabaseRequestError) {
@@ -493,7 +495,7 @@ export default function AdminPage() {
             <tbody>
               {reservations.map((reservation) => {
                 if (process.env.NODE_ENV === 'development') {
-                  console.info('admin pending timestamp rendered', { reservationId: reservation.id });
+                  developmentConsole.info('admin pending timestamp rendered', { reservationId: reservation.id });
                 }
 
                 return (
@@ -667,7 +669,7 @@ export default function AdminPage() {
                 <tbody>
                   {upcomingReservations.map((reservation) => {
                     if (process.env.NODE_ENV === 'development') {
-                      console.info('admin reservation history timestamp rendered', { reservationId: reservation.id });
+                      developmentConsole.info('admin reservation history timestamp rendered', { reservationId: reservation.id });
                     }
 
                     return (

@@ -1,3 +1,4 @@
+import { developmentConsole } from './development-console';
 import { mapReservationWriteError, ReservationNoLongerPendingError } from './supabase-error-mapping';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -204,7 +205,7 @@ export async function checkReservationSlotAvailability(input: ReservationAvailab
   endpoint.searchParams.set('status', getOccupyingReservationStatusFilter());
 
   if (process.env.NODE_ENV === 'development') {
-    console.info('public occupancy request started', { courtId: input.courtId, reservationDate: input.reservationDate });
+    developmentConsole.info('public occupancy request started', { courtId: input.courtId, reservationDate: input.reservationDate });
   }
 
   const response = await fetch(endpoint.toString(), {
@@ -219,7 +220,7 @@ export async function checkReservationSlotAvailability(input: ReservationAvailab
   if (!response.ok) {
     const responseBody = await response.text();
     if (process.env.NODE_ENV === 'development') {
-      console.error('availability read failed', {
+      developmentConsole.error('availability read failed', {
         endpoint: endpoint.toString(),
         status: response.status,
         responseBody,
@@ -243,7 +244,7 @@ export async function checkReservationSlotAvailability(input: ReservationAvailab
   const rows = JSON.parse(responseBody) as ReservationAvailabilityRow[];
 
   if (process.env.NODE_ENV === 'development') {
-    console.info('public occupancy loaded', { courtId: input.courtId, reservationDate: input.reservationDate, count: rows.length });
+    developmentConsole.info('public occupancy loaded', { courtId: input.courtId, reservationDate: input.reservationDate, count: rows.length });
   }
 
   const hasConflict = rows.some(

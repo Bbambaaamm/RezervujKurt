@@ -1,15 +1,41 @@
-type ObservabilityEnvironment = 'development' | 'staging' | 'production' | 'test' | 'unknown';
-type ObservabilityLevel = 'info' | 'warn' | 'error';
+export type ObservabilityEnvironment = 'development' | 'staging' | 'production' | 'test' | 'unknown';
+export type ObservabilityLevel = 'info' | 'warn' | 'error';
+export type ObservabilityOperation =
+  | 'auth.magic_link'
+  | 'auth.sign_out'
+  | 'reservation.create'
+  | 'reservation.update'
+  | 'reservation.cancel';
+export type ObservabilityErrorCode =
+  | 'AUTH_MAGIC_LINK_FAILED'
+  | 'AUTH_SIGN_OUT_FAILED'
+  | 'RESERVATION_SESSION_MISSING'
+  | 'RESERVATION_WRITE_FAILED'
+  | 'RESERVATION_CANCEL_FAILED';
 
-type ObservabilityEventInput = {
-  level: ObservabilityLevel;
-  operation: string;
-  message: string;
-  environment?: string;
-  metadata?: Record<string, unknown>;
+export type ObservabilityMetadata = {
+  status?: number;
 };
 
-const SENSITIVE_KEY_PATTERN = /(token|secret|key|authorization|magic|otp|password|email)/i;
+export type ObservabilityEventInput = {
+  environment?: string;
+} & (
+  | { level: 'warn'; operation: 'auth.magic_link'; errorCode: 'AUTH_MAGIC_LINK_FAILED' }
+  | { level: 'warn'; operation: 'auth.sign_out'; errorCode: 'AUTH_SIGN_OUT_FAILED' }
+  | { level: 'warn'; operation: 'reservation.cancel'; errorCode: 'RESERVATION_SESSION_MISSING' }
+  | {
+      level: 'error';
+      operation: 'reservation.create' | 'reservation.update';
+      errorCode: 'RESERVATION_WRITE_FAILED';
+      metadata?: ObservabilityMetadata;
+    }
+  | {
+      level: 'error';
+      operation: 'reservation.cancel';
+      errorCode: 'RESERVATION_CANCEL_FAILED';
+      metadata?: ObservabilityMetadata;
+    }
+);
 
 function resolveRuntimeEnvironment(value = process.env.NEXT_PUBLIC_APP_ENV ?? process.env.VERCEL_ENV ?? process.env.NODE_ENV): ObservabilityEnvironment {
   if (value === 'development' || value === 'staging' || value === 'production' || value === 'test') {
@@ -23,25 +49,16 @@ function resolveRuntimeEnvironment(value = process.env.NEXT_PUBLIC_APP_ENV ?? pr
   return 'unknown';
 }
 
-function sanitizeObservabilityMetadata(metadata: Record<string, unknown> | undefined): Record<string, unknown> {
-  if (!metadata) return {};
-
-  return Object.fromEntries(
-    Object.entries(metadata).map(([key, value]) => [
-      key,
-      SENSITIVE_KEY_PATTERN.test(key) ? '[redacted]' : value,
-    ]),
-  );
-}
-
 export function buildObservabilityEvent(input: ObservabilityEventInput) {
+  const status = 'metadata' in input ? input.metadata?.status : undefined;
+
   return {
-    event: 'rezervuj_kurt.observability',
+    event: 'rezervuj_kurt.observability' as const,
     level: input.level,
     environment: resolveRuntimeEnvironment(input.environment),
     operation: input.operation,
-    message: input.message,
-    metadata: sanitizeObservabilityMetadata(input.metadata),
+    errorCode: input.errorCode,
+    ...(status !== undefined ? { metadata: { status } } : {}),
     timestamp: new Date().toISOString(),
   };
 }

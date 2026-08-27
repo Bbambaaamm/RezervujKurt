@@ -1,3 +1,4 @@
+import { developmentConsole } from './development-console';
 import { SupabaseRequestError } from '../supabase/client';
 import { reportOperationalEvent } from './observability';
 
@@ -33,14 +34,14 @@ export function mapReservationWriteError(params: {
   const errorCode = extractSupabaseErrorCode(responseBody);
 
   if (process.env.NODE_ENV === 'development') {
-    console.error('[reservation-write] raw supabase error', { status, statusText, endpoint, errorCode, responseBody });
+    developmentConsole.error('[reservation-write] raw supabase error', { status, statusText, endpoint, errorCode, responseBody });
   }
 
   reportOperationalEvent({
     level: 'error',
     operation: `reservation.${operation}`,
-    message: 'Zápis rezervace do Supabase selhal.',
-    metadata: { status, statusText, endpoint, errorCode },
+    errorCode: 'RESERVATION_WRITE_FAILED',
+    metadata: { status },
   });
 
   if (status === 401 || status === 403 || errorCode === '42501') {

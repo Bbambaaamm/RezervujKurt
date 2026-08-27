@@ -1,9 +1,14 @@
-type ClientOperationalEventInput = {
-  level: 'info' | 'warn' | 'error';
-  operation: 'auth.magic_link' | 'auth.sign_out';
-  message: string;
-  metadata?: Record<string, unknown>;
-};
+type ClientOperationalEventInput =
+  | {
+      level: 'warn';
+      operation: 'auth.magic_link';
+      errorCode: 'AUTH_MAGIC_LINK_FAILED';
+    }
+  | {
+      level: 'warn';
+      operation: 'auth.sign_out';
+      errorCode: 'AUTH_SIGN_OUT_FAILED';
+    };
 
 export function reportClientOperationalEvent(input: ClientOperationalEventInput): void {
   fetch('/api/observability', {

@@ -1,5 +1,7 @@
 "use client";
 
+import { developmentConsole } from '@/lib/services/development-console';
+
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ReservationGrid } from '@/components/reservation-grid';
@@ -85,9 +87,9 @@ export default function ReservationPage() {
     supabaseAuthClient.auth.getSession().then(({ data }) => {
       if (process.env.NODE_ENV === 'development') {
         if (data.session) {
-          console.info('[auth] session found');
+          developmentConsole.info('[auth] session found');
         } else {
-          console.info('[auth] session missing');
+          developmentConsole.info('[auth] session missing');
         }
       }
       setSessionToken(data.session?.access_token ?? null);
@@ -102,7 +104,7 @@ export default function ReservationPage() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  useEffect(() => { /* existing */ let active = true; async function loadCourts() { try { const loadedCourts = await getCourtsReadOnly(); if (active && loadedCourts.length > 0) { setCourts(loadedCourts); setCourtId(String(loadedCourts[0].id)); setCourtsSourceMode('supabase'); } } catch (error) { if (active) { setCourts(fallbackCourts); setCourtsSourceMode('mock fallback'); } if (error instanceof SupabaseRequestError) { console.error('[DEV fallback] Načtení kurtů ze Supabase selhalo, používám fallback data.', { endpoint: error.endpoint, status: error.status, response: error.responseBody, }); return; } console.error('[DEV fallback] Načtení kurtů ze Supabase selhalo, používám fallback data.', error); }} loadCourts(); return () => { active = false; }; }, []);
+  useEffect(() => { /* existing */ let active = true; async function loadCourts() { try { const loadedCourts = await getCourtsReadOnly(); if (active && loadedCourts.length > 0) { setCourts(loadedCourts); setCourtId(String(loadedCourts[0].id)); setCourtsSourceMode('supabase'); } } catch (error) { if (active) { setCourts(fallbackCourts); setCourtsSourceMode('mock fallback'); } if (error instanceof SupabaseRequestError) { developmentConsole.error('[DEV fallback] Načtení kurtů ze Supabase selhalo, používám fallback data.', { endpoint: error.endpoint, status: error.status, response: error.responseBody, }); return; } developmentConsole.error('[DEV fallback] Načtení kurtů ze Supabase selhalo, používám fallback data.', error); }} loadCourts(); return () => { active = false; }; }, []);
 
   const reservationsReloadRequestRef = useRef(0);
 
@@ -110,7 +112,7 @@ export default function ReservationPage() {
     const requestId = ++reservationsReloadRequestRef.current;
 
     if (process.env.NODE_ENV === 'development') {
-      console.info('reservation reload started', { date, requestId });
+      developmentConsole.info('reservation reload started', { date, requestId });
     }
 
     try {
@@ -125,7 +127,7 @@ export default function ReservationPage() {
       setReservationsLoadError(null);
 
       if (process.env.NODE_ENV === 'development') {
-        console.info('reservation grid loaded public occupancy', { date, requestId, count: loadedReservations.length });
+        developmentConsole.info('reservation grid loaded public occupancy', { date, requestId, count: loadedReservations.length });
       }
     } catch (error) {
       if (requestId !== reservationsReloadRequestRef.current) {
@@ -136,7 +138,7 @@ export default function ReservationPage() {
         setReservations(fallbackReservations.filter((reservation) => reservation.date === date));
         setReservationsSourceMode('mock fallback');
         setReservationsLoadError(null);
-        console.warn('[DEV fallback] public occupancy request failed, používám fallback data', { date, requestId, error });
+        developmentConsole.warn('[DEV fallback] public occupancy request failed, používám fallback data', { date, requestId, error });
         return;
       }
 
@@ -144,7 +146,7 @@ export default function ReservationPage() {
       setReservationsSourceMode('supabase');
       setReservationsLoadError(getReservationAvailabilityLoadErrorMessage());
       setSelectionReady(false);
-      console.error('public occupancy request failed, rezervace jsou zablokované do ověření dostupnosti', { date, requestId, error });
+      developmentConsole.error('public occupancy request failed, rezervace jsou zablokované do ověření dostupnosti', { date, requestId, error });
     }
   }, []);
 
@@ -163,7 +165,7 @@ export default function ReservationPage() {
         setSelectedTournaments(loadedTournaments);
       } catch (error) {
         if (!active) return;
-        console.warn('selected date tournaments unavailable', { selectedDate, error });
+        developmentConsole.warn('selected date tournaments unavailable', { selectedDate, error });
         setSelectedTournaments([]);
       }
     }
@@ -177,7 +179,7 @@ export default function ReservationPage() {
 
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      console.info('reservation page passing reservations to grid', { count: reservations.length, sample: reservations.slice(0, 3) });
+      developmentConsole.info('reservation page passing reservations to grid', { count: reservations.length, sample: reservations.slice(0, 3) });
     }
   }, [reservations]);
 
@@ -185,7 +187,7 @@ export default function ReservationPage() {
   const gridSelection = selectionReady && !selectedStartIsPast ? { courtId: Number(courtId), timeFrom, timeTo } : null;
 
   if (process.env.NODE_ENV === 'development') {
-    console.info('reservation page grid selection debug', {
+    developmentConsole.info('reservation page grid selection debug', {
       selectedCourtId: courtId,
       selectedTimeFrom: timeFrom,
       selectedTimeTo: timeTo,
@@ -200,9 +202,9 @@ export default function ReservationPage() {
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       if (isAuthenticated) {
-        console.info('write guard: authenticated');
+        developmentConsole.info('write guard: authenticated');
       } else {
-        console.info('write guard: anonymous');
+        developmentConsole.info('write guard: anonymous');
       }
     }
   }, [isAuthenticated]);
@@ -223,7 +225,7 @@ export default function ReservationPage() {
 
     async function runAvailabilityCheck() {
       if (process.env.NODE_ENV === 'development') {
-        console.info('reservation availability check started');
+        developmentConsole.info('reservation availability check started');
       }
 
       try {
@@ -244,20 +246,20 @@ export default function ReservationPage() {
 
         if (isAvailable) {
           if (process.env.NODE_ENV === 'development') {
-            console.info('reservation availability free');
+            developmentConsole.info('reservation availability free');
           }
           setAvailabilityWarning(null);
           return;
         }
 
         if (process.env.NODE_ENV === 'development') {
-          console.info('reservation availability conflict');
+          developmentConsole.info('reservation availability conflict');
         }
         setAvailabilityWarning('Vybraný termín je pravděpodobně obsazen.');
       } catch (error) {
         if (!active) return;
         if (process.env.NODE_ENV === 'development') {
-          console.error('availability check failed', error);
+          developmentConsole.error('availability check failed', error);
         }
         setAvailabilityWarning(getReservationAvailabilityPrecheckErrorMessage());
       }
@@ -316,7 +318,7 @@ export default function ReservationPage() {
       }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('availability precheck before submit failed', error);
+        developmentConsole.error('availability precheck before submit failed', error);
       }
       setSubmitError(getReservationAvailabilityPrecheckErrorMessage());
       return;

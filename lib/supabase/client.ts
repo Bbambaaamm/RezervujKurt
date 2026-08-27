@@ -1,3 +1,4 @@
+import { developmentConsole } from '../services/development-console';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -38,7 +39,7 @@ function logSupabaseSelectDebug(path: string, role: 'anon' | 'access_token') {
   }
 
   const finalUrl = getRestUrl(path);
-  console.info('supabase select request', { role, path, finalUrl });
+  developmentConsole.info('supabase select request', { role, path, finalUrl });
 }
 
 export async function supabaseSelect<T>(path: string): Promise<T[]> {
