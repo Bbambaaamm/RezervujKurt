@@ -102,7 +102,7 @@ test('pravidla rezervací uvádějí odpovědnost správce bez tvrzení o automa
   const reservationRules = read('app/pravidla-rezervaci/page.tsx');
 
   assert.match(reservationRules, /Za schvalování rezervací odpovídá správce/);
-  assert.doesNotMatch(reservationRules, /automatick(?:é|y|ému|ého)\s+schvalování|automaticky\s+schvál/i);
+  assert.doesNotMatch(reservationRules, /automatick\p{L}*\s+(?:schválen|schvalov)\p{L}*|automaticky\s+schvál/iu);
 });
 
 test('veřejné UI neobsahuje cookie consent banner', () => {
