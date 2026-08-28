@@ -14,6 +14,7 @@ test('veřejný occupancy view vrací jen údaje obsazenosti', () => {
 
   assert.notEqual(selectProjection, '');
   assert.match(publicView, /court_id[\s\S]*reservation_date[\s\S]*time_from[\s\S]*time_to[\s\S]*status/i);
+  assert.doesNotMatch(selectProjection, /(?:^|,)\s*(?:r\s*\.\s*\*|r|\*)(?:\s+as\s+\w+)?\s*(?=,|$)/im);
   for (const privateColumn of ['user_id', 'email', 'full_name', 'name', 'phone', 'note', 'access_token', 'refresh_token']) {
     assert.doesNotMatch(selectProjection, new RegExp(`\\b${privateColumn}\\b`, 'i'));
   }
@@ -41,14 +42,15 @@ test('minimalizovaný audit zachovává systémové auto approve a ruční změn
 });
 
 test('login informuje o zpracování e-mailu bez GDPR checkboxu', () => {
+  const loginPage = read('app/prihlaseni/page.tsx');
   const registrationSources = [
-    read('app/prihlaseni/page.tsx'),
+    loginPage,
     read('supabase/templates/confirmation.html'),
     read('supabase/templates/magic_link.html'),
   ].join('\n');
 
-  assert.match(registrationSources, /E-mail používáme pro přihlášení/i);
-  assert.doesNotMatch(registrationSources, /type\s*=\s*["']checkbox["']|Souhlasím s GDPR/i);
+  assert.match(loginPage, /E-mail používáme pro přihlášení/);
+  assert.doesNotMatch(registrationSources, /type\s*=\s*(?:["']checkbox["']|checkbox|\{\s*["']checkbox["']\s*\})|Souhlasím s GDPR/i);
 });
 
 test('neúplná privacy route vrací 404 a není veřejně odkazovaná', () => {
