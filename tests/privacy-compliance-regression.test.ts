@@ -98,11 +98,11 @@ test('veřejné právní texty popisují aktuální stav bez implementační his
   assert.doesNotMatch(publicLegalText, /\b(?:19|20)\d{2}\b/);
 });
 
-test('pravidla rezervací popisují schvalování výhradně jako ruční proces správce', () => {
+test('pravidla rezervací uvádějí odpovědnost správce bez tvrzení o automatickém schválení', () => {
   const reservationRules = read('app/pravidla-rezervaci/page.tsx');
 
-  assert.match(reservationRules, /Schválení provádí správce ručně/);
-  assert.doesNotMatch(reservationRules, /automatick(?:é|y|ému|ého)\s+schvalování|automaticky\s+schvál/i);
+  assert.match(reservationRules, /Za schvalování rezervací odpovídá správce/);
+  assert.doesNotMatch(reservationRules, /automatick\p{L}*\s+(?:schválen|schvalov)\p{L}*|automaticky\s+schvál/iu);
 });
 
 test('veřejné UI neobsahuje cookie consent banner', () => {
