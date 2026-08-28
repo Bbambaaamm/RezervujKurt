@@ -10,10 +10,12 @@ function read(path: string): string {
 test('veřejný occupancy view vrací jen údaje obsazenosti', () => {
   const sql = read('supabase/migrations/20260721133000_waiting_for_payment_occupancy.sql');
   const publicView = sql.match(/create or replace view public\.reservation_public_occupancy[\s\S]*?grant select on public\.reservation_public_occupancy to authenticated;/i)?.[0] ?? '';
+  const selectProjection = publicView.match(/\bas\s+select([\s\S]*?)\bfrom\s+public\.reservations\s+r/i)?.[1] ?? '';
 
+  assert.notEqual(selectProjection, '');
   assert.match(publicView, /court_id[\s\S]*reservation_date[\s\S]*time_from[\s\S]*time_to[\s\S]*status/i);
-  for (const privateColumn of ['user_id', 'email', 'full_name', 'phone', 'note']) {
-    assert.doesNotMatch(publicView, new RegExp(`\\br\\.${privateColumn}\\b`, 'i'));
+  for (const privateColumn of ['user_id', 'email', 'full_name', 'name', 'phone', 'note', 'access_token', 'refresh_token']) {
+    assert.doesNotMatch(selectProjection, new RegExp(`\\b${privateColumn}\\b`, 'i'));
   }
 });
 
@@ -39,11 +41,14 @@ test('minimalizovaný audit zachovává systémové auto approve a ruční změn
 });
 
 test('login informuje o zpracování e-mailu bez GDPR checkboxu', () => {
-  const page = read('app/prihlaseni/page.tsx');
+  const registrationSources = [
+    read('app/prihlaseni/page.tsx'),
+    read('supabase/templates/confirmation.html'),
+    read('supabase/templates/magic_link.html'),
+  ].join('\n');
 
-  assert.match(page, /E-mail používáme pro přihlášení/);
-  assert.doesNotMatch(page, /href="\/ochrana-osobnich-udaju"/);
-  assert.doesNotMatch(page, /type="checkbox"|Souhlasím s GDPR/i);
+  assert.match(registrationSources, /E-mail používáme pro přihlášení/i);
+  assert.doesNotMatch(registrationSources, /type\s*=\s*["']checkbox["']|Souhlasím s GDPR/i);
 });
 
 test('neúplná privacy route vrací 404 a není veřejně odkazovaná', () => {
@@ -61,7 +66,7 @@ test('neúplná privacy route vrací 404 a není veřejně odkazovaná', () => {
   assert.match(privacyPage, /import\s*\{\s*notFound\s*\}\s*from\s*'next\/navigation'/);
   assert.match(privacyPage, /function\s+PrivacyPage\(\)\s*\{\s*notFound\(\);\s*return\s*\(/);
   assert.match(privacyPage, /Ochrana osobních údajů/);
-  assert.doesNotMatch(publicLinkSources, /href="\/ochrana-osobnich-udaju"/);
+  assert.doesNotMatch(publicLinkSources, /\/ochrana-osobnich-udaju/);
   assert.doesNotMatch(sitemap, /\/ochrana-osobnich-udaju/);
   assert.match(privacyPage, /robots:\s*\{\s*index:\s*false,\s*follow:\s*false\s*\}/);
 });
