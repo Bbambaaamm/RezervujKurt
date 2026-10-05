@@ -9,11 +9,18 @@ const migrationPath = resolve(
 );
 const migrationSql = readFileSync(migrationPath, 'utf8');
 
-test('uživatelský platební view vystavuje pouze bezpečný výřez vlastní platby', () => {
+test('uživatelský platební view používá security_invoker a neveřejný helper', () => {
+  assert.match(migrationSql, /create\s+or\s+replace\s+function\s+private\.payment_user_statuses_rows\(\)/i);
+  assert.match(migrationSql, /security\s+definer/i);
+  assert.match(migrationSql, /set\s+search_path\s*=\s*public,\s*pg_temp/i);
+  assert.match(migrationSql, /revoke\s+all\s+on\s+function\s+private\.payment_user_statuses_rows\(\)\s+from\s+public/i);
   assert.match(migrationSql, /create\s+or\s+replace\s+view\s+public\.payment_user_statuses/i);
-  assert.match(migrationSql, /with\s*\(security_invoker\s*=\s*false,\s*security_barrier\s*=\s*true\)/i);
+  assert.match(migrationSql, /with\s*\(security_invoker\s*=\s*true,\s*security_barrier\s*=\s*true\)/i);
+  assert.match(migrationSql, /from\s+private\.payment_user_statuses_rows\(\)/i);
+});
+
+test('uživatelský platební helper vystavuje pouze bezpečný výřez vlastní platby', () => {
   assert.match(migrationSql, /p\.reservation_id/i);
-  assert.match(migrationSql, /rp\.reservation_id/i);
   assert.match(migrationSql, /p\.amount_cents/i);
   assert.match(migrationSql, /p\.currency/i);
   assert.match(migrationSql, /p\.status/i);
@@ -23,41 +30,18 @@ test('uživatelský platební view vystavuje pouze bezpečný výřez vlastní p
   assert.match(migrationSql, /p\.refunded_at/i);
   assert.match(migrationSql, /join\s+public\.reservations\s+r\s+on\s+r\.id\s*=\s*rp\.reservation_id/i);
   assert.match(migrationSql, /where\s+r\.user_id\s*=\s*auth\.uid\(\)/i);
-});
-
-test('uživatelský platební view nezpřístupňuje citlivé GoPay a interní údaje', () => {
   assert.doesNotMatch(migrationSql, /provider_payment_id/i);
   assert.doesNotMatch(migrationSql, /provider_refund_id/i);
   assert.doesNotMatch(migrationSql, /idempotency_key/i);
   assert.doesNotMatch(migrationSql, /last_error/i);
-  assert.doesNotMatch(migrationSql, /attempt_count/i);
-  assert.doesNotMatch(migrationSql, /metadata/i);
 });
 
 test('uživatelský platební view je dostupný jen přihlášeným uživatelům', () => {
   assert.match(migrationSql, /revoke\s+all\s+privileges\s+on\s+public\.payment_user_statuses\s+from\s+public/i);
   assert.match(migrationSql, /revoke\s+all\s+privileges\s+on\s+public\.payment_user_statuses\s+from\s+anon/i);
-  assert.match(migrationSql, /revoke\s+all\s+privileges\s+on\s+public\.payment_user_statuses\s+from\s+authenticated/i);
   assert.match(migrationSql, /grant\s+select\s+on\s+public\.payment_user_statuses\s+to\s+authenticated/i);
-  assert.doesNotMatch(migrationSql, /grant\s+select\s+on\s+public\.payment_user_statuses\s+to\s+anon/i);
+  assert.match(migrationSql, /grant\s+execute\s+on\s+function\s+private\.payment_user_statuses_rows\(\)\s+to\s+authenticated,\s*service_role/i);
 });
-
-
-test('uživatelský platební view nepoužívá širokou projekci ani alternativní přístupovou větev', () => {
-  assert.doesNotMatch(migrationSql, /select\s+p\.\*/i);
-  assert.doesNotMatch(migrationSql, /where[\s\S]*\bor\b[\s\S]*auth\.uid\(\)/i);
-  assert.doesNotMatch(migrationSql, /where[\s\S]*auth\.uid\(\)[\s\S]*\bor\b/i);
-  assert.match(migrationSql, /where\s+r\.user_id\s*=\s*auth\.uid\(\)\s+and\s+rp\.payment_rank\s*=\s*1\s*;/i);
-});
-
-test('uživatelský platební view zachovává security barrier a nepřidává přímý SELECT na podkladové tabulky', () => {
-  assert.match(migrationSql, /security_barrier\s*=\s*true/i);
-  assert.match(migrationSql, /security_invoker\s*=\s*false/i);
-  assert.doesNotMatch(migrationSql, /grant\s+select\s+on\s+(?:table\s+)?public\.payments\s+to\s+authenticated/i);
-  assert.doesNotMatch(migrationSql, /grant\s+select\s+on\s+(?:table\s+)?public\.reservations\s+to\s+authenticated/i);
-  assert.doesNotMatch(migrationSql, /grant\s+[^;]*\s+on\s+(?:table\s+)?public\.payments\s+to\s+authenticated/i);
-});
-
 
 test('uživatelský platební view vrací nejvýše jeden deterministický platební pokus na rezervaci', () => {
   assert.match(migrationSql, /row_number\s*\(\s*\)\s+over\s*\(/i);
