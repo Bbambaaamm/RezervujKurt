@@ -1,3 +1,5 @@
+> **Aktualizace 2026-11-25:** Strategické pořadí další práce, release invarianty a oddělení Core/Payments nyní řídí [Kanonická roadmapa](kanonicka-roadmapa.md). Tento checklist zůstává evidencí historických a dílčích akceptačních kritérií. Pokud si dokumenty odporují v pořadí práce nebo release gatech, platí kanonická roadmapa.
+
 # Další postup projektu RezervujKurt
 
 > Řídicí checklist pro dokončení produkční připravenosti a navazující produktový rozvoj.
