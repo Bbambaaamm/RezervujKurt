@@ -209,3 +209,22 @@ Chybí:
 
 - Vercel team API audit dnes blokuje chybějící aktuální team-scope autorizace konektoru.
 - Některá Auth/organization nastavení (SSL/network restrictions, OTP expiry, SMTP config, org MFA/owners) nejsou dostupná přes současné Supabase MCP akce a jsou označena k samostatnému Management API/Dashboard auditu.
+
+
+## Dodatečná provozní kontrola
+
+### Edge Function source parity
+Nasazená `process-notification-outbox` v production i stagingu přesně odpovídá aktuálním souborům `index.ts` a `notification.ts` v GitHub `main`.
+
+### Cron
+Production aktivně spouští každou minutu:
+- `process-notification-outbox-every-minute`
+- `auto-approve-member-reservations-every-minute`.
+
+Staging má aktivní pouze:
+- `auto-approve-member-reservations-every-minute`.
+
+To vysvětluje historické staging pending eventy: notification worker tam není naplánovaný. Pending události jsou staré (2026-06-15 až 2026-07-21), nejde o čerstvě rostoucí frontu z dnešního provozu.
+
+### PostgREST Warp log
+Production PostgREST obsahuje opakované `Warp server error: Thread killed by timeout manager`, ale gateway log za kontrolovaných 24 hodin ukazuje 1460/1460 REST requestů se stavem HTTP 200. Nález proto klasifikujeme jako **monitoring anomaly / známý Warp log noise**, nikoli jako potvrzený aplikační incident.
